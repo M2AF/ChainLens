@@ -51,18 +51,12 @@ app.get('/api/resolve/unstoppable/:domain', async (req, res) => {
 // --- EVM NFT Helper ---
 const fetchAlchemyNFTs = async (network, address, chainId) => {
   try {
-    // FIX: Handle Abstract/Monad specific RPC endpoints if needed
-    const url = network.includes('abstract') || network.includes('monad') 
-      ? `https://${network}.g.alchemy.com/v2/${API_KEYS.alchemy}`
-      : `https://${network}.g.alchemy.com/nft/v3/${API_KEYS.alchemy}/getNFTsForOwner?owner=${address}&withMetadata=true`;
-
-    if (network.includes('abstract') || network.includes('monad')) {
-       // Newer chains use different NFT fetch logic; defaulting to empty if standard NFT API isn't enabled
-       return [];
-    }
+    // Standardize to NFT API v3 for all chains, including Abstract and Monad
+    const url = `https://${network}.g.alchemy.com/nft/v3/${API_KEYS.alchemy}/getNFTsForOwner?owner=${address}&withMetadata=true`;
 
     const res = await fetch(url);
     const data = await res.json();
+    
     return (data.ownedNfts || []).map(nft => ({
       id: `${chainId}-${nft.contract.address}-${nft.tokenId}`,
       name: nft.name || nft.title || 'Unnamed NFT',
@@ -70,9 +64,15 @@ const fetchAlchemyNFTs = async (network, address, chainId) => {
       collection: nft.contract.name || 'Collection',
       chain: chainId,
       isToken: false,
-      metadata: { traits: nft.raw?.metadata?.attributes || [], description: nft.description || '' }
+      metadata: { 
+        traits: nft.raw?.metadata?.attributes || nft.raw?.metadata?.traits || [], 
+        description: nft.description || '' 
+      }
     }));
-  } catch (e) { return []; }
+  } catch (e) { 
+    console.error(`Error fetching NFTs for ${chainId}:`, e);
+    return []; 
+  }
 };
 
 // --- EVM Token Helper (Native + ERC20) ---
@@ -194,7 +194,7 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
           ownerAddress: address, 
           page: 1, 
           limit: 100, 
-          options: { // Helius uses 'options' for these flags
+          options: { 
             showFungible: mode === 'tokens', 
             showNativeBalance: mode === 'tokens' 
           } 
@@ -248,7 +248,6 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
 
     const addrRes = await fetch(`https://cardano-mainnet.blockfrost.io/api/v0/addresses/${target}`, { headers: { project_id: API_KEYS.blockfrost } });
     
-    // FIX: If address is not found (404), it's likely a valid but unused address. Return empty array instead of failing.
     if (addrRes.status === 404) return res.json({ nfts: [] });
     
     const addrData = await addrRes.json();
