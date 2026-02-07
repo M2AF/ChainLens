@@ -190,16 +190,27 @@
             .filter(r => r.status === 'fulfilled' && r.value.nfts)
             .flatMap(r => r.value.nfts);
           
+          // --- DE-DUPLICATION LOGIC ---
+          const uniqueMap = new Map();
+          combined.forEach(nft => {
+            const id = nft.id || nft.mint || nft.address;
+            if (!uniqueMap.has(id)) {
+              uniqueMap.set(id, nft);
+            }
+          });
+          const uniqueAssets = Array.from(uniqueMap.values());
+          // ----------------------------
+
           if (!tokenMode) {
             const spamWords = ['voucher', 'wen', 'airdrop', 'promo', 'lucky', 'ticket', 'pass', 'jup', 'jupiter', 'unprotected', 'box', 'redeem', 'claim', 'gift', 'reward'];
-            const filtered = combined.filter(nft => {
+            const filtered = uniqueAssets.filter(nft => {
               const rawName = (nft.name || '').toLowerCase();
               const name = rawName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, "");
               return !spamWords.some(word => name.includes(word));
             });
             setNfts(filtered);
           } else {
-            setNfts(combined);
+            setNfts(uniqueAssets);
           }
         } catch (e) { console.error("Search error:", e); }
         setLoading(false);
