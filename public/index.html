@@ -115,28 +115,51 @@
       const clearAll = () => {
         setEvmAddr(''); setSolAddr(''); setAdaAddr('');
         setNfts([]); setResolvedEvm(null);
+        setSelectedAsset(null);
+      };
+
+      const resetEverything = () => {
+        if (confirm("Clear all results AND unhide all previously hidden assets?")) {
+            clearAll();
+            setHiddenIds([]);
+            setSpamIds([]);
+            localStorage.removeItem('hiddenAssets');
+            localStorage.removeItem('spamAssets');
+        }
       };
 
       const visibleAssets = useMemo(() => {
         return nfts.filter(nft => {
-          const id = nft.id || nft.mint || nft.address;
-          return !hiddenIds.includes(id) && !spamIds.includes(id);
+          const rawId = nft.address || nft.id || nft.mint || nft.name;
+          const compositeKey = `${nft.chain.toLowerCase()}-${String(rawId).toLowerCase()}`;
+          return !hiddenIds.includes(compositeKey) && !spamIds.includes(compositeKey);
         });
       }, [nfts, hiddenIds, spamIds]);
 
-      const hiddenList = useMemo(() => nfts.filter(nft => hiddenIds.includes(nft.id || nft.mint || nft.address)), [nfts, hiddenIds]);
-      const spamList = useMemo(() => nfts.filter(nft => spamIds.includes(nft.id || nft.mint || nft.address)), [nfts, spamIds]);
+      const hiddenList = useMemo(() => nfts.filter(nft => {
+        const rawId = nft.address || nft.id || nft.mint || nft.name;
+        const compositeKey = `${nft.chain.toLowerCase()}-${String(rawId).toLowerCase()}`;
+        return hiddenIds.includes(compositeKey);
+      }), [nfts, hiddenIds]);
+
+      const spamList = useMemo(() => nfts.filter(nft => {
+        const rawId = nft.address || nft.id || nft.mint || nft.name;
+        const compositeKey = `${nft.chain.toLowerCase()}-${String(rawId).toLowerCase()}`;
+        return spamIds.includes(compositeKey);
+      }), [nfts, spamIds]);
 
       const toggleHide = (e, nft) => {
         e.stopPropagation();
-        const id = nft.id || nft.mint || nft.address;
-        setHiddenIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+        const rawId = nft.address || nft.id || nft.mint || nft.name;
+        const compositeKey = `${nft.chain.toLowerCase()}-${String(rawId).toLowerCase()}`;
+        setHiddenIds(prev => prev.includes(compositeKey) ? prev.filter(i => i !== compositeKey) : [...prev, compositeKey]);
       };
 
       const toggleSpam = (e, nft) => {
         e.stopPropagation();
-        const id = nft.id || nft.mint || nft.address;
-        setSpamIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+        const rawId = nft.address || nft.id || nft.mint || nft.name;
+        const compositeKey = `${nft.chain.toLowerCase()}-${String(rawId).toLowerCase()}`;
+        setSpamIds(prev => prev.includes(compositeKey) ? prev.filter(i => i !== compositeKey) : [...prev, compositeKey]);
       };
 
       const unhideAll = () => {
@@ -187,17 +210,10 @@
             .filter(r => r.status === 'fulfilled' && r.value.nfts)
             .flatMap(r => r.value.nfts);
           
-          // --- ENHANCED DE-DUPLICATION LOGIC ---
           const uniqueMap = new Map();
           combined.forEach(nft => {
-            // Use address if it exists, fallback to id/mint, otherwise name
             const rawId = nft.address || nft.id || nft.mint || nft.name;
-            
-            // Normalize ID to lowercase to prevent 0xABC vs 0xabc duplicates
             const normalizedId = String(rawId).toLowerCase();
-            
-            // Create a key unique to the chain so Base ETH and Mainnet ETH stay separate,
-            // but multiple Base ETH entries are collapsed.
             const compositeKey = `${nft.chain.toLowerCase()}-${normalizedId}`;
             
             if (!uniqueMap.has(compositeKey)) {
@@ -205,7 +221,6 @@
             }
           });
           const uniqueAssets = Array.from(uniqueMap.values());
-          // ------------------------------------
 
           if (!tokenMode) {
             const spamWords = ['voucher', 'wen', 'airdrop', 'promo', 'lucky', 'ticket', 'pass', 'jup', 'jupiter', 'unprotected', 'box', 'redeem', 'claim', 'gift', 'reward'];
@@ -302,9 +317,12 @@
                   {loading ? 'ANALYZING...' : 'SCAN ASSETS'}
                 </button>
 
-                <div className="flex flex-col">
-                    <button onClick={clearAll} className={`px-12 py-7 rounded-xl font-heading font-bold text-sm border-2 transition-all ${darkMode ? 'border-slate-800 text-slate-500 hover:text-red-500' : 'border-slate-200 text-slate-400 hover:text-red-500'}`}>
-                    CLEAR
+                <div className="flex gap-2">
+                    <button onClick={clearAll} className={`px-8 py-7 rounded-xl font-heading font-bold text-xs border-2 transition-all ${darkMode ? 'border-slate-800 text-slate-500 hover:text-red-500' : 'border-slate-200 text-slate-400 hover:text-red-500'}`}>
+                      CLEAR
+                    </button>
+                    <button onClick={resetEverything} title="Reset App Preferences" className={`px-4 py-7 rounded-xl font-heading font-bold text-xs border-2 transition-all ${darkMode ? 'border-red-900/30 text-red-900 hover:bg-red-900 hover:text-white' : 'border-red-100 text-red-200 hover:bg-red-500 hover:text-white'}`}>
+                      RESET
                     </button>
                 </div>
               </div>
@@ -338,64 +356,69 @@
             </div>
 
             <div className={isListView ? "flex flex-col gap-4" : "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8"}>
-              {visibleAssets.map((nft, i) => (
-                <div key={nft.id || i} 
-                  onClick={() => setSelectedAsset(nft)} 
-                  className={`group relative overflow-hidden border transition-all cursor-pointer ${
-                    isListView 
-                    ? `flex items-center p-4 rounded-2xl ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 hover:shadow-md'}` 
-                    : `rounded-[2.5rem] shadow-sm flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 hover:-translate-y-2'}`
-                  }`}>
-                  
-                  <div className="absolute top-4 right-4 z-40 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                    <button 
-                      onClick={(e) => toggleHide(e, nft)}
-                      title="Hide Asset"
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-blue-500 text-white backdrop-blur-sm border border-white/10"
-                    >
-                      👁️
-                    </button>
-                    <button 
-                      onClick={(e) => toggleSpam(e, nft)}
-                      title="Mark as Spam"
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-red-600 text-white backdrop-blur-sm border border-white/10"
-                    >
-                      🚫
-                    </button>
-                  </div>
-
-                  <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-100"}>
-                    <img src={nft.image || `https://via.placeholder.com/400/334155/ffffff?text=${nft.symbol || '?'}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                    <div className={`absolute ${isListView ? 'top-1 left-1 px-1.5 py-0.5 text-[6px]' : 'top-4 left-4 px-3 py-1 text-[9px]'} rounded-full text-white font-bold tracking-widest uppercase backdrop-blur-md border border-white/20 shadow-lg z-10 ${chainStyles[nft.chain]?.color}`}>
-                      {nft.chain}
-                    </div>
-                  </div>
-
-                  <div className={isListView ? "flex-1 px-6 flex items-center justify-between overflow-hidden" : "p-5 text-center"}>
-                    <div className={isListView ? "flex items-center gap-4 min-w-0" : "flex flex-col items-center"}>
-                      <p className={`font-heading font-bold truncate uppercase tracking-tight shrink-0 ${isListView ? 'text-lg max-w-[200px]' : 'text-sm'} ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                        {nft.name}
-                      </p>
+              {visibleAssets.map((nft, i) => {
+                const rawId = nft.address || nft.id || nft.mint || nft.name;
+                const assetKey = `${nft.chain}-${String(rawId).toLowerCase()}`;
+                
+                return (
+                    <div key={assetKey} 
+                    onClick={() => setSelectedAsset(nft)} 
+                    className={`group relative overflow-hidden border transition-all cursor-pointer ${
+                        isListView 
+                        ? `flex items-center p-4 rounded-2xl ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 hover:shadow-md'}` 
+                        : `rounded-[2.5rem] shadow-sm flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 hover:-translate-y-2'}`
+                    }`}>
+                    
+                    <div className="absolute top-4 right-4 z-40 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                        <button 
+                        onClick={(e) => toggleHide(e, nft)}
+                        title="Hide Asset"
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-blue-500 text-white backdrop-blur-sm border border-white/10"
+                        >
+                        👁️
+                        </button>
+                        <button 
+                        onClick={(e) => toggleSpam(e, nft)}
+                        title="Mark as Spam"
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-red-600 text-white backdrop-blur-sm border border-white/10"
+                        >
+                        🚫
+                        </button>
                     </div>
 
-                    {(nft.isToken || tokenMode) && (
-                      <div className={isListView ? "text-right flex flex-col items-end shrink-0" : "mt-2 pt-2 border-t border-slate-100 dark:border-slate-800"}>
-                        <p className="text-emerald-500 font-bold text-lg leading-none">
-                          {nft.balance} <span className="text-[10px] opacity-60">{nft.symbol}</span>
-                        </p>
-                        <div className="flex flex-col mt-1">
-                          <span className={`font-bold uppercase tracking-tighter text-lg ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                             {nft.nativePrice || '0.00'} {chainStyles[nft.chain]?.native || '???'}
-                          </span>
-                          <span className={`font-bold uppercase tracking-tighter text-lg opacity-70 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                            ${nft.totalValue || '0.00'}
-                          </span>
+                    <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-100"}>
+                        <img src={nft.image || `https://via.placeholder.com/400/334155/ffffff?text=${nft.symbol || '?'}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                        <div className={`absolute ${isListView ? 'top-1 left-1 px-1.5 py-0.5 text-[6px]' : 'top-4 left-4 px-3 py-1 text-[9px]'} rounded-full text-white font-bold tracking-widest uppercase backdrop-blur-md border border-white/20 shadow-lg z-10 ${chainStyles[nft.chain]?.color}`}>
+                        {nft.chain}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                    </div>
+
+                    <div className={isListView ? "flex-1 px-6 flex items-center justify-between overflow-hidden" : "p-5 text-center"}>
+                        <div className={isListView ? "flex items-center gap-4 min-w-0" : "flex flex-col items-center"}>
+                        <p className={`font-heading font-bold truncate uppercase tracking-tight shrink-0 ${isListView ? 'text-lg max-w-[200px]' : 'text-sm'} ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                            {nft.name}
+                        </p>
+                        </div>
+
+                        {(nft.isToken || tokenMode) && (
+                        <div className={isListView ? "text-right flex flex-col items-end shrink-0" : "mt-2 pt-2 border-t border-slate-100 dark:border-slate-800"}>
+                            <p className="text-emerald-500 font-bold text-lg leading-none">
+                            {nft.balance} <span className="text-[10px] opacity-60">{nft.symbol}</span>
+                            </p>
+                            <div className="flex flex-col mt-1">
+                            <span className={`font-bold uppercase tracking-tighter text-lg ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                                {nft.nativePrice || '0.00'} {chainStyles[nft.chain]?.native || '???'}
+                            </span>
+                            <span className={`font-bold uppercase tracking-tighter text-lg opacity-70 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                ${nft.totalValue || '0.00'}
+                            </span>
+                            </div>
+                        </div>
+                        )}
+                    </div>
+                    </div>
+                );
+              })}
             </div>
 
             {showManager && (
@@ -412,7 +435,7 @@
                     ) : (
                       <>
                         {hiddenList.map(nft => (
-                          <div key={nft.id || nft.mint || nft.address} className="flex items-center justify-between p-3 rounded-2xl bg-black/20 border border-white/5">
+                          <div key={`${nft.chain}-${nft.address || nft.id || nft.mint || nft.name}`} className="flex items-center justify-between p-3 rounded-2xl bg-black/20 border border-white/5">
                             <div className="flex items-center gap-4">
                               <img src={nft.image} className="w-10 h-10 rounded-lg object-cover" />
                               <span className="text-xs font-bold uppercase tracking-tighter">{nft.name} (Hidden)</span>
@@ -421,7 +444,7 @@
                           </div>
                         ))}
                         {spamList.map(nft => (
-                          <div key={nft.id || nft.mint || nft.address} className="flex items-center justify-between p-3 rounded-2xl bg-red-950/20 border border-red-500/10">
+                          <div key={`${nft.chain}-${nft.address || nft.id || nft.mint || nft.name}`} className="flex items-center justify-between p-3 rounded-2xl bg-red-950/20 border border-red-500/10">
                             <div className="flex items-center gap-4">
                               <img src={nft.image} className="w-10 h-10 rounded-lg object-cover" />
                               <span className="text-xs font-bold uppercase tracking-tighter text-red-400">{nft.name} (Spam)</span>
