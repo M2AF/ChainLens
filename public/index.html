@@ -190,16 +190,19 @@
             .filter(r => r.status === 'fulfilled' && r.value.nfts)
             .flatMap(r => r.value.nfts);
           
-          // --- DE-DUPLICATION LOGIC ---
+          // --- IMPROVED DE-DUPLICATION (CHAIN-AWARE) ---
           const uniqueMap = new Map();
           combined.forEach(nft => {
-            const id = nft.id || nft.mint || nft.address;
-            if (!uniqueMap.has(id)) {
-              uniqueMap.set(id, nft);
+            const assetId = nft.id || nft.mint || nft.address || nft.name;
+            // Create a unique key using the chain + the asset ID
+            const compositeKey = `${nft.chain}-${assetId}`;
+            
+            if (!uniqueMap.has(compositeKey)) {
+              uniqueMap.set(compositeKey, nft);
             }
           });
           const uniqueAssets = Array.from(uniqueMap.values());
-          // ----------------------------
+          // --------------------------------------------
 
           if (!tokenMode) {
             const spamWords = ['voucher', 'wen', 'airdrop', 'promo', 'lucky', 'ticket', 'pass', 'jup', 'jupiter', 'unprotected', 'box', 'redeem', 'claim', 'gift', 'reward'];
