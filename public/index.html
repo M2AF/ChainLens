@@ -83,13 +83,13 @@
       const [isResolving, setIsResolving] = useState(false);
 
       const chainStyles = {
-        ethereum: { color: 'bg-[#3c3c3d]', label: 'Ethereum' },
-        polygon: { color: 'bg-[#7B3FE4]', label: 'Polygon' },
-        base: { color: 'bg-[#0052FF]', label: 'Base' },
-        solana: { color: 'bg-solana-gradient-soft', label: 'Solana' },
-        cardano: { color: 'bg-[#0033AD]', label: 'Cardano' },
-        monad: { color: 'bg-[#836EF9]', label: 'Monad' },
-        abstract: { color: 'bg-[#00FF85] text-black', label: 'Abstract' }
+        ethereum: { color: 'bg-[#3c3c3d]', label: 'Ethereum', native: 'ETH' },
+        polygon: { color: 'bg-[#7B3FE4]', label: 'Polygon', native: 'MATIC' },
+        base: { color: 'bg-[#0052FF]', label: 'Base', native: 'ETH' },
+        solana: { color: 'bg-solana-gradient-soft', label: 'Solana', native: 'SOL' },
+        cardano: { color: 'bg-[#0033AD]', label: 'Cardano', native: 'ADA' },
+        monad: { color: 'bg-[#836EF9]', label: 'Monad', native: 'MON' },
+        abstract: { color: 'bg-[#00FF85] text-black', label: 'Abstract', native: 'ETH' }
       };
 
       useEffect(() => {
@@ -315,11 +315,12 @@
                         </p>
                         
                         <div className="flex flex-col mt-1">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                            ${nft.usdPrice || '0.00'} / unit
+                          {/* UPDATED: Native Pricing Display */}
+                          <span className={`font-bold uppercase tracking-tighter ${darkMode ? 'text-blue-400' : 'text-blue-600'} ${isListView ? 'text-[12px]' : 'text-[11px]'}`}>
+                             {nft.nativePrice || '0.00'} {chainStyles[nft.chain]?.native || '???'}
                           </span>
-                          <span className={`font-bold ${darkMode ? 'text-white' : 'text-slate-900'} ${isListView ? 'text-xl' : 'text-sm'}`}>
-                            Val: ${nft.totalValue || '0.00'}
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter opacity-70">
+                            USD Val: ${nft.totalValue || '0.00'}
                           </span>
                         </div>
                       </div>
@@ -357,7 +358,7 @@
                                 <p className="text-[13px] font-bold truncate mt-1">{String(t.value)}</p>
                               </div>
                             )) : <p className="text-sm italic opacity-40">No attributes found</p>;
-                          })()}
+                          })()}\
                         </div>
                       </div>
                     </div>
