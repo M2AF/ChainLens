@@ -14,7 +14,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <script src="https://terminal.jup.ag/main-v3.js" data-preload></script>
+  <script src="https://terminal.jup.ag/main-v1.js" data-preload></script>
 
   <script>
     tailwind.config = {
@@ -94,6 +94,7 @@
         width: 100%; 
         height: 100%; 
         overflow: hidden;
+        background: transparent;
     }
   </style>
 </head>
@@ -137,22 +138,26 @@
         abstract: { color: 'bg-[#00FF85] text-black', label: 'Abstract', native: 'ETH' }
       };
 
+      // UPDATED JUPITER INITIALIZATION LOGIC
       useEffect(() => {
         if (activeTab === 'swap') {
           const initJup = () => {
             const container = document.getElementById('integrated-terminal');
             if (window.Jupiter && container) {
-              container.innerHTML = '';
+              container.innerHTML = ''; // Clear previous instances
               window.Jupiter.init({
                 displayMode: "integrated",
                 integratedTargetId: "integrated-terminal",
-                endpoint: "https://api.mainnet-beta.solana.com",
-                strictTokenList: false,
+                // Using a fallback public endpoint if no specific key is provided
+                endpoint: "https://api.mainnet-beta.solana.com", 
+                strictTokenList: true,
                 formProps: {
                     fixedOutputMint: false,
+                    initialAmount: "1000000000", // 1 SOL default
                 },
               });
             } else {
+              // Retry if script isn't loaded yet
               setTimeout(initJup, 500);
             }
           };
@@ -272,7 +277,7 @@
           setIsResolving(false);
         }
 
-        // 2. Resolve ADA Handles (Cardano) - UPDATED LOGIC
+        // 2. Resolve ADA Handles (Cardano)
         if (targetAda && (targetAda.startsWith('$') || !targetAda.startsWith('addr1'))) {
           setIsResolving(true);
           try {
