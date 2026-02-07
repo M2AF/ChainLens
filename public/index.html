@@ -152,7 +152,7 @@
             .flatMap(r => r.value.nfts);
           
           if (!tokenMode) {
-            const spamWords = ['voucher', 'wen', 'airdrop', 'promo', 'lucky', 'ticket', 'pass', 'jup', 'jupiter', 'unprotected', 'box', 'redeem', 'claim', 'gift'];
+            const spamWords = ['voucher', 'wen', 'airdrop', 'promo', 'lucky', 'ticket', 'pass', 'jup', 'jupiter', 'unprotected', 'box', 'redeem', 'claim', 'gift', 'reward'];
             const filtered = combined.filter(nft => {
               const rawName = (nft.name || '').toLowerCase();
               const name = rawName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, "");
