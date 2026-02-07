@@ -68,9 +68,11 @@
     const { useState, useEffect } = React;
 
     const App = () => {
-      const [evmAddr, setEvmAddr] = useState('');
-      const [solAddr, setSolAddr] = useState('');
-      const [adaAddr, setAdaAddr] = useState('');
+      // Test addresses restored
+      const [evmAddr, setEvmAddr] = useState('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045');
+      const [solAddr, setSolAddr] = useState('78b5fS8UMrs9z78bmXvSshYv2cqN6ksf226v5SbcSbc6');
+      const [adaAddr, setAdaAddr] = useState('$handle');
+      
       const [activeChains, setActiveChains] = useState(['ethereum', 'polygon', 'base', 'solana', 'cardano', 'abstract', 'monad']);
       const [nfts, setNfts] = useState([]);
       const [loading, setLoading] = useState(false);
@@ -284,7 +286,7 @@
                   <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-100"}>
                     <img src={nft.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                     
-                    {/* Badge now renders regardless of isListView state */}
+                    {/* FIXED: Removed !isListView check so badge always shows */}
                     <div className={`absolute ${isListView ? 'top-1 left-1 px-1.5 py-0.5 text-[6px]' : 'top-4 left-4 px-3 py-1 text-[9px]'} rounded-full text-white font-bold tracking-widest uppercase backdrop-blur-md border border-white/20 shadow-lg z-10 ${chainStyles[nft.chain]?.color}`}>
                       {nft.chain}
                     </div>
