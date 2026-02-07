@@ -14,6 +14,8 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   
+  <script src="https://terminal.jup.ag/main-v3.js" data-preload></script>
+
   <script>
     tailwind.config = {
       theme: {
@@ -73,13 +75,20 @@
         box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
     }
 
-    /* Swap Widget Styling */
-    .swap-container iframe {
-        border-radius: 24px;
-        min-height: 600px;
+    /* Terminal Container Styling */
+    .swap-column {
+        height: 650px;
         width: 100%;
+        border-radius: 2rem;
+        overflow: hidden;
+        position: relative;
+    }
+    .swap-column iframe {
+        width: 100%;
+        height: 100%;
         border: none;
     }
+    #integrated-terminal { width: 100%; height: 100%; }
   </style>
 </head>
 <body>
@@ -89,7 +98,7 @@
     const { useState, useEffect, useMemo } = React;
 
     const App = () => {
-      const [activeTab, setActiveTab] = useState('portfolio'); // 'portfolio' or 'swap'
+      const [activeTab, setActiveTab] = useState('portfolio'); 
       const [evmAddr, setEvmAddr] = useState('');
       const [solAddr, setSolAddr] = useState('');
       const [adaAddr, setAdaAddr] = useState('');
@@ -121,6 +130,26 @@
         monad: { color: 'bg-[#836EF9]', label: 'Monad', native: 'MON' },
         abstract: { color: 'bg-[#00FF85] text-black', label: 'Abstract', native: 'ETH' }
       };
+
+      // Initialize Jupiter Terminal when Swap tab is active
+      useEffect(() => {
+        if (activeTab === 'swap') {
+          const initJup = () => {
+            if (window.Jupiter && document.getElementById('integrated-terminal')) {
+              window.Jupiter.init({
+                displayMode: "integrated",
+                integratedTargetId: "integrated-terminal",
+                endpoint: "https://api.mainnet-beta.solana.com",
+                strictTokenList: false,
+                containerStyles: { zIndex: 10 },
+              });
+            } else {
+              setTimeout(initJup, 500);
+            }
+          };
+          initJup();
+        }
+      }, [activeTab]);
 
       useEffect(() => {
         const savedMode = localStorage.getItem('darkMode');
@@ -301,7 +330,7 @@
         <div className={`min-h-screen transition-colors duration-500 ${darkMode ? 'bg-slate-950 text-white dark-scroll' : 'bg-slate-50 text-slate-900'}`}>
           
           {/* Header & Navigation */}
-          <div className="max-w-6xl mx-auto p-4 md:p-8 pt-12">
+          <div className="max-w-[1400px] mx-auto p-4 md:p-8 pt-12">
             <div className="flex flex-col items-center mb-8">
               <div className="relative group">
                   <img 
@@ -334,7 +363,7 @@
             {activeTab === 'portfolio' ? (
                 <>
                 {/* Search & Control Panel */}
-                <div className={`p-6 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl border mb-6 glass-card ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100'}`}>
+                <div className={`max-w-6xl mx-auto p-6 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl border mb-6 glass-card ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100'}`}>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mb-10">
                     <div className="space-y-4">
                       <div className="flex justify-between items-end">
@@ -400,7 +429,7 @@
 
                 {/* Portfolio Summary Bar */}
                 {nfts.length > 0 && (
-                    <div className={`mb-8 p-6 rounded-3xl border flex flex-wrap items-center justify-between gap-6 transition-all ${darkMode ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white border-slate-200'}`}>
+                    <div className={`max-w-6xl mx-auto mb-8 p-6 rounded-3xl border flex flex-wrap items-center justify-between gap-6 transition-all ${darkMode ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white border-slate-200'}`}>
                         <div className="flex gap-8">
                             <div>
                                 <p className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-1">Total Value</p>
@@ -436,7 +465,7 @@
                 )}
 
                 {/* Display Controls */}
-                <div className="flex justify-between items-center px-4 md:px-8 py-4 mb-8">
+                <div className="max-w-6xl mx-auto flex justify-between items-center px-4 md:px-8 py-4 mb-8">
                     <div className="flex items-center space-x-6">
                         <div className="flex items-center space-x-3">
                           <span className="text-[10px] font-bold uppercase tracking-widest opacity-60 min-w-[70px]">
@@ -463,14 +492,8 @@
                     </div>
                 </div>
 
-                {visibleAssets.length === 0 && !loading && nfts.length > 0 && (
-                    <div className="text-center py-20 opacity-40">
-                        <p className="text-xl font-heading italic">No assets match your current filters.</p>
-                    </div>
-                )}
-
                 {/* Asset Grid/List */}
-                <div className={isListView ? "flex flex-col gap-3" : "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8"}>
+                <div className={`max-w-6xl mx-auto ${isListView ? "flex flex-col gap-3" : "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8"}`}>
                   {visibleAssets.map((nft, i) => {
                     const rawId = nft.address || nft.id || nft.mint || nft.name;
                     const assetKey = `${nft.chain}-${String(rawId).toLowerCase()}`;
@@ -485,20 +508,8 @@
                         }`}>
                         
                         <div className="absolute top-4 right-4 z-40 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                            <button 
-                            onClick={(e) => toggleHide(e, nft)}
-                            title="Hide Asset"
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-blue-500 text-white backdrop-blur-sm border border-white/10"
-                            >
-                            👁️
-                            </button>
-                            <button 
-                            onClick={(e) => toggleSpam(e, nft)}
-                            title="Mark as Spam"
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-red-600 text-white backdrop-blur-sm border border-white/10"
-                            >
-                            🚫
-                            </button>
+                            <button onClick={(e) => toggleHide(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-blue-500 text-white backdrop-blur-sm border border-white/10">👁️</button>
+                            <button onClick={(e) => toggleSpam(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-red-600 text-white backdrop-blur-sm border border-white/10">🚫</button>
                         </div>
 
                         <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-100"}>
@@ -515,21 +526,14 @@
                                 </p>
                                 {isListView && <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{nft.symbol || 'ASSET'}</span>}
                             </div>
-
                             {(nft.isToken || tokenMode) && (
                             <div className={isListView ? "text-right flex flex-row items-center gap-8 shrink-0" : "mt-2 pt-2 border-t border-slate-100 dark:border-slate-800"}>
                                 <div className={isListView ? "flex flex-col items-end" : ""}>
-                                    <p className="text-emerald-500 font-bold text-lg leading-none">
-                                    {nft.balance} <span className="text-[10px] opacity-60">{nft.symbol}</span>
-                                    </p>
+                                    <p className="text-emerald-500 font-bold text-lg leading-none">{nft.balance} <span className="text-[10px] opacity-60">{nft.symbol}</span></p>
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className={`font-bold uppercase tracking-tighter text-lg ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                                        {nft.nativePrice || '0.00'} {chainStyles[nft.chain]?.native || '???'}
-                                    </span>
-                                    <span className={`font-bold uppercase tracking-tighter text-lg opacity-70 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                                        ${nft.totalValue || '0.00'}
-                                    </span>
+                                    <span className={`font-bold uppercase tracking-tighter text-lg ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>{nft.nativePrice || '0.00'} {chainStyles[nft.chain]?.native || '???'}</span>
+                                    <span className={`font-bold uppercase tracking-tighter text-lg opacity-70 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>${nft.totalValue || '0.00'}</span>
                                 </div>
                             </div>
                             )}
@@ -540,31 +544,62 @@
                 </div>
                 </>
             ) : (
-                /* Swap Hub Tab with DexHunter Integration */
-                <div className={`p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl border glass-card swap-container ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100'}`}>
-                    <div className="max-w-xl mx-auto">
-                        <div className="text-center mb-8">
-                            <h2 className="text-3xl font-heading font-extrabold uppercase mb-2">Multi-Chain Swap</h2>
-                            <p className="text-sm opacity-60">Execute swaps across Cardano and other networks via DexHunter Aggregator.</p>
+                /* SIDE-BY-SIDE SWAP HUB */
+                <div className="space-y-8">
+                    <div className="text-center">
+                         <h2 className="text-4xl font-heading font-extrabold uppercase mb-2">Multi-Chain Swap Hub</h2>
+                         <p className="text-sm opacity-60">Solana, EVM, and Cardano terminals loaded side-by-side for maximum efficiency.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* EVM Terminal (Ethereum/Polygon/Base) */}
+                        <div className={`swap-column border glass-card ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
+                            <div className="p-4 border-b border-white/5 flex justify-between items-center">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500">EVM Terminal</span>
+                                <div className="flex gap-1">
+                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                    <div className="w-2 h-2 rounded-full bg-[#7B3FE4]"></div>
+                                    <div className="w-2 h-2 rounded-full bg-[#0052FF]"></div>
+                                </div>
+                            </div>
+                            <iframe 
+                                src="https://app.uniswap.org/#/swap?use=v3" 
+                                title="EVM Swap"
+                            ></iframe>
                         </div>
-                        
-                        {/* DexHunter Widget Iframe */}
-                        <iframe 
-                            src="https://app.dexhunter.io/swap?partnerId=YOUR_PARTNER_ID"
-                            title="DexHunter Swap"
-                            allow="clipboard-read; clipboard-write"
-                        ></iframe>
-                        
-                        <div className="mt-8 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-center">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400">
-                                Protected by DexHunter Aggregator Protocol
-                            </p>
+
+                        {/* Solana Terminal (Jupiter) */}
+                        <div className={`swap-column border glass-card ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
+                            <div className="p-4 border-b border-white/5 flex justify-between items-center">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Solana Terminal</span>
+                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                            </div>
+                            <div id="integrated-terminal"></div>
                         </div>
+
+                        {/* Cardano Terminal (DexHunter) */}
+                        <div className={`swap-column border glass-card ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
+                            <div className="p-4 border-b border-white/5 flex justify-between items-center">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-500">Cardano Terminal</span>
+                                <div className="w-2 h-2 rounded-full bg-cyan-500"></div>
+                            </div>
+                            <iframe 
+                                src="https://app.dexhunter.io/swap"
+                                title="DexHunter Cardano Swap"
+                                allow="clipboard-read; clipboard-write"
+                            ></iframe>
+                        </div>
+                    </div>
+
+                    <div className="max-w-xl mx-auto p-4 rounded-3xl bg-blue-500/10 border border-blue-500/20 text-center">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400">
+                            Aggregation provided by Uniswap, Jupiter, and DexHunter Protocols
+                        </p>
                     </div>
                 </div>
             )}
 
-            {/* Manager Modal */}
+            {/* Manager Modal (Hidden/Spam) */}
             {showManager && (
               <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-xl modal-enter">
                 <div className={`max-w-2xl w-full border rounded-[3rem] p-6 md:p-10 shadow-2xl flex flex-col max-h-[80vh] ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
@@ -572,7 +607,6 @@
                     <h2 className="text-2xl font-heading font-extrabold uppercase">Managed Assets</h2>
                     <button onClick={() => setShowManager(false)} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-800 text-white hover:bg-red-500 transition-colors">✕</button>
                   </div>
-
                   <div className="flex-1 overflow-y-auto dark-scroll pr-2 space-y-4">
                     {[...hiddenList, ...spamList].length === 0 ? (
                       <p className="text-center py-20 opacity-30 italic">No hidden or spam assets.</p>
@@ -599,14 +633,9 @@
                       </>
                     )}
                   </div>
-
                   <div className="mt-8 pt-6 border-t border-white/5 flex gap-4">
-                    <button onClick={unhideAll} className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-2xl transition-all">
-                      Unhide All Assets
-                    </button>
-                    <button onClick={() => setShowManager(false)} className="px-8 py-4 bg-slate-800 text-[10px] font-bold uppercase tracking-widest rounded-2xl">
-                      Close
-                    </button>
+                    <button onClick={unhideAll} className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-2xl transition-all">Unhide All Assets</button>
+                    <button onClick={() => setShowManager(false)} className="px-8 py-4 bg-slate-800 text-[10px] font-bold uppercase tracking-widest rounded-2xl">Close</button>
                   </div>
                 </div>
               </div>
@@ -625,7 +654,6 @@
                        <div className={`inline-block px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4 ${chainStyles[selectedAsset.chain]?.color} text-white`}>{selectedAsset.chain}</div>
                        <h1 className="text-4xl font-heading font-black uppercase mb-2 leading-none">{selectedAsset.name}</h1>
                        <p className="text-sm font-bold opacity-40 uppercase tracking-widest mb-8">{selectedAsset.symbol || 'ASSET'}</p>
-                       
                        {selectedAsset.isToken && (
                          <div className="mb-8 grid grid-cols-2 gap-4">
                             <div className="p-4 rounded-2xl bg-black/5 border border-white/5">
@@ -638,7 +666,6 @@
                             </div>
                          </div>
                        )}
-
                        <div className="space-y-6">
                           <div>
                              <h3 className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-3">Attributes</h3>
