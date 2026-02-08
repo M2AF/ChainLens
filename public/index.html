@@ -14,7 +14,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <script src="https://terminal.jup.ag/main-v3.js" data-preload></script>
+  <!-- Jupiter Terminal script no longer needed - using iframe instead -->
 
   <script>
     tailwind.config = {
@@ -90,12 +90,6 @@
         flex-grow: 1;
         border: none;
     }
-    #integrated-terminal { 
-        width: 100%; 
-        height: 100%; 
-        overflow: hidden;
-        background: transparent;
-    }
   </style>
 </head>
 <body>
@@ -138,32 +132,7 @@
         abstract: { color: 'bg-[#00FF85] text-black', label: 'Abstract', native: 'ETH' }
       };
 
-      // UPDATED JUPITER INITIALIZATION LOGIC
-      useEffect(() => {
-        if (activeTab === 'swap') {
-          const initJup = () => {
-            const container = document.getElementById('integrated-terminal');
-            if (window.Jupiter && container) {
-              container.innerHTML = ''; // Clear previous instances
-              window.Jupiter.init({
-                displayMode: "integrated",
-                integratedTargetId: "integrated-terminal",
-                // Using Project Serum RPC - reliable and Jupiter-friendly
-                endpoint: "https://solana-api.projectserum.com",
-                defaultExplorer: "Solscan",
-                formProps: {
-                    fixedOutputMint: false,
-                    initialAmount: "1000000000", // 1 SOL default
-                },
-              });
-            } else {
-              // Retry if script isn't loaded yet
-              setTimeout(initJup, 500);
-            }
-          };
-          initJup();
-        }
-      }, [activeTab]);
+      // Jupiter now uses simple iframe - no initialization needed
 
       useEffect(() => {
         const savedMode = localStorage.getItem('darkMode');
@@ -595,7 +564,11 @@
                                 <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Solana Terminal</span>
                                 <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                             </div>
-                            <div id="integrated-terminal"></div>
+                            <iframe 
+                                src="https://jup.ag/swap" 
+                                title="Jupiter Swap"
+                                allow="clipboard-write"
+                            ></iframe>
                         </div>
 
                         <div className={`swap-column border glass-card ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
