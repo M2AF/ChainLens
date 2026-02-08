@@ -17,8 +17,8 @@ const API_KEYS = {
   helius: process.env.HELIUS_KEY, 
   unstoppable: process.env.UNSTOPPABLE_KEY,
   dexhunter: process.env.DEXHUNTER_PARTNER_ID,
-  jupiter: process.env.JUPITER_API_KEY, // Optional: Jupiter Pro key
-  uniswap: process.env.UNISWAP_API_KEY  // Optional: Uniswap Routing API key
+  jupiter: process.env.JUPITER_API_KEY, 
+  uniswap: process.env.UNISWAP_API_KEY  
 };
 
 // --- Price Discovery Helper ---
@@ -74,13 +74,13 @@ app.get('/api/resolve/ens/:name', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 3. ADA Handle Resolution (Cardano) - FIXED VERSION
+// 3. ADA Handle Resolution (Cardano) - REPAIRED
 app.get('/api/resolve/handle/:handle', async (req, res) => {
-  // Handles are case-insensitive and prefix with '$'
+  // Normalize: Strip $ and convert to lowercase as per Cardano standards
   let handle = req.params.handle.replace('$', '').toLowerCase();
   
   try {
-    // Attempt 1: Official Handle.me API (Best practice)
+    // Attempt 1: Official Handle.me API lookup
     const handleRes = await fetch(`https://api.handle.me/lookup/${handle}`);
     if (handleRes.ok) {
       const handleData = await handleRes.json();
@@ -89,7 +89,8 @@ app.get('/api/resolve/handle/:handle', async (req, res) => {
       }
     }
 
-    // Attempt 2: Manual Fallback via Blockfrost (Using correct Mainnet Policy ID)
+    // Attempt 2: Manual Fallback via Blockfrost (Using ADA Handle Policy ID)
+    // Policy ID for Mainnet ADA Handles: f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a
     const policyId = "f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a";
     const assetNameHex = Buffer.from(handle).toString('hex');
     const assetId = policyId + assetNameHex;
@@ -97,15 +98,19 @@ app.get('/api/resolve/handle/:handle', async (req, res) => {
     const bfRes = await fetch(`https://cardano-mainnet.blockfrost.io/api/v0/assets/${assetId}/addresses`, {
       headers: { 'project_id': API_KEYS.blockfrost }
     });
-    const bfData = await bfRes.json();
-
-    if (bfData && bfData.length > 0) {
-      res.json({ address: bfData[0].address });
-    } else {
-      res.status(404).json({ error: 'Handle not found or not currently minted.' });
+    
+    if (bfRes.ok) {
+      const bfData = await bfRes.json();
+      // Blockfrost returns an array: [{ address: "addr1...", quantity: "1" }]
+      if (bfData && bfData.length > 0 && bfData[0].address) {
+        return res.json({ address: bfData[0].address });
+      }
     }
+
+    res.status(404).json({ error: 'Handle not found or not minted.' });
   } catch (err) { 
-    res.status(500).json({ error: err.message }); 
+    console.error("Resolution Error:", err);
+    res.status(500).json({ error: "Server error during handle resolution." }); 
   }
 });
 
@@ -269,7 +274,7 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
 const evmChains = [
   { id: 'ethereum', net: 'eth-mainnet' },
   { id: 'abstract', net: 'abstract-mainnet' },
-  { id: 'monad', net: 'monad-mainnet' }, // CHANGED ONLY THIS LINE
+  { id: 'monad', net: 'monad-mainnet' },
   { id: 'base', net: 'base-mainnet' },
   { id: 'polygon', net: 'polygon-mainnet' }
 ];

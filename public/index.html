@@ -277,7 +277,6 @@
         if (targetEvm.includes('.')) {
           setIsResolving(true);
           try {
-            // Updated to use the Unstoppable Key from .env logic
             const res = await fetch(`/api/resolve/unstoppable/${targetEvm}`);
             const data = await res.json();
             if (data.address) {
@@ -310,7 +309,6 @@
             }
           });
 
-          // Monad Mainnet via BlockVision
           if (activeChains.includes('monad')) {
             const bvUrl = tokenMode 
               ? `https://api.blockvision.org/v2/monad/account/tokens?account=${targetEvm}`
@@ -320,7 +318,7 @@
               fetch(bvUrl, {
                 headers: {
                   'accept': 'application/json',
-                  'x-api-key': 'bv_67890_monad_key_placeholder' // Replace with your actual BlockVision key
+                  'x-api-key': 'bv_67890_monad_key_placeholder' 
                 }
               })
               .then(r => r.json())
@@ -468,271 +466,227 @@
                     <div className="space-y-4">
                       <div className="flex justify-between items-end">
                         <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Cardano Ledger</label>
-                        <button onClick={() => setAdaAddr('addr1q950qv0ks9t29mavulaa5jr3sk2s50r5jfsddydjs0pazrfh32tdpt7zttt4mhl6t9purm4c9rv555z7r5mulq78aleqcg9c9h')} className="text-[10px] font-bold text-cyan-500 hover:underline uppercase tracking-tighter">LOAD TEST</button>
+                        <button onClick={() => setAdaAddr('$conrad')} className="text-[10px] font-bold text-blue-500 hover:underline uppercase tracking-tighter">LOAD TEST</button>
                       </div>
-                      <input type="text" value={adaAddr} onChange={e => setAdaAddr(e.target.value)} placeholder="$handle..." className={`w-full p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-cyan-500' : 'bg-slate-50 border-slate-200 focus:border-cyan-400'}`} />
+                      <input type="text" value={adaAddr} onChange={e => setAdaAddr(e.target.value)} placeholder="Address or $Handle" className={`w-full p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-blue-700' : 'bg-slate-50 border-slate-200 focus:border-blue-600'}`} />
                       <div className="flex flex-wrap gap-2">
                         <ChainButton id="cardano" />
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="flex flex-col md:flex-row items-center gap-6">
-                    <div className="flex items-center space-x-3 px-6 py-4 rounded-2xl border border-white/10 shadow-lg bg-black/5 min-w-[160px]">
-                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-60 w-12 text-center">{tokenMode ? 'Tokens' : 'NFTs'}</span>
-                      <div onClick={() => setTokenMode(!tokenMode)} className={`switch-bg rounded-full ${tokenMode ? 'bg-emerald-600' : 'bg-slate-300'}`}>
-                        <div className={`switch-dot rounded-full bg-white shadow-lg ${tokenMode ? 'translate-x-6' : 'translate-x-0'}`} />
-                      </div>
+
+                  <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-slate-200 dark:border-slate-800">
+                    <div className={`flex p-1.5 rounded-2xl border transition-all ${darkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                        <button onClick={() => setTokenMode(false)} className={`px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all ${!tokenMode ? (darkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-900 shadow-sm') : 'text-slate-500'}`}>NFTs</button>
+                        <button onClick={() => setTokenMode(true)} className={`px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all ${tokenMode ? (darkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-900 shadow-sm') : 'text-slate-500'}`}>Tokens</button>
                     </div>
 
-                    <button onClick={handleSearch} disabled={loading} className={`flex-1 py-6 md:py-7 rounded-2xl font-sans font-bold text-2xl md:text-4xl uppercase tracking-widest transition-all active:scale-[0.98] ${loading ? 'opacity-50 cursor-not-allowed scanning-glow' : ''} ${darkMode ? 'bg-white text-slate-950 hover:bg-slate-200' : 'bg-slate-950 text-white hover:bg-slate-800 shadow-xl'}`}>
-                      {loading ? 'ANALYZING...' : 'SCAN ASSETS'}
-                    </button>
-
-                    <div className="flex gap-2">
-                        <button onClick={clearAll} className={`px-8 py-6 md:py-7 rounded-xl font-heading font-bold text-xs border-2 transition-all ${darkMode ? 'border-slate-800 text-slate-500 hover:text-red-500' : 'border-slate-200 text-slate-400 hover:text-red-500'}`}>CLEAR</button>
-                        <button onClick={resetEverything} title="Reset App Preferences" className={`px-4 py-6 md:py-7 rounded-xl font-heading font-bold text-xs border-2 transition-all ${darkMode ? 'border-red-900/30 text-red-900 hover:bg-red-900 hover:text-white' : 'border-red-100 text-red-200 hover:bg-red-500 hover:text-white'}`}>RESET</button>
+                    <div className="flex gap-4 w-full md:w-auto">
+                        <button onClick={clearAll} className={`flex-1 md:px-8 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border transition-all ${darkMode ? 'border-slate-800 text-slate-400 hover:bg-slate-800' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>Clear</button>
+                        <button onClick={handleSearch} disabled={loading} className={`flex-[2] md:px-12 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all transform active:scale-95 shadow-xl ${loading ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white scanning-glow'}`}>
+                          {loading ? 'Scanning...' : 'Execute Scan'}
+                        </button>
                     </div>
                   </div>
                 </div>
 
-                {nfts.length > 0 && (
-                    <div className={`max-w-6xl mx-auto mb-8 p-6 rounded-3xl border flex flex-wrap items-center justify-between gap-6 transition-all ${darkMode ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white border-slate-200'}`}>
-                        <div className="flex gap-8">
-                            <div>
-                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-1">Total Value</p>
-                                <p className="text-3xl font-heading font-extrabold text-emerald-500">${totalPortfolioValue}</p>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-1">Assets Scanned</p>
-                                <p className="text-3xl font-heading font-extrabold">{visibleAssets.length}</p>
-                            </div>
+                <div className="mb-8 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/5 p-4 rounded-3xl border border-white/5">
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <div className="relative flex-1 md:w-64">
+                            <input type="text" placeholder="Filter current view..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-xs outline-none focus:border-blue-500/50" />
                         </div>
-                        
-                        <div className="flex flex-1 max-w-md gap-4">
-                             <div className="relative flex-1">
-                                <input type="text" placeholder="Filter results..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full py-3 px-5 rounded-2xl border outline-none text-xs font-bold transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200'}`} />
-                             </div>
-                             <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`py-3 px-4 rounded-2xl border text-[10px] font-bold uppercase outline-none ${darkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                                <option value="chain">Sort: Chain Priority</option>
-                                <option value="value">Sort: Value</option>
-                                <option value="name">Sort: A-Z</option>
-                             </select>
+                        <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-xs outline-none cursor-pointer">
+                            <option value="chain">Sort by Chain</option>
+                            <option value="name">Sort by Name</option>
+                            <option value="value">Sort by Value</option>
+                        </select>
+                    </div>
+                    
+                    <div className="flex items-center gap-6">
+                        <div className="text-right">
+                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">Portfolio Value</p>
+                            <p className="text-xl font-heading font-bold text-blue-500">${totalPortfolioValue}</p>
                         </div>
+                        <button onClick={() => setShowManager(true)} className="p-3 glass-card rounded-xl border border-white/10 hover:bg-white/5 transition-colors relative">
+                            <span className="text-xs uppercase font-bold tracking-tighter opacity-60">Manager</span>
+                            {(hiddenIds.length > 0 || spamIds.length > 0) && <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[8px] flex items-center justify-center font-bold">{hiddenIds.length + spamIds.length}</div>}
+                        </button>
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 animate-pulse">
+                        {[...Array(12)].map((_, i) => (
+                            <div key={i} className={`aspect-square rounded-[2rem] ${darkMode ? 'bg-slate-900' : 'bg-slate-200'}`} />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                        {visibleAssets.map((nft, i) => (
+                            <div key={i} onClick={() => setSelectedAsset(nft)} className={`group relative rounded-[2rem] overflow-hidden transition-all duration-500 cursor-pointer border hover:shadow-2xl hover:-translate-y-2 ${darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                                <div className="aspect-square relative overflow-hidden">
+                                    {nft.image ? (
+                                        <img src={nft.image} alt={nft.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 opacity-50 text-2xl">?</div>
+                                    )}
+                                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest shadow-lg ${chainStyles[nft.chain.toLowerCase()]?.color || 'bg-slate-500'} text-white`}>
+                                        {nft.chain}
+                                    </div>
+                                    
+                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                        <button onClick={(e) => toggleHide(e, nft)} className="p-3 bg-white/10 rounded-full hover:bg-white/20 border border-white/20" title="Hide Asset">👁️</button>
+                                        <button onClick={(e) => toggleSpam(e, nft)} className="p-3 bg-red-500/20 rounded-full hover:bg-red-500/40 border border-red-500/20" title="Mark Spam">🚫</button>
+                                    </div>
+                                </div>
+                                <div className="p-5">
+                                    <h3 className="text-[10px] font-bold uppercase tracking-wider truncate mb-1">{nft.name}</h3>
+                                    <p className="text-[10px] opacity-40 font-medium truncate uppercase tracking-tighter">{nft.symbol || nft.collection || 'No Collection'}</p>
+                                    
+                                    {nft.isToken && (
+                                        <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5 flex justify-between items-end">
+                                            <div>
+                                                <p className="text-[8px] opacity-40 font-bold uppercase">Balance</p>
+                                                <p className="text-xs font-bold">{nft.balance} {nft.symbol}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[8px] opacity-40 font-bold uppercase">Value</p>
+                                                <p className="text-xs font-bold text-blue-500">${nft.totalValue}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
-
-                <div className="max-w-6xl mx-auto flex justify-between items-center px-4 md:px-8 py-4 mb-8">
-                    <div className="flex items-center space-x-6">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-[10px] font-bold uppercase tracking-widest opacity-60 min-w-[70px]">{isListView ? 'List View' : 'Grid View'}</span>
-                          <div onClick={() => setIsListView(!isListView)} className={`switch-bg rounded-full ${isListView ? 'bg-indigo-600' : 'bg-slate-300'}`}>
-                              <div className={`switch-dot rounded-full bg-white shadow-lg ${isListView ? 'translate-x-6' : 'translate-x-0'}`} />
-                          </div>
-                        </div>
-
-                        <button onClick={() => setShowManager(true)} className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${darkMode ? 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white' : 'bg-white border border-slate-200 text-slate-500'}`}>Hidden ({hiddenIds.length + spamIds.length})</button>
-                    </div>
-                </div>
-
-                <div className={`max-w-6xl mx-auto ${isListView ? "flex flex-col gap-3" : "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8"}`}>
-                  {visibleAssets.map((nft, i) => {
-                    const rawId = nft.address || nft.id || nft.mint || nft.name;
-                    const assetKey = `${nft.chain}-${String(rawId).toLowerCase()}`;
-                    return (
-                        <div key={assetKey} onClick={() => setSelectedAsset(nft)} className={`group relative overflow-hidden border transition-all cursor-pointer ${isListView ? `flex items-center p-4 rounded-2xl ${darkMode ? 'bg-slate-900 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-100 hover:shadow-lg hover:border-slate-300'}` : `rounded-[2.5rem] shadow-sm flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 hover:-translate-y-2 hover:shadow-xl'}`}`}>
-                        <div className="absolute top-4 right-4 z-40 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                            <button onClick={(e) => toggleHide(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-blue-500 text-white backdrop-blur-sm border border-white/10">👁️</button>
-                            <button onClick={(e) => toggleSpam(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-red-600 text-white backdrop-blur-sm border border-white/10">🚫</button>
-                        </div>
-                        <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-100"}>
-                            <img src={nft.image || `https://via.placeholder.com/400/334155/ffffff?text=${nft.symbol || '?'}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                            <div className={`absolute ${isListView ? 'top-1 left-1 px-1.5 py-0.5 text-[6px]' : 'top-4 left-4 px-3 py-1 text-[9px]'} rounded-full text-white font-bold tracking-widest uppercase backdrop-blur-md border border-white/20 shadow-lg z-10 ${chainStyles[nft.chain]?.color}`}>
-                            {nft.chain}
-                            </div>
-                        </div>
-                        <div className={isListView ? "flex-1 px-6 flex items-center justify-between overflow-hidden" : "p-5 text-center"}>
-                            <div className={isListView ? "flex flex-col min-w-0" : "flex flex-col items-center"}>
-                                <p className={`font-heading font-bold truncate uppercase tracking-tight shrink-0 ${isListView ? 'text-lg max-w-[300px]' : 'text-sm'} ${darkMode ? 'text-white' : 'text-slate-900'}`}>{nft.name}</p>
-                                {isListView && <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{nft.symbol || 'ASSET'}</span>}
-                            </div>
-                            {(nft.isToken || tokenMode) && (
-                            <div className={isListView ? "text-right flex flex-row items-center gap-8 shrink-0" : "mt-2 pt-2 border-t border-slate-100 dark:border-slate-800"}>
-                                <div className={isListView ? "flex flex-col items-end" : ""}>
-                                    <p className="text-emerald-500 font-bold text-lg leading-none">{nft.balance} <span className="text-[10px] opacity-60">{nft.symbol}</span></p>
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className={`font-bold uppercase tracking-tighter text-lg ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>{nft.nativePrice || '0.00'} {chainStyles[nft.chain]?.native || '???'}</span>
-                                    <span className={`font-bold uppercase tracking-tighter text-lg opacity-70 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>${nft.totalValue || '0.00'}</span>
-                                </div>
-                            </div>
-                            )}
-                        </div>
-                        </div>
-                    );
-                  })}
-                </div>
                 </>
             ) : (
-                <div className="space-y-8 max-w-[1550px] mx-auto">
-                    <div className="text-center">
-                         <h2 className="text-4xl font-heading font-extrabold uppercase mb-2">Multi-Chain Swap Hub</h2>
-                         <p className="text-sm opacity-60">Uniswap (EVM), Jupiter (Solana), and DexHunter (Cardano) terminals optimized for your workflow.</p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className={`swap-column border glass-card ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
-                            <div className="p-4 border-b border-white/5 flex justify-between items-center">
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500">EVM Terminal</span>
-                                <div className="flex gap-1">
-                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                    <div className="w-2 h-2 rounded-full bg-[#7B3FE4]"></div>
-                                    <div className="w-2 h-2 rounded-full bg-[#0052FF]"></div>
+                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+                    <div className="lg:col-span-8 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="swap-column shadow-2xl glass-card border border-white/5">
+                                <div className="p-6 border-b border-white/5 flex items-center justify-between bg-black/20">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-solana-gradient flex items-center justify-center font-bold text-xs shadow-lg">S</div>
+                                        <div>
+                                            <h3 className="text-xs font-bold uppercase tracking-[0.2em]">Jupiter Terminal</h3>
+                                            <p className="text-[8px] opacity-40 uppercase font-bold tracking-widest">Solana Mainnet Swap</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                        <span className="text-[8px] font-bold uppercase opacity-60">Live</span>
+                                    </div>
                                 </div>
+                                <iframe src="https://jup.ag/swap/SOL-USDC" title="Jupiter Solana Swap" />
                             </div>
-                            <iframe src={`https://app.uniswap.org/#/swap?use=v3&theme=${darkMode ? 'dark' : 'light'}`} title="EVM Swap"></iframe>
-                        </div>
-                        <div className={`swap-column border glass-card ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
-                            <div className="p-4 border-b border-white/5 flex justify-between items-center">
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Solana Terminal</span>
-                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                            </div>
-                            <iframe src={`https://jup.ag/swap?theme=${darkMode ? 'dark' : 'light'}`} title="Jupiter Swap" allow="clipboard-write"></iframe>
-                        </div>
-                        <div className={`swap-column border glass-card ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
-                            <div className="p-4 border-b border-white/5 flex justify-between items-center">
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-500">Cardano Terminal</span>
-                                <div className="w-2 h-2 rounded-full bg-cyan-500"></div>
-                            </div>
-                            <iframe src={`https://app.dexhunter.io/swap?theme=${darkMode ? 'dark' : 'light'}`} title="DexHunter Cardano Swap" allow="clipboard-read; clipboard-write" className="w-full h-full"></iframe>
-                        </div>
-                    </div>
-                    <div className={`mt-12 p-8 rounded-[3rem] border transition-all ${darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-2xl'}`}>
-                        <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
-                            <div className="flex items-center gap-4">
-                                <h3 className="text-2xl font-heading font-extrabold uppercase shrink-0">Market Watch</h3>
-                                <div className="relative">
-                                    <input type="text" placeholder="Search coins..." value={marketSearch} onChange={(e) => setMarketSearch(e.target.value)} className={`py-2 px-4 rounded-xl border text-[10px] font-bold uppercase outline-none transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200'}`} />
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">Data Provider</span>
-                                <img src="https://static.coingecko.com/s/coingecko-logo-d13d6bcceddbdc1343911c3003394124967930728e2f6931cca9e95fe773391d.png" className="h-4 grayscale opacity-50" />
-                            </div>
-                        </div>
-                        {marketLoading && marketData.length === 0 ? (
-                            <div className="py-20 text-center animate-pulse">
-                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">Fetching global markets...</p>
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                    <thead>
-                                        <tr className="border-b border-white/5">
-                                            <th className="pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40 px-2">#</th>
-                                            <th className="pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40">Asset</th>
-                                            <th className="pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40 text-right">Price</th>
-                                            <th className="pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40 text-right">24h</th>
-                                            <th className="pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40 text-right">Market Cap</th>
-                                            <th className="pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40 text-center">Last 7 Days</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5">
-                                        {filteredMarket.map((coin, idx) => (
-                                            <tr key={coin.id} className="hover:bg-white/5 transition-colors group">
-                                                <td className="py-4 text-xs font-bold opacity-30 px-2">{coin.market_cap_rank}</td>
-                                                <td className="py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <img src={coin.image} className="w-6 h-6 rounded-full" />
-                                                        <div>
-                                                            <p className="text-xs font-bold uppercase">{coin.name}</p>
-                                                            <p className="text-[10px] font-bold opacity-40 uppercase">{coin.symbol}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 text-xs font-bold text-right">${coin.current_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 6})}</td>
-                                                <td className={`py-4 text-xs font-bold text-right ${coin.price_change_percentage_24h >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                                                    {coin.price_change_percentage_24h?.toFixed(2)}%
-                                                </td>
-                                                <td className="py-4 text-xs font-bold opacity-60 text-right">${(coin.market_cap / 1e9).toFixed(2)}B</td>
-                                                <td className="py-4 flex justify-center">
-                                                    <img src={`https://www.coingecko.com/coins/${coin.id}/sparkline.svg`} className={`h-8 w-24 object-contain filter ${coin.price_change_percentage_24h >= 0 ? 'hue-rotate-[80deg] saturate-150' : 'hue-rotate-[-30deg] saturate-150'}`} />
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
 
-            {showManager && (
-              <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-xl modal-enter">
-                <div className={`max-w-2xl w-full border rounded-[3rem] p-6 md:p-10 shadow-2xl flex flex-col max-h-[80vh] ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                  <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-2xl font-heading font-extrabold uppercase">Managed Assets</h2>
-                    <button onClick={() => setShowManager(false)} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-800 text-white hover:bg-red-500 transition-colors">✕</button>
-                  </div>
-                  <div className="flex-1 overflow-y-auto dark-scroll pr-2 space-y-4">
-                    {[...hiddenList, ...spamList].length === 0 ? (
-                      <p className="text-center py-20 opacity-30 italic">No hidden or spam assets.</p>
-                    ) : (
-                      <>
-                        {hiddenList.map(nft => (
-                          <div key={`${nft.chain}-${nft.address || nft.id || nft.mint || nft.name}`} className="flex items-center justify-between p-3 rounded-2xl bg-black/20 border border-white/5">
-                            <div className="flex items-center gap-4">
-                              <img src={nft.image} className="w-10 h-10 rounded-lg object-cover" />
-                              <span className="text-xs font-bold uppercase tracking-tighter">{nft.name} (Hidden)</span>
+                            <div className="swap-column shadow-2xl glass-card border border-white/5">
+                                <div className="p-6 border-b border-white/5 flex items-center justify-between bg-black/20">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center font-bold text-xs shadow-lg">C</div>
+                                        <div>
+                                            <h3 className="text-xs font-bold uppercase tracking-[0.2em]">DexHunter Terminal</h3>
+                                            <p className="text-[8px] opacity-40 uppercase font-bold tracking-widest">Cardano Mainnet Swap</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                                        <span className="text-[8px] font-bold uppercase opacity-60">Live</span>
+                                    </div>
+                                </div>
+                                <iframe src="https://app.dexhunter.io/swap?partnerName=ChainLens&partnerAddress=addr1q950qv0ks9t29mavulaa5jr3sk2s50r5jfsddydjs0pazrfh32tdpt7zttt4mhl6t9purm4c9rv555z7r5mulq78aleqcg9c9h" title="DexHunter Cardano Swap" />
                             </div>
-                            <button onClick={(e) => toggleHide(e, nft)} className="text-[10px] font-bold text-blue-400 hover:text-white uppercase">Restore</button>
-                          </div>
-                        ))}
-                        {spamList.map(nft => (
-                          <div key={`${nft.chain}-${nft.address || nft.id || nft.mint || nft.name}`} className="flex items-center justify-between p-3 rounded-2xl bg-red-950/20 border border-red-500/10">
-                            <div className="flex items-center gap-4">
-                              <img src={nft.image} className="w-10 h-10 rounded-lg object-cover" />
-                              <span className="text-xs font-bold uppercase tracking-tighter text-red-400">{nft.name} (Spam)</span>
+                        </div>
+
+                        <div className="swap-column h-[600px] shadow-2xl glass-card border border-white/5">
+                            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-black/20">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center font-bold text-xs text-black shadow-lg">U</div>
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-[0.2em]">Uniswap Terminal</h3>
+                                        <p className="text-[8px] opacity-40 uppercase font-bold tracking-widest">Ethereum / L2 Ecosystem</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></div>
+                                    <span className="text-[8px] font-bold uppercase opacity-60">Live</span>
+                                </div>
                             </div>
-                            <button onClick={(e) => toggleSpam(e, nft)} className="text-[10px] font-bold text-red-400 hover:text-white uppercase">Not Spam</button>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                  <div className="mt-8 pt-6 border-t border-white/5 flex gap-4">
-                    <button onClick={unhideAll} className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-2xl transition-all">Unhide All Assets</button>
-                    <button onClick={() => setShowManager(false)} className="px-8 py-4 bg-slate-800 text-[10px] font-bold uppercase tracking-widest rounded-2xl">Close</button>
-                  </div>
+                            <iframe src="https://app.uniswap.org/#/swap" title="Uniswap Multichain Swap" />
+                        </div>
+                    </div>
+
+                    <div className="lg:col-span-4 flex flex-col h-full max-h-[1480px]">
+                        <div className="glass-card rounded-[2rem] border border-white/5 overflow-hidden flex flex-col h-full">
+                            <div className="p-6 bg-white/5 border-b border-white/5">
+                                <h3 className="text-xs font-bold uppercase tracking-[0.2em] mb-4">Market Watch</h3>
+                                <div className="relative">
+                                    <input type="text" placeholder="Search Markets..." value={marketSearch} onChange={e => setMarketSearch(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-[10px] outline-none focus:border-blue-500/40" />
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto dark-scroll p-4 space-y-3">
+                                {marketLoading && marketData.length === 0 ? (
+                                    [...Array(10)].map((_, i) => <div key={i} className="h-16 bg-white/5 rounded-2xl animate-pulse" />)
+                                ) : (
+                                    filteredMarket.map((coin, i) => (
+                                        <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/10 transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <img src={coin.image} className="w-6 h-6 rounded-full" />
+                                                <div>
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest">{coin.symbol}</p>
+                                                    <p className="text-[8px] opacity-40 font-bold">{coin.name}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-bold">${coin.current_price.toLocaleString()}</p>
+                                                <p className={`text-[8px] font-bold ${coin.price_change_percentage_24h >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                    {coin.price_change_percentage_24h?.toFixed(2)}%
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
             )}
 
             {selectedAsset && (
-              <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-xl modal-enter">
-                <div className={`relative max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-[3.5rem] p-6 md:p-12 shadow-2xl border ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-100'}`}>
-                  <button onClick={() => setSelectedAsset(null)} className="absolute top-10 right-10 w-12 h-12 flex items-center justify-center rounded-full bg-slate-800 hover:bg-red-500 text-white transition-all font-bold">✕</button>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    <div className="rounded-[2.5rem] overflow-hidden shadow-2xl">
-                       <img src={selectedAsset.image} className="w-full h-auto" />
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-enter">
+                <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={() => setSelectedAsset(null)} />
+                <div className={`relative max-w-4xl w-full rounded-[3rem] overflow-hidden shadow-2xl border flex flex-col md:flex-row max-h-[90vh] ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className="w-full md:w-1/2 bg-black flex items-center justify-center">
+                        <img src={selectedAsset.image} alt={selectedAsset.name} className="w-full h-full object-contain" />
                     </div>
-                    <div>
-                       <div className={`inline-block px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4 ${chainStyles[selectedAsset.chain]?.color} text-white`}>{selectedAsset.chain}</div>
-                       <h1 className="text-4xl font-heading font-black uppercase mb-2 leading-none">{selectedAsset.name}</h1>
-                       <p className="text-sm font-bold opacity-40 uppercase tracking-widest mb-8">{selectedAsset.symbol || 'ASSET'}</p>
-                       {selectedAsset.isToken && (
-                         <div className="mb-8 grid grid-cols-2 gap-4">
-                            <div className="p-4 rounded-2xl bg-black/5 border border-white/5">
-                                <p className="text-[10px] font-bold uppercase opacity-40 mb-1">Quantity</p>
-                                <p className="text-2xl font-heading font-bold">{selectedAsset.balance}</p>
-                            </div>
-                            <div className="p-4 rounded-2xl bg-black/5 border border-white/5">
-                                <p className="text-[10px] font-bold uppercase opacity-40 mb-1">Value USD</p>
-                                <p className="text-2xl font-heading font-bold text-emerald-500">${selectedAsset.totalValue}</p>
-                            </div>
-                         </div>
-                       )}
-                       <div className="space-y-6">
+                    <div className="w-full md:w-1/2 p-8 md:p-12 overflow-y-auto dark-scroll">
+                       <div className="flex justify-between items-start mb-8">
+                          <div>
+                             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-500 mb-2">{selectedAsset.chain} Network</p>
+                             <h2 className="font-heading text-4xl font-extrabold leading-tight italic uppercase">{selectedAsset.name}</h2>
+                          </div>
+                          <button onClick={() => setSelectedAsset(null)} className="p-2 opacity-40 hover:opacity-100 transition-opacity">✕</button>
+                       </div>
+
+                       <div className="space-y-8">
+                          <div>
+                             <h3 className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-3">Description</h3>
+                             <p className="text-sm opacity-70 leading-relaxed">{selectedAsset.metadata?.description || 'No on-chain description found.'}</p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                             <div className={`p-4 rounded-2xl border ${darkMode ? 'bg-black/20 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                                <p className="text-[8px] font-bold uppercase opacity-40 mb-1">Standard</p>
+                                <p className="text-xs font-bold uppercase">{selectedAsset.isToken ? 'Fungible' : 'Non-Fungible'}</p>
+                             </div>
+                             <div className={`p-4 rounded-2xl border ${darkMode ? 'bg-black/20 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                                <p className="text-[8px] font-bold uppercase opacity-40 mb-1">Asset ID</p>
+                                <p className="text-xs font-bold truncate">#{selectedAsset.id?.slice(-8) || 'N/A'}</p>
+                             </div>
+                          </div>
+
                           <div>
                              <h3 className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-3">Attributes</h3>
                              <div className="flex flex-wrap gap-2">
@@ -749,9 +703,69 @@
                           </div>
                        </div>
                     </div>
-                  </div>
                 </div>
               </div>
+            )}
+
+            {showManager && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 modal-enter">
+                    <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl" onClick={() => setShowManager(false)} />
+                    <div className={`relative max-w-2xl w-full rounded-[2.5rem] border overflow-hidden flex flex-col max-h-[80vh] ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                            <h2 className="font-heading text-xl font-bold uppercase tracking-widest italic">Asset Manager</h2>
+                            <button onClick={() => setShowManager(false)} className="text-xs uppercase font-bold opacity-40 hover:opacity-100 transition-opacity tracking-widest">Close</button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-8 dark-scroll">
+                            <div className="space-y-8">
+                                <section>
+                                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-4 flex justify-between">
+                                        Hidden Assets ({hiddenList.length})
+                                        {hiddenList.length > 0 && <button onClick={() => setHiddenIds([])} className="text-red-500 lowercase font-normal hover:underline">Clear</button>}
+                                    </h3>
+                                    {hiddenList.length === 0 ? <p className="text-xs opacity-30 italic">No assets manually hidden.</p> : (
+                                        <div className="space-y-2">
+                                            {hiddenList.map((nft, i) => (
+                                                <div key={i} className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <img src={nft.image} className="w-6 h-6 rounded-lg object-cover" />
+                                                        <p className="text-xs font-bold truncate max-w-[200px]">{nft.name}</p>
+                                                    </div>
+                                                    <button onClick={(e) => toggleHide(e, nft)} className="text-[10px] font-bold uppercase text-emerald-500 tracking-tighter hover:underline">Restore</button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </section>
+
+                                <section>
+                                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-4 flex justify-between">
+                                        Spam Filter ({spamList.length})
+                                        {spamList.length > 0 && <button onClick={() => setSpamIds([])} className="text-red-500 lowercase font-normal hover:underline">Clear</button>}
+                                    </h3>
+                                    {spamList.length === 0 ? <p className="text-xs opacity-30 italic">No assets marked as spam.</p> : (
+                                        <div className="space-y-2">
+                                            {spamList.map((nft, i) => (
+                                                <div key={i} className="p-3 bg-red-500/5 rounded-xl border border-red-500/10 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <img src={nft.image} className="w-6 h-6 rounded-lg object-cover" />
+                                                        <p className="text-xs font-bold truncate max-w-[200px]">{nft.name}</p>
+                                                    </div>
+                                                    <button onClick={(e) => toggleSpam(e, nft)} className="text-[10px] font-bold uppercase text-emerald-500 tracking-tighter hover:underline">Restore</button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </section>
+                            </div>
+                        </div>
+
+                        <div className="p-8 bg-black/20 border-t border-white/5 flex gap-4">
+                            <button onClick={resetEverything} className="flex-1 py-4 rounded-2xl border border-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-widest hover:bg-red-500/10 transition-colors">Nuclear Reset</button>
+                            <button onClick={() => setShowManager(false)} className="flex-1 py-4 rounded-2xl bg-white text-black text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-colors shadow-lg">Done</button>
+                        </div>
+                    </div>
+                </div>
             )}
           </div>
         </div>
