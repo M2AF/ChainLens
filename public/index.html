@@ -117,7 +117,7 @@
       const [isListView, setIsListView] = useState(false);
       
       const [searchQuery, setSearchQuery] = useState('');
-      const [sortBy, setSortBy] = useState('chain'); // Default to chain to show your custom sort immediately
+      const [sortBy, setSortBy] = useState('chain'); 
 
       const [resolvedEvm, setResolvedEvm] = useState(null);
       const [isResolving, setIsResolving] = useState(false);
@@ -140,7 +140,6 @@
         abstract: { color: 'bg-[#00FF85] text-black', label: 'Abstract', native: 'ETH' }
       };
 
-      // Custom priority order for search results
       const chainPriority = {
         'cardano': 1,
         'solana': 2,
@@ -304,12 +303,52 @@
         const modePath = tokenMode ? 'tokens' : 'nfts';
 
         if (targetEvm.startsWith('0x')) {
-          ['ethereum', 'polygon', 'base', 'abstract', 'monad'].forEach(chain => {
+          // Standard EVM Chains (Remaining on Alchemy/Backend)
+          ['ethereum', 'polygon', 'base', 'abstract'].forEach(chain => {
             if (activeChains.includes(chain)) {
               tasks.push(fetch(`/api/${modePath}/${chain}/${targetEvm}`).then(r => r.json()));
             }
           });
+
+          // BlockVision Integration for Monad Mainnet
+          if (activeChains.includes('monad')) {
+            const bvUrl = tokenMode 
+              ? `https://api.blockvision.org/v2/monad/account/tokens?account=${targetEvm}`
+              : `https://api.blockvision.org/v2/monad/account/nfts?account=${targetEvm}`;
+            
+            tasks.push(
+              fetch(bvUrl, {
+                headers: {
+                  'accept': 'application/json',
+                  'x-api-key': 'YOUR_BLOCKVISION_API_KEY' // TODO: Insert your API key here
+                }
+              })
+              .then(r => r.json())
+              .then(data => {
+                const results = data.result?.tokens || data.result?.data || [];
+                return {
+                  nfts: results.map(item => ({
+                    name: item.name || 'Unknown Monad Asset',
+                    symbol: item.symbol || 'MON',
+                    balance: item.balance || "1",
+                    image: item.logo || item.image || item.imageURL || null,
+                    chain: 'monad',
+                    totalValue: item.usdValue || "0.00",
+                    nativePrice: item.price || "0.00",
+                    address: item.tokenAddress || item.contractAddress,
+                    isToken: tokenMode,
+                    metadata: item.metadata || {}
+                  }))
+                };
+              })
+              .catch(err => {
+                console.error("BlockVision Monad Error:", err);
+                return { nfts: [] };
+              })
+            );
+          }
         }
+
         if (solAddr.trim() && activeChains.includes('solana')) {
           tasks.push(fetch(`/api/${modePath}/solana/${solAddr.trim()}`).then(r => r.json()));
         }
@@ -367,7 +406,6 @@
 
       return (
         <div className={`min-h-screen transition-colors duration-500 ${darkMode ? 'bg-slate-950 text-white dark-scroll' : 'bg-slate-50 text-slate-900'}`}>
-          
           <div className="max-w-[1600px] mx-auto p-4 md:p-8 pt-12">
             <div className="flex flex-col items-center mb-8">
               <div className="relative group">
@@ -382,18 +420,8 @@
 
             <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-10">
                 <div className={`flex p-1 rounded-2xl border transition-all ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-md'}`}>
-                    <button 
-                        onClick={() => setActiveTab('portfolio')}
-                        className={`px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'portfolio' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}
-                    >
-                        Portfolio View
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('swap')}
-                        className={`px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'swap' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}
-                    >
-                        Swap Hub
-                    </button>
+                    <button onClick={() => setActiveTab('portfolio')} className={`px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'portfolio' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}>Portfolio View</button>
+                    <button onClick={() => setActiveTab('swap')} className={`px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'swap' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}>Swap Hub</button>
                 </div>
 
                 <div className="flex items-center space-x-3 bg-black/5 px-4 py-3 rounded-2xl border border-white/5">
@@ -462,12 +490,8 @@
                     </button>
 
                     <div className="flex gap-2">
-                        <button onClick={clearAll} className={`px-8 py-6 md:py-7 rounded-xl font-heading font-bold text-xs border-2 transition-all ${darkMode ? 'border-slate-800 text-slate-500 hover:text-red-500' : 'border-slate-200 text-slate-400 hover:text-red-500'}`}>
-                          CLEAR
-                        </button>
-                        <button onClick={resetEverything} title="Reset App Preferences" className={`px-4 py-6 md:py-7 rounded-xl font-heading font-bold text-xs border-2 transition-all ${darkMode ? 'border-red-900/30 text-red-900 hover:bg-red-900 hover:text-white' : 'border-red-100 text-red-200 hover:bg-red-500 hover:text-white'}`}>
-                          RESET
-                        </button>
+                        <button onClick={clearAll} className={`px-8 py-6 md:py-7 rounded-xl font-heading font-bold text-xs border-2 transition-all ${darkMode ? 'border-slate-800 text-slate-500 hover:text-red-500' : 'border-slate-200 text-slate-400 hover:text-red-500'}`}>CLEAR</button>
+                        <button onClick={resetEverything} title="Reset App Preferences" className={`px-4 py-6 md:py-7 rounded-xl font-heading font-bold text-xs border-2 transition-all ${darkMode ? 'border-red-900/30 text-red-900 hover:bg-red-900 hover:text-white' : 'border-red-100 text-red-200 hover:bg-red-500 hover:text-white'}`}>RESET</button>
                     </div>
                   </div>
                 </div>
@@ -487,19 +511,9 @@
                         
                         <div className="flex flex-1 max-w-md gap-4">
                              <div className="relative flex-1">
-                                <input 
-                                    type="text" 
-                                    placeholder="Filter results..." 
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className={`w-full py-3 px-5 rounded-2xl border outline-none text-xs font-bold transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200'}`}
-                                />
+                                <input type="text" placeholder="Filter results..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full py-3 px-5 rounded-2xl border outline-none text-xs font-bold transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200'}`} />
                              </div>
-                             <select 
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                                className={`py-3 px-4 rounded-2xl border text-[10px] font-bold uppercase outline-none ${darkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}
-                             >
+                             <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`py-3 px-4 rounded-2xl border text-[10px] font-bold uppercase outline-none ${darkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                                 <option value="chain">Sort: Chain Priority</option>
                                 <option value="value">Sort: Value</option>
                                 <option value="name">Sort: A-Z</option>
@@ -511,20 +525,13 @@
                 <div className="max-w-6xl mx-auto flex justify-between items-center px-4 md:px-8 py-4 mb-8">
                     <div className="flex items-center space-x-6">
                         <div className="flex items-center space-x-3">
-                          <span className="text-[10px] font-bold uppercase tracking-widest opacity-60 min-w-[70px]">
-                              {isListView ? 'List View' : 'Grid View'}
-                          </span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest opacity-60 min-w-[70px]">{isListView ? 'List View' : 'Grid View'}</span>
                           <div onClick={() => setIsListView(!isListView)} className={`switch-bg rounded-full ${isListView ? 'bg-indigo-600' : 'bg-slate-300'}`}>
                               <div className={`switch-dot rounded-full bg-white shadow-lg ${isListView ? 'translate-x-6' : 'translate-x-0'}`} />
                           </div>
                         </div>
 
-                        <button 
-                          onClick={() => setShowManager(true)}
-                          className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${darkMode ? 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white' : 'bg-white border border-slate-200 text-slate-500'}`}
-                        >
-                          Hidden ({hiddenIds.length + spamIds.length})
-                        </button>
+                        <button onClick={() => setShowManager(true)} className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${darkMode ? 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white' : 'bg-white border border-slate-200 text-slate-500'}`}>Hidden ({hiddenIds.length + spamIds.length})</button>
                     </div>
                 </div>
 
@@ -532,33 +539,21 @@
                   {visibleAssets.map((nft, i) => {
                     const rawId = nft.address || nft.id || nft.mint || nft.name;
                     const assetKey = `${nft.chain}-${String(rawId).toLowerCase()}`;
-                    
                     return (
-                        <div key={assetKey} 
-                        onClick={() => setSelectedAsset(nft)} 
-                        className={`group relative overflow-hidden border transition-all cursor-pointer ${
-                          isListView 
-                          ? `flex items-center p-4 rounded-2xl ${darkMode ? 'bg-slate-900 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-100 hover:shadow-lg hover:border-slate-300'}` 
-                          : `rounded-[2.5rem] shadow-sm flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 hover:-translate-y-2 hover:shadow-xl'}`
-                        }`}>
-                        
+                        <div key={assetKey} onClick={() => setSelectedAsset(nft)} className={`group relative overflow-hidden border transition-all cursor-pointer ${isListView ? `flex items-center p-4 rounded-2xl ${darkMode ? 'bg-slate-900 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-100 hover:shadow-lg hover:border-slate-300'}` : `rounded-[2.5rem] shadow-sm flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 hover:-translate-y-2 hover:shadow-xl'}`}`}>
                         <div className="absolute top-4 right-4 z-40 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                             <button onClick={(e) => toggleHide(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-blue-500 text-white backdrop-blur-sm border border-white/10">👁️</button>
                             <button onClick={(e) => toggleSpam(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-red-600 text-white backdrop-blur-sm border border-white/10">🚫</button>
                         </div>
-
                         <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-100"}>
                             <img src={nft.image || `https://via.placeholder.com/400/334155/ffffff?text=${nft.symbol || '?'}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                             <div className={`absolute ${isListView ? 'top-1 left-1 px-1.5 py-0.5 text-[6px]' : 'top-4 left-4 px-3 py-1 text-[9px]'} rounded-full text-white font-bold tracking-widest uppercase backdrop-blur-md border border-white/20 shadow-lg z-10 ${chainStyles[nft.chain]?.color}`}>
                             {nft.chain}
                             </div>
                         </div>
-
                         <div className={isListView ? "flex-1 px-6 flex items-center justify-between overflow-hidden" : "p-5 text-center"}>
                             <div className={isListView ? "flex flex-col min-w-0" : "flex flex-col items-center"}>
-                                <p className={`font-heading font-bold truncate uppercase tracking-tight shrink-0 ${isListView ? 'text-lg max-w-[300px]' : 'text-sm'} ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                                    {nft.name}
-                                </p>
+                                <p className={`font-heading font-bold truncate uppercase tracking-tight shrink-0 ${isListView ? 'text-lg max-w-[300px]' : 'text-sm'} ${darkMode ? 'text-white' : 'text-slate-900'}`}>{nft.name}</p>
                                 {isListView && <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{nft.symbol || 'ASSET'}</span>}
                             </div>
                             {(nft.isToken || tokenMode) && (
@@ -584,7 +579,6 @@
                          <h2 className="text-4xl font-heading font-extrabold uppercase mb-2">Multi-Chain Swap Hub</h2>
                          <p className="text-sm opacity-60">Uniswap (EVM), Jupiter (Solana), and DexHunter (Cardano) terminals optimized for your workflow.</p>
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div className={`swap-column border glass-card ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
                             <div className="p-4 border-b border-white/5 flex justify-between items-center">
@@ -595,50 +589,29 @@
                                     <div className="w-2 h-2 rounded-full bg-[#0052FF]"></div>
                                 </div>
                             </div>
-                            <iframe 
-                                src={`https://app.uniswap.org/#/swap?use=v3&theme=${darkMode ? 'dark' : 'light'}`} 
-                                title="EVM Swap"
-                            ></iframe>
+                            <iframe src={`https://app.uniswap.org/#/swap?use=v3&theme=${darkMode ? 'dark' : 'light'}`} title="EVM Swap"></iframe>
                         </div>
-
                         <div className={`swap-column border glass-card ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
                             <div className="p-4 border-b border-white/5 flex justify-between items-center">
                                 <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Solana Terminal</span>
                                 <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                             </div>
-                            <iframe 
-                                src={`https://jup.ag/swap?theme=${darkMode ? 'dark' : 'light'}`} 
-                                title="Jupiter Swap"
-                                allow="clipboard-write"
-                            ></iframe>
+                            <iframe src={`https://jup.ag/swap?theme=${darkMode ? 'dark' : 'light'}`} title="Jupiter Swap" allow="clipboard-write"></iframe>
                         </div>
-
                         <div className={`swap-column border glass-card ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
                             <div className="p-4 border-b border-white/5 flex justify-between items-center">
                                 <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-500">Cardano Terminal</span>
                                 <div className="w-2 h-2 rounded-full bg-cyan-500"></div>
                             </div>
-                            <iframe 
-                                src={`https://app.dexhunter.io/swap?theme=${darkMode ? 'dark' : 'light'}`}
-                                title="DexHunter Cardano Swap"
-                                allow="clipboard-read; clipboard-write"
-                                className="w-full h-full"
-                            ></iframe>
+                            <iframe src={`https://app.dexhunter.io/swap?theme=${darkMode ? 'dark' : 'light'}`} title="DexHunter Cardano Swap" allow="clipboard-read; clipboard-write" className="w-full h-full"></iframe>
                         </div>
                     </div>
-
                     <div className={`mt-12 p-8 rounded-[3rem] border transition-all ${darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-2xl'}`}>
                         <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
                             <div className="flex items-center gap-4">
                                 <h3 className="text-2xl font-heading font-extrabold uppercase shrink-0">Market Watch</h3>
                                 <div className="relative">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Search coins..." 
-                                        value={marketSearch}
-                                        onChange={(e) => setMarketSearch(e.target.value)}
-                                        className={`py-2 px-4 rounded-xl border text-[10px] font-bold uppercase outline-none transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200'}`}
-                                    />
+                                    <input type="text" placeholder="Search coins..." value={marketSearch} onChange={(e) => setMarketSearch(e.target.value)} className={`py-2 px-4 rounded-xl border text-[10px] font-bold uppercase outline-none transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200'}`} />
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -646,7 +619,6 @@
                                 <img src="https://static.coingecko.com/s/coingecko-logo-d13d6bcceddbdc1343911c3003394124967930728e2f6931cca9e95fe773391d.png" className="h-4 grayscale opacity-50" />
                             </div>
                         </div>
-
                         {marketLoading && marketData.length === 0 ? (
                             <div className="py-20 text-center animate-pulse">
                                 <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">Fetching global markets...</p>
@@ -683,10 +655,7 @@
                                                 </td>
                                                 <td className="py-4 text-xs font-bold opacity-60 text-right">${(coin.market_cap / 1e9).toFixed(2)}B</td>
                                                 <td className="py-4 flex justify-center">
-                                                    <img 
-                                                        src={`https://www.coingecko.com/coins/${coin.id}/sparkline.svg`} 
-                                                        className={`h-8 w-24 object-contain filter ${coin.price_change_percentage_24h >= 0 ? 'hue-rotate-[80deg] saturate-150' : 'hue-rotate-[-30deg] saturate-150'}`} 
-                                                    />
+                                                    <img src={`https://www.coingecko.com/coins/${coin.id}/sparkline.svg`} className={`h-8 w-24 object-contain filter ${coin.price_change_percentage_24h >= 0 ? 'hue-rotate-[80deg] saturate-150' : 'hue-rotate-[-30deg] saturate-150'}`} />
                                                 </td>
                                             </tr>
                                         ))}
