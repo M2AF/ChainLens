@@ -76,7 +76,7 @@
     .dark-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     
     .scanning-glow {
-        box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        box-shadow: 0 0 20px rgba(131, 110, 249, 0.5);
     }
 
     .swap-column {
@@ -130,22 +130,23 @@
       const [marketLoading, setMarketLoading] = useState(false);
       const [marketSearch, setMarketSearch] = useState('');
 
+      // UPDATED CONFIG: Monad Mainnet styling and priority
       const chainStyles = {
         ethereum: { color: 'bg-[#3c3c3d]', label: 'Ethereum', native: 'ETH' },
         polygon: { color: 'bg-[#7B3FE4]', label: 'Polygon', native: 'POL' },
         base: { color: 'bg-[#0052FF]', label: 'Base', native: 'ETH' },
         solana: { color: 'bg-solana-gradient-soft', label: 'Solana', native: 'SOL' },
         cardano: { color: 'bg-[#0033AD]', label: 'Cardano', native: 'ADA' },
-        monad: { color: 'bg-[#836EF9]', label: 'Monad', native: 'MON' },
+        monad: { color: 'bg-[#836EF9]', label: 'Monad Mainnet', native: 'MON' },
         abstract: { color: 'bg-[#00FF85] text-black', label: 'Abstract', native: 'ETH' }
       };
 
       const chainPriority = {
         'cardano': 1,
         'solana': 2,
-        'ethereum': 3,
-        'abstract': 4,
-        'monad': 5,
+        'monad': 3, // Monad Mainnet Prioritized
+        'ethereum': 4,
+        'abstract': 5,
         'base': 6,
         'polygon': 7
       };
@@ -303,14 +304,14 @@
         const modePath = tokenMode ? 'tokens' : 'nfts';
 
         if (targetEvm.startsWith('0x')) {
-          // Standard EVM Chains (Remaining on Alchemy/Backend)
+          // Standard Alchemy/Backend Chains
           ['ethereum', 'polygon', 'base', 'abstract'].forEach(chain => {
             if (activeChains.includes(chain)) {
               tasks.push(fetch(`/api/${modePath}/${chain}/${targetEvm}`).then(r => r.json()));
             }
           });
 
-          // BlockVision Integration for Monad Mainnet
+          // BLOCKVISION INTEGRATION: Monad Mainnet
           if (activeChains.includes('monad')) {
             const bvUrl = tokenMode 
               ? `https://api.blockvision.org/v2/monad/account/tokens?account=${targetEvm}`
@@ -320,7 +321,7 @@
               fetch(bvUrl, {
                 headers: {
                   'accept': 'application/json',
-                  'x-api-key': 'YOUR_BLOCKVISION_API_KEY' // TODO: Insert your API key here
+                  'x-api-key': 'YOUR_BLOCKVISION_API_KEY'
                 }
               })
               .then(r => r.json())
@@ -328,7 +329,7 @@
                 const results = data.result?.tokens || data.result?.data || [];
                 return {
                   nfts: results.map(item => ({
-                    name: item.name || 'Unknown Monad Asset',
+                    name: item.name || 'Monad Asset',
                     symbol: item.symbol || 'MON',
                     balance: item.balance || "1",
                     image: item.logo || item.image || item.imageURL || null,
@@ -414,7 +415,7 @@
                     alt="ChainLens Logo" 
                     className={`h-32 md:h-48 w-auto object-contain transition-transform duration-700 hover:scale-105 ${loading ? 'animate-pulse-slow' : ''}`} 
                   />
-                  {loading && <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full -z-10 animate-pulse"></div>}
+                  {loading && <div className="absolute inset-0 bg-[#836EF9]/20 blur-3xl rounded-full -z-10 animate-pulse"></div>}
               </div>
             </div>
 
@@ -426,7 +427,7 @@
 
                 <div className="flex items-center space-x-3 bg-black/5 px-4 py-3 rounded-2xl border border-white/5">
                     <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{darkMode ? 'Dark' : 'Light'}</span>
-                    <div onClick={() => setDarkMode(!darkMode)} className={`switch-bg rounded-full ${darkMode ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                    <div onClick={() => setDarkMode(!darkMode)} className={`switch-bg rounded-full ${darkMode ? 'bg-[#836EF9]' : 'bg-slate-300'}`}>
                         <div className={`switch-dot rounded-full bg-white shadow-lg ${darkMode ? 'translate-x-6' : 'translate-x-0'}`} />
                     </div>
                 </div>
@@ -439,16 +440,16 @@
                     <div className="space-y-4">
                       <div className="flex justify-between items-end">
                         <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                          EVM Chains {resolvedEvm && <span className="text-emerald-500 ml-1">✓ RESOLVED</span>}
+                          EVM & Monad {resolvedEvm && <span className="text-emerald-500 ml-1">✓ RESOLVED</span>}
                         </label>
                         <button onClick={() => { setEvmAddr('0x01faF6DFc230d755141D84d7cB980dd68f5Efe13'); setResolvedEvm(null); }} className="text-[10px] font-bold text-blue-500 hover:underline uppercase tracking-tighter">LOAD TEST</button>
                       </div>
                       <div className="relative">
-                        <input type="text" value={evmAddr} onChange={e => { setEvmAddr(e.target.value); setResolvedEvm(null); }} placeholder="0x... or domain" className={`w-full p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200 focus:border-blue-400'}`} />
-                        {isResolving && <div className="absolute right-4 top-4 animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>}
+                        <input type="text" value={evmAddr} onChange={e => { setEvmAddr(e.target.value); setResolvedEvm(null); }} placeholder="0x... or domain" className={`w-full p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-[#836EF9]' : 'bg-slate-50 border-slate-200 focus:border-[#836EF9]'}`} />
+                        {isResolving && <div className="absolute right-4 top-4 animate-spin h-4 w-4 border-2 border-[#836EF9] border-t-transparent rounded-full"></div>}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {['abstract', 'base', 'ethereum', 'monad', 'polygon'].map(id => (
+                        {['monad', 'ethereum', 'base', 'polygon', 'abstract'].map(id => (
                           <ChainButton key={id} id={id} />
                         ))}
                       </div>
@@ -497,7 +498,7 @@
                 </div>
 
                 {nfts.length > 0 && (
-                    <div className={`max-w-6xl mx-auto mb-8 p-6 rounded-3xl border flex flex-wrap items-center justify-between gap-6 transition-all ${darkMode ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white border-slate-200'}`}>
+                    <div className={`max-w-6xl mx-auto mb-8 p-6 rounded-3xl border flex flex-wrap items-center justify-between gap-6 transition-all ${darkMode ? 'bg-[#836EF9]/10 border-[#836EF9]/20' : 'bg-white border-slate-200'}`}>
                         <div className="flex gap-8">
                             <div>
                                 <p className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-1">Total Value</p>
@@ -511,7 +512,7 @@
                         
                         <div className="flex flex-1 max-w-md gap-4">
                              <div className="relative flex-1">
-                                <input type="text" placeholder="Filter results..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full py-3 px-5 rounded-2xl border outline-none text-xs font-bold transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200'}`} />
+                                <input type="text" placeholder="Filter results..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full py-3 px-5 rounded-2xl border outline-none text-xs font-bold transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-[#836EF9]' : 'bg-slate-50 border-slate-200'}`} />
                              </div>
                              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`py-3 px-4 rounded-2xl border text-[10px] font-bold uppercase outline-none ${darkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                                 <option value="chain">Sort: Chain Priority</option>
@@ -562,7 +563,7 @@
                                     <p className="text-emerald-500 font-bold text-lg leading-none">{nft.balance} <span className="text-[10px] opacity-60">{nft.symbol}</span></p>
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className={`font-bold uppercase tracking-tighter text-lg ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>{nft.nativePrice || '0.00'} {chainStyles[nft.chain]?.native || '???'}</span>
+                                    <span className={`font-bold uppercase tracking-tighter text-lg ${darkMode ? 'text-blue-400' : 'text-[#836EF9]'}`}>{nft.nativePrice || '0.00'} {chainStyles[nft.chain]?.native || '???'}</span>
                                     <span className={`font-bold uppercase tracking-tighter text-lg opacity-70 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>${nft.totalValue || '0.00'}</span>
                                 </div>
                             </div>
@@ -582,10 +583,10 @@
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div className={`swap-column border glass-card ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
                             <div className="p-4 border-b border-white/5 flex justify-between items-center">
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500">EVM Terminal</span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-[#836EF9]">EVM & Monad Terminal</span>
                                 <div className="flex gap-1">
-                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                    <div className="w-2 h-2 rounded-full bg-[#7B3FE4]"></div>
+                                    <div className="w-2 h-2 rounded-full bg-[#836EF9]"></div>
+                                    <div className="w-2 h-2 rounded-full bg-[#3c3c3d]"></div>
                                     <div className="w-2 h-2 rounded-full bg-[#0052FF]"></div>
                                 </div>
                             </div>
@@ -737,7 +738,7 @@
                              <h3 className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-3">Attributes</h3>
                              <div className="flex flex-wrap gap-2">
                                 {selectedAsset.metadata?.traits?.length > 0 ? selectedAsset.metadata.traits.map((t, i) => (
-                                  <div key={i} className="px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                                  <div key={i} className="px-3 py-2 rounded-xl bg-[#836EF9]/10 border border-[#836EF9]/20">
                                     <p className="text-[8px] uppercase opacity-60">{t.trait_type}</p>
                                     <p className="text-[10px] font-bold">{t.value}</p>
                                   </div>
@@ -745,7 +746,7 @@
                              </div>
                           </div>
                           <div className="pt-6 border-t border-white/10">
-                             <button onClick={() => setSelectedAsset(null)} className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase tracking-widest transition-all">Back to Gallery</button>
+                             <button onClick={() => setSelectedAsset(null)} className="w-full py-4 rounded-2xl bg-[#836EF9] hover:bg-[#6c58e0] text-white font-bold uppercase tracking-widest transition-all">Back to Gallery</button>
                           </div>
                        </div>
                     </div>
