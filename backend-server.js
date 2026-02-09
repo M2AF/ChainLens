@@ -333,33 +333,66 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
 });
 
 // --- Cardano ---
-app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
-  const { mode, address } = req.params;
+// Helper: Resolve ADA Handle to Address
+const resolveAdaHandle = async (handle) => {
+  const cleanHandle = handle.replace('$', '').toLowerCase();
   try {
+    const handleRes = await fetch(`https://api.handle.me/handles/${cleanHandle}`);
+    if (handleRes.ok) {
+      const handleData = await handleRes.json();
+      if (handleData.resolved_addresses?.ada) {
+        return handleData.resolved_addresses.ada;
+      }
+    }
+    const policyId = "f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a";
+    const assetNameHex = Buffer.from(cleanHandle).toString('hex');
+    const assetId = policyId + assetNameHex;
+    const bfRes = await fetch(`https://cardano-mainnet.blockfrost.io/api/v0/assets/${assetId}/addresses`, {
+      headers: { 'project_id': API_KEYS.blockfrost }
+    });
+    if (bfRes.ok) {
+      const bfData = await bfRes.json();
+      if (bfData && bfData.length > 0 && bfData[0].address) {
+        return bfData[0].address;
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error("Handle resolution error:", err);
+    return null;
+  }
+};
+
+app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
+  let { mode, address } = req.params;
+  try {
+    const isHandle = address.startsWith('$') || (!address.startsWith('addr') && !address.startsWith('stake') && /^[a-z0-9_-]+$/i.test(address));
+    if (isHandle) {
+      console.log(`🔍 Resolving ADA Handle: ${address}`);
+      const resolvedAddress = await resolveAdaHandle(address);
+      if (!resolvedAddress) {
+        return res.status(404).json({ error: `Handle "${address}" not found` });
+      }
+      console.log(`✅ Resolved ${address} → ${resolvedAddress}`);
+      address = resolvedAddress;
+    }
     const adaPrice = await fetchUSDPrice('cardano', 'cardano');
     const addrRes = await fetch(`https://cardano-mainnet.blockfrost.io/api/v0/addresses/${address}`, { headers: { project_id: API_KEYS.blockfrost } });
     if (addrRes.status === 404) return res.json({ nfts: [] });
-    
     const addrData = await addrRes.json();
     if (!addrData.stake_address) return res.json({ nfts: [] });
-
     const assetsRes = await fetch(`https://cardano-mainnet.blockfrost.io/api/v0/accounts/${addrData.stake_address}/addresses/assets`, { headers: { project_id: API_KEYS.blockfrost } });
     const assets = await assetsRes.json();
-
     const tasks = assets.slice(0, 30).map(async (a) => {
       const metaRes = await fetch(`https://cardano-mainnet.blockfrost.io/api/v0/assets/${a.unit}`, { headers: { project_id: API_KEYS.blockfrost } });
       const meta = await metaRes.json();
       const isNFT = parseInt(a.quantity) === 1;
-      
       if ((mode === 'tokens' && isNFT) || (mode === 'nfts' && !isNFT)) return null;
-
       const usdPrice = await fetchUSDPrice('cardano', a.unit);
       const balance = (parseInt(a.quantity) / Math.pow(10, meta.metadata?.decimals || 0));
-
       let img = meta.onchain_metadata?.image || '';
       if (Array.isArray(img)) img = img.join('');
       const imageUrl = img ? (img.startsWith('ipfs://') ? `https://ipfs.io/ipfs/${img.replace('ipfs://', '')}` : (img.startsWith('http') ? img : `https://ipfs.io/ipfs/${img}`)) : '';
-
       return {
         id: a.unit,
         name: meta.onchain_metadata?.name || meta.asset_name || 'Cardano Asset',
