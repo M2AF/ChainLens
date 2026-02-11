@@ -638,7 +638,11 @@
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
                                         {filteredMarket.map((coin, idx) => (
-                                            <tr key={coin.id} className="hover:bg-white/5 transition-colors group">
+                                            <tr 
+                                                key={coin.id} 
+                                                onClick={() => window.open(`https://www.coingecko.com/en/coins/${coin.id}`, '_blank')}
+                                                className="hover:bg-white/5 transition-colors group cursor-pointer"
+                                            >
                                                 <td className="py-4 text-xs font-bold opacity-30 px-2">{coin.market_cap_rank}</td>
                                                 <td className="py-4">
                                                     <div className="flex items-center gap-3">
@@ -655,7 +659,22 @@
                                                 </td>
                                                 <td className="py-4 text-xs font-bold opacity-60 text-right">${(coin.market_cap / 1e9).toFixed(2)}B</td>
                                                 <td className="py-4 flex justify-center">
-                                                    <img src={`https://www.coingecko.com/coins/${coin.id}/sparkline.svg`} className={`h-8 w-24 object-contain filter ${coin.price_change_percentage_24h >= 0 ? 'hue-rotate-[80deg] saturate-150' : 'hue-rotate-[-30deg] saturate-150'}`} />
+                                                    {coin.sparkline_in_7d?.price && (
+                                                        <svg width="96" height="32" className="opacity-80">
+                                                            <polyline
+                                                                fill="none"
+                                                                stroke={coin.price_change_percentage_24h >= 0 ? '#10b981' : '#ef4444'}
+                                                                strokeWidth="1.5"
+                                                                points={coin.sparkline_in_7d.price.map((price, i) => {
+                                                                    const minPrice = Math.min(...coin.sparkline_in_7d.price);
+                                                                    const maxPrice = Math.max(...coin.sparkline_in_7d.price);
+                                                                    const x = (i / coin.sparkline_in_7d.price.length) * 96;
+                                                                    const y = 32 - ((price - minPrice) / (maxPrice - minPrice)) * 28;
+                                                                    return `${x},${y}`;
+                                                                }).join(' ')}
+                                                            />
+                                                        </svg>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}
