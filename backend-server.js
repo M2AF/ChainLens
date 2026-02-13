@@ -560,13 +560,57 @@ app.get('/api/market/search/:query', async (req, res) => {
 });
 
 // Get historical chart data (7 days)
-app.get('/api/market/chart/:symbol', async (req, res) => {
-  const symbol = req.params.symbol.toUpperCase();
-  console.log(`📈 Fetching chart for: ${symbol}`);
+app.get('/api/market/chart/:coinIdOrSymbol', async (req, res) => {
+  const input = req.params.coinIdOrSymbol.toLowerCase();
+  console.log(`📈 Fetching chart for: ${input}`);
+  
+  // Symbol to CoinGecko ID mapping for top coins
+  const symbolToId = {
+    'btc': 'bitcoin',
+    'eth': 'ethereum',
+    'usdt': 'tether',
+    'bnb': 'binancecoin',
+    'sol': 'solana',
+    'usdc': 'usd-coin',
+    'xrp': 'ripple',
+    'doge': 'dogecoin',
+    'ton': 'the-open-network',
+    'ada': 'cardano',
+    'avax': 'avalanche-2',
+    'shib': 'shiba-inu',
+    'dot': 'polkadot',
+    'link': 'chainlink',
+    'trx': 'tron',
+    'matic': 'matic-network',
+    'dai': 'dai',
+    'ltc': 'litecoin',
+    'bch': 'bitcoin-cash',
+    'uni': 'uniswap',
+    'atom': 'cosmos',
+    'xlm': 'stellar',
+    'okb': 'okb',
+    'icp': 'internet-computer',
+    'fil': 'filecoin',
+    'apt': 'aptos',
+    'hbar': 'hedera-hashgraph',
+    'arb': 'arbitrum',
+    'vet': 'vechain',
+    'near': 'near',
+    'op': 'optimism',
+    'inj': 'injective-protocol',
+    'stx': 'blockstack',
+    'grt': 'the-graph',
+    'ftm': 'fantom',
+    'algo': 'algorand',
+    'aave': 'aave',
+    'etc': 'ethereum-classic'
+  };
+  
+  // Try to convert symbol to ID, or use input as-is if it's already an ID
+  const coinId = symbolToId[input] || input;
   
   try {
-    // Use CoinGecko for chart data (more reliable)
-    const coinId = symbol.toLowerCase();
+    console.log(`🔍 Using CoinGecko ID: ${coinId}`);
     const response = await fetch(
       `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=7&interval=hourly`
     );
@@ -591,17 +635,17 @@ app.get('/api/market/chart/:symbol', async (req, res) => {
     const yesterdayPrice = formattedPrices[formattedPrices.length - 25]?.price || currentPrice;
     const change24h = ((currentPrice - yesterdayPrice) / yesterdayPrice) * 100;
     
-    console.log(`✅ Chart data for ${symbol}: ${formattedPrices.length} data points`);
+    console.log(`✅ Chart data for ${input.toUpperCase()}: ${formattedPrices.length} data points`);
     
     res.json({
-      symbol: symbol,
-      name: symbol,
+      symbol: input.toUpperCase(),
+      name: input.toUpperCase(),
       prices: formattedPrices,
       current_price: currentPrice,
       change_24h: change24h
     });
   } catch (err) {
-    console.error(`❌ Chart error for ${symbol}:`, err.message);
+    console.error(`❌ Chart error for ${input}:`, err.message);
     res.status(500).json({ error: err.message });
   }
 });

@@ -190,6 +190,7 @@
             setMarketError('No market data available');
           } else {
             setMarketData(data);
+            setMarketError(null); // Clear any previous errors
           }
         } catch (e) { 
           console.error("❌ Market fetch failed:", e);
@@ -241,13 +242,24 @@
         setShowChart(true);
         setLoadingChart(true);
         try {
-          console.log('Loading chart for:', coin.symbol);
-          const res = await fetch(`/api/market/chart/${coin.symbol}`);
+          // Use coin ID if available (CoinGecko format), fallback to symbol
+          const identifier = coin.id || coin.symbol;
+          console.log('📊 Loading chart for:', coin.name || coin.symbol, '(ID:', identifier, ')');
+          
+          const res = await fetch(`/api/market/chart/${identifier}`);
+          
+          if (!res.ok) {
+            throw new Error(`Chart API error: ${res.status}`);
+          }
+          
           const data = await res.json();
-          console.log('Chart data received:', data);
+          console.log('✅ Chart data received:', data.prices?.length, 'data points');
           setChartData(data);
         } catch (e) {
-          console.error("Chart load failed:", e);
+          console.error("❌ Chart load failed:", e);
+          console.error("Error details:", e.message);
+          // Show error in modal
+          setChartData({ error: e.message });
         }
         setLoadingChart(false);
       };
@@ -923,7 +935,13 @@
                             <div className="py-32 text-center animate-pulse">
                                 <p className="text-sm opacity-40">Loading chart data...</p>
                             </div>
-                        ) : chartData ? (
+                        ) : chartData?.error ? (
+                            <div className="py-32 text-center">
+                                <p className="text-lg font-bold mb-2 text-red-500">❌ Chart Load Failed</p>
+                                <p className="text-sm opacity-60">{chartData.error}</p>
+                                <p className="text-xs opacity-40 mt-2">Try refreshing or check console for details</p>
+                            </div>
+                        ) : chartData?.prices ? (
                             <div className="relative" style={{height: '400px'}}>
                                 <canvas id="priceChart"></canvas>
                             </div>
