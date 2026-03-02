@@ -233,15 +233,17 @@
         const params = new URLSearchParams(window.location.search);
         const token = params.get('auth_token');
         const error = params.get('auth_error');
-        const linked = params.get('linked'); // 'google' or 'discord' — came back from link flow
+        const linked = params.get('linked'); // 'google' or 'discord' after link flow
         if (token) {
           setAuthToken(token);
           localStorage.setItem('cl_token', token);
           setActiveTab('profile');
-          // Re-fetch profile to show newly linked social account
+          // Re-fetch profile immediately so newly linked social shows up
           if (linked) {
             fetch('/api/profile', { headers: { Authorization: `Bearer ${token}` } })
-              .then(r => r.json()).then(p => { if (p && !p.error) setUserProfile(p); }).catch(() => {});
+              .then(r => r.json())
+              .then(p => { if (p && !p.error) setUserProfile(p); })
+              .catch(() => {});
           }
           window.history.replaceState({}, '', window.location.pathname);
         }
@@ -251,7 +253,7 @@
             discord_not_configured: 'Discord login is not set up yet. Use a wallet to sign in.',
             google_failed: 'Google login failed. Please try again.',
             discord_failed: 'Discord login failed. Please try again.',
-            link_failed: 'Failed to link account. Please try again.',
+            link_failed: 'Failed to link account — please try again.',
             cancelled: 'Login was cancelled.',
             invalid_state: 'Login session expired. Please try again.',
           };
@@ -297,7 +299,8 @@
       // ── Social logins (redirect to backend OAuth) ─────────────────────────
       const loginWithGoogle  = () => {
         setWalletConnecting('google');
-        // If already logged in → link mode (attach Google to existing profile)
+        // Already logged in → LINK mode (attaches Google to current profile)
+        // Not logged in → LOGIN mode (creates/finds account)
         const url = authToken
           ? `/auth/google?link_token=${encodeURIComponent(authToken)}`
           : '/auth/google';
@@ -305,7 +308,6 @@
       };
       const loginWithDiscord = () => {
         setWalletConnecting('discord');
-        // If already logged in → link mode (attach Discord to existing profile)
         const url = authToken
           ? `/auth/discord?link_token=${encodeURIComponent(authToken)}`
           : '/auth/discord';
@@ -1702,7 +1704,7 @@
                         </div>
                       )}
 
-                      {/* ── Linked Social Accounts ───────────────────────── */}
+                      {/* ── Linked Socials ──────────────────────────────── */}
                       <div className={`rounded-[3rem] border p-8 glass-card ${darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
                         <div className="flex items-center justify-between mb-6">
                           <h3 className="text-lg font-heading font-extrabold uppercase">Linked Socials</h3>
@@ -1711,44 +1713,47 @@
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-3">
-                          {/* Google */}
+
+                          {/* Google — show connected badge OR link button */}
                           {(() => {
-                            const googleAccount = (userProfile.cl_linked_accounts || []).find(a => a.provider === 'google');
-                            return googleAccount ? (
-                              <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-sm font-black">G</div>
+                            const g = (userProfile.cl_linked_accounts || []).find(a => a.provider === 'google');
+                            return g ? (
+                              <div className={`flex items-center gap-3 px-5 py-3 rounded-2xl border ${darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-black flex-shrink-0">G</div>
                                 <div>
-                                  <div className="text-xs font-bold text-emerald-400">Google ✓</div>
-                                  <div className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{googleAccount.display_name || googleAccount.email}</div>
+                                  <div className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Google ✓</div>
+                                  <div className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{g.display_name || g.email}</div>
                                 </div>
                               </div>
                             ) : (
                               <button onClick={loginWithGoogle} disabled={!!walletConnecting}
-                                className={`flex items-center gap-2 px-4 py-3 rounded-2xl border border-dashed text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-40 ${darkMode ? 'border-slate-600 text-slate-400 hover:border-blue-400 hover:text-blue-400' : 'border-slate-300 text-slate-400 hover:border-blue-400 hover:text-blue-500'}`}>
-                                <div className="w-5 h-5 rounded bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-[9px] font-black">G</div>
+                                className={`flex items-center gap-2 px-5 py-3 rounded-2xl border border-dashed text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-40 ${darkMode ? 'border-slate-600 text-slate-400 hover:border-blue-400 hover:text-blue-400 hover:bg-blue-400/5' : 'border-slate-300 text-slate-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50'}`}>
+                                <div className="w-5 h-5 rounded bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-[9px] font-black flex-shrink-0">G</div>
                                 {walletConnecting === 'google' ? 'Linking…' : 'Link Google'}
                               </button>
                             );
                           })()}
-                          {/* Discord */}
+
+                          {/* Discord — show connected badge OR link button */}
                           {(() => {
-                            const discordAccount = (userProfile.cl_linked_accounts || []).find(a => a.provider === 'discord');
-                            return discordAccount ? (
-                              <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                                <div className="w-8 h-8 rounded-xl bg-[#5865F2] flex items-center justify-center text-white text-sm font-black">D</div>
+                            const d = (userProfile.cl_linked_accounts || []).find(a => a.provider === 'discord');
+                            return d ? (
+                              <div className={`flex items-center gap-3 px-5 py-3 rounded-2xl border ${darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                                <div className="w-8 h-8 rounded-xl bg-[#5865F2] flex items-center justify-center text-white text-sm font-black flex-shrink-0">D</div>
                                 <div>
-                                  <div className="text-xs font-bold text-emerald-400">Discord ✓</div>
-                                  <div className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{discordAccount.display_name}</div>
+                                  <div className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Discord ✓</div>
+                                  <div className={`text-[11px] mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{d.display_name}</div>
                                 </div>
                               </div>
                             ) : (
                               <button onClick={loginWithDiscord} disabled={!!walletConnecting}
-                                className={`flex items-center gap-2 px-4 py-3 rounded-2xl border border-dashed text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-40 ${darkMode ? 'border-slate-600 text-slate-400 hover:border-indigo-400 hover:text-indigo-400' : 'border-slate-300 text-slate-400 hover:border-indigo-400 hover:text-indigo-500'}`}>
-                                <div className="w-5 h-5 rounded bg-[#5865F2] flex items-center justify-center text-white text-[9px] font-black">D</div>
+                                className={`flex items-center gap-2 px-5 py-3 rounded-2xl border border-dashed text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-40 ${darkMode ? 'border-slate-600 text-slate-400 hover:border-indigo-400 hover:text-indigo-400 hover:bg-indigo-400/5' : 'border-slate-300 text-slate-400 hover:border-indigo-500 hover:text-indigo-500 hover:bg-indigo-50'}`}>
+                                <div className="w-5 h-5 rounded bg-[#5865F2] flex items-center justify-center text-white text-[9px] font-black flex-shrink-0">D</div>
                                 {walletConnecting === 'discord' ? 'Linking…' : 'Link Discord'}
                               </button>
                             );
                           })()}
+
                         </div>
                       </div>
 

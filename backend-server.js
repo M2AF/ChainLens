@@ -94,18 +94,21 @@ const dbGetUserById = async (id) => {
   return data;
 };
 
+// Upsert a social login record linked to a user_id
 const dbLinkSocialAccount = async (userId, { provider, provider_id, display_name, avatar_url, email }) => {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('cl_linked_accounts')
-    .upsert({ user_id: userId, provider, provider_id, display_name, avatar_url, email },
-             { onConflict: 'provider,provider_id' })
+    .upsert(
+      { user_id: userId, provider, provider_id, display_name, avatar_url, email },
+      { onConflict: 'provider,provider_id' }
+    )
     .select().single();
   if (error) throw error;
   return data;
 };
 
-// Find a user who already has this social account linked
+// Find an existing user who already has this social account linked
 const dbFindUserBySocial = async (provider, provider_id) => {
   if (!supabase) return null;
   const { data } = await supabase
@@ -334,9 +337,10 @@ app.post('/api/auth/wallet-login', async (req, res) => {
 app.get('/auth/google', (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID) return res.redirect(`${FRONTEND_URL}/?auth_error=google_not_configured`);
   const state = crypto.randomBytes(16).toString('hex');
+  // Store linkToken so callback knows whether this is a new login or linking to existing account
   _oauthStates[state] = {
     expires: Date.now() + 10 * 60 * 1000,
-    linkToken: req.query.link_token || null  // present = link mode, absent = login mode
+    linkToken: req.query.link_token || null
   };
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID,
@@ -352,7 +356,10 @@ app.get('/auth/google/callback', async (req, res) => {
   const { code, state, error } = req.query;
   if (error || !code) return res.redirect(`${FRONTEND_URL}/?auth_error=${error || 'cancelled'}`);
   if (!_oauthStates[state]) return res.redirect(`${FRONTEND_URL}/?auth_error=invalid_state`);
+  // IMPORTANT: save state data BEFORE deleting it
+  const stateData = _oauthStates[state];
   delete _oauthStates[state];
+  const linkToken = stateData.linkToken || null;
   try {
     // Exchange code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -373,13 +380,10 @@ app.get('/auth/google/callback', async (req, res) => {
     });
     const info = await infoRes.json();
 
-    const stateData = _oauthStates[state] || {};
-    const linkToken = stateData.linkToken;
     let user;
-
     if (supabase) {
       if (linkToken) {
-        // LINK MODE: add Google to an existing logged-in account
+        // LINK MODE: attach Google to an already-logged-in account
         try {
           const claims = jwt.verify(linkToken, JWT_SECRET);
           user = await dbGetUserById(claims.sub);
@@ -388,10 +392,13 @@ app.get('/auth/google/callback', async (req, res) => {
             provider: 'google', provider_id: info.id,
             display_name: info.name, avatar_url: info.picture, email: info.email
           });
-          await supabase.from('cl_users').update({
-            avatar_url: user.avatar_url || info.picture,
-            email: user.email || info.email
-          }).eq('id', user.id);
+          // Update primary display info if not already set
+          if (!user.avatar_url || !user.email) {
+            await supabase.from('cl_users').update({
+              avatar_url: user.avatar_url || info.picture,
+              email: user.email || info.email
+            }).eq('id', user.id);
+          }
           const jwtToken = jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: '30d' });
           return res.redirect(`${FRONTEND_URL}/?auth_token=${jwtToken}&linked=google`);
         } catch (e) {
@@ -399,16 +406,20 @@ app.get('/auth/google/callback', async (req, res) => {
           return res.redirect(`${FRONTEND_URL}/?auth_error=link_failed`);
         }
       } else {
-        // LOGIN MODE: find existing linked account or create new user
+        // LOGIN MODE: find existing account or create new one
         const existing = await dbFindUserBySocial('google', info.id);
         if (existing) {
           user = existing;
+          // Refresh social record with latest info
           await dbLinkSocialAccount(user.id, {
             provider: 'google', provider_id: info.id,
             display_name: info.name, avatar_url: info.picture, email: info.email
           });
         } else {
-          user = await dbUpsertUser({ provider: 'google', provider_id: info.id, display_name: info.name, avatar_url: info.picture, email: info.email });
+          user = await dbUpsertUser({
+            provider: 'google', provider_id: info.id,
+            display_name: info.name, avatar_url: info.picture, email: info.email
+          });
           await dbLinkSocialAccount(user.id, {
             provider: 'google', provider_id: info.id,
             display_name: info.name, avatar_url: info.picture, email: info.email
@@ -431,9 +442,10 @@ app.get('/auth/google/callback', async (req, res) => {
 app.get('/auth/discord', (req, res) => {
   if (!process.env.DISCORD_CLIENT_ID) return res.redirect(`${FRONTEND_URL}/?auth_error=discord_not_configured`);
   const state = crypto.randomBytes(16).toString('hex');
+  // Store linkToken so callback knows whether this is a new login or linking to existing account
   _oauthStates[state] = {
     expires: Date.now() + 10 * 60 * 1000,
-    linkToken: req.query.link_token || null  // present = link mode, absent = login mode
+    linkToken: req.query.link_token || null
   };
   const params = new URLSearchParams({
     client_id: process.env.DISCORD_CLIENT_ID,
@@ -449,7 +461,10 @@ app.get('/auth/discord/callback', async (req, res) => {
   const { code, state, error } = req.query;
   if (error || !code) return res.redirect(`${FRONTEND_URL}/?auth_error=${error || 'cancelled'}`);
   if (!_oauthStates[state]) return res.redirect(`${FRONTEND_URL}/?auth_error=invalid_state`);
+  // IMPORTANT: save state data BEFORE deleting it
+  const stateData = _oauthStates[state];
   delete _oauthStates[state];
+  const linkToken = stateData.linkToken || null;
   try {
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -470,15 +485,12 @@ app.get('/auth/discord/callback', async (req, res) => {
     const avatar = info.avatar
       ? `https://cdn.discordapp.com/avatars/${info.id}/${info.avatar}.png`
       : `https://cdn.discordapp.com/embed/avatars/${parseInt(info.discriminator || 0) % 5}.png`;
-
-    const stateData = _oauthStates[state] || {};
-    const linkToken = stateData.linkToken;
     const discordName = info.global_name || info.username;
-    let user;
 
+    let user;
     if (supabase) {
       if (linkToken) {
-        // LINK MODE: add Discord to an existing logged-in account
+        // LINK MODE: attach Discord to an already-logged-in account
         try {
           const claims = jwt.verify(linkToken, JWT_SECRET);
           user = await dbGetUserById(claims.sub);
@@ -487,9 +499,10 @@ app.get('/auth/discord/callback', async (req, res) => {
             provider: 'discord', provider_id: info.id,
             display_name: discordName, avatar_url: avatar, email: info.email
           });
-          await supabase.from('cl_users').update({
-            avatar_url: user.avatar_url || avatar
-          }).eq('id', user.id);
+          // Update primary avatar if not already set
+          if (!user.avatar_url) {
+            await supabase.from('cl_users').update({ avatar_url: avatar }).eq('id', user.id);
+          }
           const jwtToken = jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: '30d' });
           return res.redirect(`${FRONTEND_URL}/?auth_token=${jwtToken}&linked=discord`);
         } catch (e) {
@@ -497,16 +510,20 @@ app.get('/auth/discord/callback', async (req, res) => {
           return res.redirect(`${FRONTEND_URL}/?auth_error=link_failed`);
         }
       } else {
-        // LOGIN MODE: find existing linked account or create new user
+        // LOGIN MODE: find existing account or create new one
         const existing = await dbFindUserBySocial('discord', info.id);
         if (existing) {
           user = existing;
+          // Refresh social record with latest info
           await dbLinkSocialAccount(user.id, {
             provider: 'discord', provider_id: info.id,
             display_name: discordName, avatar_url: avatar, email: info.email
           });
         } else {
-          user = await dbUpsertUser({ provider: 'discord', provider_id: info.id, display_name: discordName, avatar_url: avatar, email: info.email });
+          user = await dbUpsertUser({
+            provider: 'discord', provider_id: info.id,
+            display_name: discordName, avatar_url: avatar, email: info.email
+          });
           await dbLinkSocialAccount(user.id, {
             provider: 'discord', provider_id: info.id,
             display_name: discordName, avatar_url: avatar, email: info.email
