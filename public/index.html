@@ -670,8 +670,11 @@
         const txTasks = [];
 
         if (targetEvm.startsWith('0x')) {
+          console.log(`🔍 Fetching for EVM chains:`, evmChains.filter(c => activeChains.includes(c)));
+          
           evmChains.forEach(chain => {
             if (activeChains.includes(chain)) {
+              console.log(`  📡 Fetching ${chain}: NFTs, Tokens, Transactions`);
               nftTasks.push(fetch(`/api/nfts/${chain}/${targetEvm}`).then(r => r.json()));
               tokenTasks.push(fetch(`/api/tokens/${chain}/${targetEvm}`).then(r => r.json()));
               txTasks.push(fetch(`/api/transactions/${chain}/${targetEvm}`).then(r => r.json()));
@@ -765,10 +768,17 @@
             .filter(r => r.status === 'fulfilled' && r.value.transactions)
             .flatMap(r => r.value.transactions);
           
+          // Log transaction counts per chain
+          const txByChain = {};
+          txCombined.forEach(tx => {
+            txByChain[tx.chain] = (txByChain[tx.chain] || 0) + 1;
+          });
+          console.log(`📊 Transactions by chain:`, txByChain);
+          
           const sortedTx = txCombined.sort((a, b) => b.timestamp - a.timestamp);
           setTransactions(sortedTx);
           
-          console.log(`✅ Loaded: ${filtered.length} assets, ${sortedTx.length} transactions`);
+          console.log(`✅ Loaded: ${filtered.length} assets, ${sortedTx.length} total transactions`);
           if (sortedTx.length > 0) {
             console.log(`📅 First tx: ${new Date(sortedTx[0].timestamp).toLocaleString()} (${sortedTx[0].chain})`);
             console.log(`📅 Last tx: ${new Date(sortedTx[sortedTx.length-1].timestamp).toLocaleString()} (${sortedTx[sortedTx.length-1].chain})`);

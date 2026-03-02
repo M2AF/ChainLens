@@ -1570,7 +1570,11 @@ const nativeCurrencies = {
 };
 
 // EVM chains transaction history using Alchemy - OPTIMIZED BLOCK TIMESTAMPS
+console.log(`🔗 Setting up transaction routes for ${evmChains.length} EVM chains:`, evmChains.map(c => c.id).join(', '));
+
 evmChains.forEach(chain => {
+  console.log(`  ✅ Registered: /api/transactions/${chain.id}/:address`);
+  
   app.get(`/api/transactions/${chain.id}/:address`, async (req, res) => {
     const { address } = req.params;
     console.log(`📜 Fetching ${chain.id} transactions for: ${address}`);
