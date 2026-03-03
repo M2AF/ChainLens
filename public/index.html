@@ -1662,7 +1662,7 @@
                           className="social-btn flex flex-col items-center gap-2 py-5 px-4 rounded-2xl border-2 font-bold text-sm disabled:opacity-50 border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/5">
                           <span className="text-3xl">₳</span>
                           <span className="text-xs font-bold uppercase tracking-widest text-blue-400">
-                            {walletConnecting === 'cardano' ? 'Connecting…' : 'Vespr / Cardano'}
+                            {walletConnecting === 'cardano' ? 'Connecting…' : 'Vespr / Eternl / Cardano'}
                           </span>
                           <span className={`text-[9px] opacity-50 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Vespr, Eternl, Nami, Lace</span>
                         </button>
@@ -1709,7 +1709,7 @@
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setNameInput(userProfile.display_name || ''); setEditingName(true); }}>
-                                  <h2 className="text-1xl font-heading font-extrabold">{userProfile.display_name}</h2>
+                                  <h2 className="text-2xl font-heading font-extrabold">{userProfile.display_name}</h2>
                                   <span className={`text-[10px] opacity-0 group-hover:opacity-60 transition-opacity font-bold uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>✏ Edit</span>
                                 </div>
                               )}
