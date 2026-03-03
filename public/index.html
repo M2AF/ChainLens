@@ -501,6 +501,29 @@
 
       const truncAddr = (addr) => addr ? addr.substring(0,8) + '…' + addr.slice(-6) : '';
 
+      // ── Image helpers ──────────────────────────────────────────────────────
+      // Convert ipfs:// and ar:// to HTTPS before browser sees them
+      const resolveImg = function(url) {
+        if (!url) return '';
+        if (url.indexOf('ipfs://') === 0) return 'https://ipfs.io/ipfs/' + url.slice(7);
+        if (url.indexOf('ar://') === 0) return 'https://arweave.net/' + url.slice(5);
+        if (url.indexOf('cloudflare-ipfs.com') > -1) return url.replace('cloudflare-ipfs.com', 'ipfs.io');
+        return url;
+      };
+      // SVG fallback — colored circle with token initials, no external CDN
+      const imgFallbackSvg = function(symbol, chain) {
+        var colors = {solana:'14F195',cardano:'0033AD',ethereum:'627EEA',polygon:'8247E5',
+                      base:'0052FF',avalanche:'E84142',optimism:'FF0420',arbitrum:'28A0F0',
+                      blast:'FCFC03',ronin:'1273EA',gnosis:'04795B'};
+        var bg = colors[chain] || '334155';
+        var text = encodeURIComponent(((symbol || '?').substring(0,3)).toUpperCase());
+        var tc = bg === 'FCFC03' ? '000000' : 'ffffff';
+        return 'data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%2280%22 height%3D%2280%22%3E%3Crect width%3D%2280%22 height%3D%2280%22 rx%3D%2240%22 fill%3D%22%23' + bg + '%22%2F%3E%3Ctext x%3D%2250%25%22 y%3D%2250%25%22 dominant-baseline%3D%22middle%22 text-anchor%3D%22middle%22 font-family%3D%22Arial%2Csans-serif%22 font-weight%3D%22bold%22 font-size%3D%2226%22 fill%3D%22%23' + tc + '%22%3E' + text + '%3C%2Ftext%3E%3C%2Fsvg%3E';
+      };
+      // TrustWallet chain slugs for EVM token logo fallback
+      const twChain = {ethereum:'ethereum',polygon:'polygon',avalanche:'avalanchec',
+                       base:'base',arbitrum:'arbitrum',optimism:'optimism'};
+
       useEffect(() => {
         const fetchMarket = async () => {
           setMarketLoading(true);
@@ -1127,7 +1150,16 @@
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-10">
+            {/* Dark mode toggle — fixed top-right corner */}
+            <div className={`fixed top-4 right-4 z-50 flex items-center space-x-3 px-4 py-2.5 rounded-2xl border backdrop-blur-md transition-all ${darkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-white/80 border-slate-200 shadow-md'}`}>
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{darkMode ? 'Dark' : 'Light'}</span>
+                <div onClick={() => setDarkMode(!darkMode)} className={`switch-bg rounded-full cursor-pointer ${darkMode ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                    <div className={`switch-dot rounded-full bg-white shadow-lg ${darkMode ? 'translate-x-6' : 'translate-x-0'}`} />
+                </div>
+            </div>
+
+            {/* Tabs — centered */}
+            <div className="flex justify-center mb-10">
                 <div className={`flex p-1 rounded-2xl border transition-all ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-md'}`}>
                     <button onClick={() => setActiveTab('portfolio')} className={`px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'portfolio' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}>Wallet Scanner</button>
                     <button onClick={() => setActiveTab('swap')} className={`px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'swap' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}>Swap Hub</button>
@@ -1136,13 +1168,6 @@
                       Profile
                       {userProfile && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-900"></span>}
                     </button>
-                </div>
-
-                <div className="flex items-center space-x-3 bg-black/5 px-4 py-3 rounded-2xl border border-white/5">
-                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{darkMode ? 'Dark' : 'Light'}</span>
-                    <div onClick={() => setDarkMode(!darkMode)} className={`switch-bg rounded-full ${darkMode ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                        <div className={`switch-dot rounded-full bg-white shadow-lg ${darkMode ? 'translate-x-6' : 'translate-x-0'}`} />
-                    </div>
                 </div>
             </div>
 
@@ -1344,23 +1369,37 @@
                         </div>
                         <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-100"}>
                             <img
-                              src={nft.image || ''}
+                              src={resolveImg(nft.image || '')}
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                               onError={(e) => {
                                 const el = e.currentTarget;
-                                el.onerror = null;
-                                const sym = encodeURIComponent((nft.symbol || '?').toUpperCase());
-                                const colors = {solana:'14F195',cardano:'0033AD',ethereum:'627EEA',polygon:'8247E5',base:'0052FF'};
-                                const bg = colors[nft.chain] || '334155';
-                                if (nft.id?.startsWith('0x') && !el.src.includes('trustwallet')) {
-                                  el.onerror = (e2) => { e2.currentTarget.onerror = null; e2.currentTarget.src = `https://via.placeholder.com/80/${bg}/ffffff?text=${sym}`; };
-                                  el.src = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${nft.id}/logo.png`;
-                                } else if (el.src.includes('cloudflare-ipfs') && !el.src.includes('ipfs.io')) {
-                                  el.onerror = (e2) => { e2.currentTarget.onerror = null; e2.currentTarget.src = `https://via.placeholder.com/80/${bg}/ffffff?text=${sym}`; };
-                                  el.src = el.src.replace('cloudflare-ipfs.com', 'ipfs.io');
-                                } else {
-                                  el.src = `https://via.placeholder.com/80/${bg}/ffffff?text=${sym}`;
+                                const svgFb = imgFallbackSvg(nft.symbol, nft.chain);
+                                const addr = nft.id || nft.address || nft.mint || '';
+                                const origSrc = nft.image || '';
+                                const fallbacks = [];
+                                // IPFS: try two more gateways
+                                if (origSrc.indexOf('ipfs://') === 0 || origSrc.indexOf('/ipfs/') > -1) {
+                                  const cid = origSrc.replace('ipfs://','').replace(/.*\/ipfs\//,'');
+                                  fallbacks.push('https://dweb.link/ipfs/' + cid);
+                                  fallbacks.push('https://gateway.pinata.cloud/ipfs/' + cid);
                                 }
+                                // EVM: TrustWallet with correct chain slug
+                                const tw = twChain[nft.chain];
+                                if (tw && addr.indexOf('0x') === 0) {
+                                  fallbacks.push('https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/' + tw + '/assets/' + addr + '/logo.png');
+                                }
+                                // Solana: token list CDN
+                                if (nft.chain === 'solana' && addr && addr.indexOf('0x') !== 0) {
+                                  fallbacks.push('https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/' + addr + '/logo.png');
+                                }
+                                fallbacks.push(svgFb);
+                                let fi = 0;
+                                el.onerror = function() {
+                                  fi++;
+                                  el.src = fi < fallbacks.length ? fallbacks[fi] : svgFb;
+                                  if (fi >= fallbacks.length) el.onerror = null;
+                                };
+                                el.src = fallbacks[0] || svgFb;
                               }}
                             />
                             <div className={`absolute ${isListView ? 'top-1 left-1 px-1.5 py-0.5 text-[6px]' : 'top-4 left-4 px-3 py-1 text-[9px]'} rounded-full text-white font-bold tracking-widest uppercase backdrop-blur-md border border-white/20 shadow-lg z-10 ${chainStyles[nft.chain]?.color}`}>
@@ -1554,7 +1593,8 @@
                                                 <td className="py-4 text-xs font-bold opacity-30 px-2">{coin.market_cap_rank}</td>
                                                 <td className="py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <img src={coin.image} className="w-6 h-6 rounded-full" />
+                                                        <img src={resolveImg(coin.image)} className="w-6 h-6 rounded-full flex-shrink-0"
+                                                          onError={(e) => { e.currentTarget.onerror=null; e.currentTarget.src=imgFallbackSvg(coin.symbol,'ethereum'); }} />
                                                         <div>
                                                             <p className="text-xs font-bold uppercase">{coin.name}</p>
                                                             <p className="text-[10px] font-bold opacity-40 uppercase">{coin.symbol}</p>
@@ -2060,7 +2100,7 @@
                         {hiddenList.map(nft => (
                           <div key={`${nft.chain}-${nft.address || nft.id || nft.mint || nft.name}`} className="flex items-center justify-between p-3 rounded-2xl bg-black/20 border border-white/5">
                             <div className="flex items-center gap-4">
-                              <img src={nft.image} className="w-10 h-10 rounded-lg object-cover" />
+                              <img src={resolveImg(nft.image)} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" onError={(e)=>{e.currentTarget.onerror=null;e.currentTarget.src=imgFallbackSvg(nft.symbol,nft.chain);}} />
                               <span className="text-xs font-bold uppercase tracking-tighter">{nft.name} (Hidden)</span>
                             </div>
                             <button onClick={(e) => toggleHide(e, nft)} className="text-[10px] font-bold text-blue-400 hover:text-white uppercase">Restore</button>
@@ -2069,7 +2109,7 @@
                         {spamList.map(nft => (
                           <div key={`${nft.chain}-${nft.address || nft.id || nft.mint || nft.name}`} className="flex items-center justify-between p-3 rounded-2xl bg-red-950/20 border border-red-500/10">
                             <div className="flex items-center gap-4">
-                              <img src={nft.image} className="w-10 h-10 rounded-lg object-cover" />
+                              <img src={resolveImg(nft.image)} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" onError={(e)=>{e.currentTarget.onerror=null;e.currentTarget.src=imgFallbackSvg(nft.symbol,nft.chain);}} />
                               <span className="text-xs font-bold uppercase tracking-tighter text-red-400">{nft.name} (Spam)</span>
                             </div>
                             <button onClick={(e) => toggleSpam(e, nft)} className="text-[10px] font-bold text-red-400 hover:text-white uppercase">Not Spam</button>
@@ -2092,7 +2132,7 @@
                   <button onClick={() => setSelectedAsset(null)} className="absolute top-10 right-10 w-12 h-12 flex items-center justify-center rounded-full bg-slate-800 hover:bg-red-500 text-white transition-all font-bold">✕</button>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div className="rounded-[2.5rem] overflow-hidden shadow-2xl">
-                       <img src={selectedAsset.image} className="w-full h-auto" />
+                              <img src={resolveImg(selectedAsset.image)} className="w-full h-auto rounded-2xl" onError={(e)=>{e.currentTarget.onerror=null;e.currentTarget.src=imgFallbackSvg(selectedAsset.symbol,selectedAsset.chain);}} />
                     </div>
                     <div>
                        <div className={`inline-block px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4 ${chainStyles[selectedAsset.chain]?.color} text-white`}>{selectedAsset.chain}</div>
