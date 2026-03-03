@@ -835,9 +835,22 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
           usdPrice: usdPrice,
           nativePrice: nativePrice.toFixed(4), // Price per token in native currency
           totalValue: (balance * usdPrice).toFixed(2),
-          image: metadata.logo
-            || `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${token.contractAddress}/logo.png`
-            || await fetchTokenImage(metadata.symbol),
+          image: await (async () => {
+            if (metadata.logo) return metadata.logo;
+            // TrustWallet assets — use chain-specific path and verify it exists (HEAD request)
+            const twChain = { ethereum:'ethereum', base:'base', polygon:'polygon',
+              avalanche:'avalanche', optimism:'optimism', arbitrum:'arbitrum',
+              gnosis:'xdai', ronin:'ronin', apechain:'apechain' }[chainId] || null;
+            if (twChain) {
+              const twUrl = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${twChain}/assets/${token.contractAddress}/logo.png`;
+              try {
+                const twRes = await fetch(twUrl, { method: 'HEAD' });
+                if (twRes.ok) return twUrl;
+              } catch {}
+            }
+            // CoinGecko symbol search as final fallback
+            return await fetchTokenImage(metadata.symbol);
+          })(),
           chain: chainId,
           isToken: true
         };
@@ -985,7 +998,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
           usdPrice,
           nativePrice: nativePrice.toFixed(4), // Price per token in MON
           totalValue: (balance * usdPrice).toFixed(2),
-          image: t.logo || t.thumbnail || `https://via.placeholder.com/400/836EF9/ffffff?text=${t.symbol || 'MON'}`,
+          image: t.logo || t.thumbnail || await fetchTokenImage(t.symbol) || `https://via.placeholder.com/400/836EF9/ffffff?text=${t.symbol || 'MON'}`,
           chain: 'monad',
           isToken: true,
           address: t.token_address
@@ -1190,7 +1203,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
           || nft.token_uri
           || '';
         const imageUrl = rawImage.startsWith('ipfs://')
-          ? `https://ipfs.io/ipfs/${rawImage.replace('ipfs://', '')}`
+          ? `https://cloudflare-ipfs.com/ipfs/${rawImage.slice(7)}`
           : rawImage;
         return {
           id: `${nft.token_address}-${nft.token_id}`,
@@ -1352,7 +1365,7 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
                 // Try to get metadata
                 let symbol = 'UNKNOWN';
                 let name = 'Unknown Token';
-                let image = 'https://via.placeholder.com/100/14F195/ffffff?text=?';
+                let image = '';
                 
                 // Try to fetch token metadata
                 try {
@@ -1374,6 +1387,11 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
                   }
                 } catch (e) {
                   console.log(`  Unable to fetch metadata for ${mint}`);
+                }
+
+                // CoinGecko fallback if image still empty after metadata fetch
+                if (!image && symbol && symbol !== 'UNKNOWN') {
+                  try { image = await fetchTokenImage(symbol); } catch {}
                 }
                 
                 // Try to get price
