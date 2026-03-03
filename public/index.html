@@ -1164,6 +1164,16 @@
               </div>
             </div>
 
+            {/* Grid / List view — fixed top-left, mirrors dark mode toggle */}
+            {activeTab === 'portfolio' && nfts.length > 0 && (
+              <div className={`fixed top-4 left-4 z-50 flex items-center space-x-3 px-4 py-2.5 rounded-2xl border backdrop-blur-md transition-all ${darkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-white/80 border-slate-200 shadow-md'}`}>
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{isListView ? 'List' : 'Grid'}</span>
+                <div onClick={() => setIsListView(!isListView)} className={`switch-bg rounded-full cursor-pointer ${isListView ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                  <div className={`switch-dot rounded-full bg-white shadow-lg ${isListView ? 'translate-x-6' : 'translate-x-0'}`} />
+                </div>
+              </div>
+            )}
+
             {/* Dark mode — fixed top-right corner */}
             <div className={`fixed top-4 right-4 z-50 flex items-center space-x-3 px-4 py-2.5 rounded-2xl border backdrop-blur-md transition-all ${darkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-white/80 border-slate-200 shadow-md'}`}>
                 <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{darkMode ? 'Dark' : 'Light'}</span>
@@ -1298,13 +1308,6 @@
                         </button>
                     </div>
                     
-                    {/* List View Toggle - Far Right */}
-                    <div className="flex items-center space-x-3 flex-shrink-0 min-w-[130px] justify-end">
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{isListView ? 'List View' : 'Grid View'}</span>
-                        <div onClick={() => setIsListView(!isListView)} className={`switch-bg rounded-full ${isListView ? 'bg-indigo-600' : 'bg-slate-300'}`}>
-                            <div className={`switch-dot rounded-full bg-white shadow-lg ${isListView ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </div>
-                    </div>
                 </div>
 
                 {/* Transaction History View */}
@@ -1662,12 +1665,9 @@
                     // ── LOGGED OUT: Login / Connect panel ──────────────────
                     <div className={`rounded-[3rem] border p-8 md:p-14 shadow-2xl glass-card ${darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-100'}`}>
                       <div className="text-center mb-10 slide-up">
-                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-amber-400/10 border-2 border-amber-400/30 mb-6">
-                          <span className="text-4xl">⛓️</span>
-                        </div>
                         <h2 className="text-4xl font-heading font-extrabold uppercase mb-3">Your Profile</h2>
-                        <p className={`text-sm max-w-sm mx-auto ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                          Sign in once. Link all your wallets.        Scan your entire portfolio in a single click.
+                        <p className={`text-sm max-w-sm mx-auto leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          Sign in once. Link all your wallets.<br />Scan your entire portfolio in a single click.
                         </p>
                         {profileError && (
                           <div className="mt-4 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold">
