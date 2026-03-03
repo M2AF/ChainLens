@@ -171,6 +171,8 @@
       const [editingWallet, setEditingWallet] = useState(null); // wallet id being renamed
       const [walletLabelInput, setWalletLabelInput] = useState('');
       const [profileError, setProfileError] = useState(null);
+      const [editingName, setEditingName] = useState(false);
+      const [nameInput, setNameInput] = useState('');
 
       const chainStyles = {
         ethereum: { color: 'bg-[#3c3c3d]', label: 'Ethereum', native: 'ETH' },
@@ -466,6 +468,20 @@
         setEditingWallet(null);
       };
 
+      // ── Rename display name ────────────────────────────────────────────────
+      const saveName = async () => {
+        const trimmed = nameInput.trim();
+        if (!trimmed) { setEditingName(false); return; }
+        try {
+          await authFetch('/api/profile', {
+            method: 'PATCH', body: JSON.stringify({ display_name: trimmed })
+          });
+          const p = await authFetch('/api/profile').then(r => r.json());
+          setUserProfile(p);
+        } catch (e) { setProfileError('Failed to save name'); }
+        setEditingName(false);
+      };
+
       // ── Delete wallet ──────────────────────────────────────────────────────
       const unlinkWallet = async (walletId) => {
         if (!confirm('Remove this wallet from your profile?')) return;
@@ -484,31 +500,6 @@
       };
 
       const truncAddr = (addr) => addr ? addr.substring(0,8) + '…' + addr.slice(-6) : '';
-
-      // ── Image URL resolver — converts ipfs:// and ar:// to HTTPS before browser sees them ──
-      const resolveImg = (url) => {
-        if (!url) return '';
-        if (url.startsWith('ipfs://')) return 'https://ipfs.io/ipfs/' + url.slice(7);
-        if (url.startsWith('ar://')) return 'https://arweave.net/' + url.slice(5);
-        if (url.includes('cloudflare-ipfs.com')) return url.replace('cloudflare-ipfs.com', 'ipfs.io');
-        return url;
-      };
-
-      // ── Chain-coloured SVG fallback — no external CDN needed ──────────────
-      const imgFallbackSvg = (symbol, chain) => {
-        const colors = {solana:'14F195',cardano:'0033AD',ethereum:'627EEA',polygon:'8247E5',
-                        base:'0052FF',avalanche:'E84142',optimism:'FF0420',arbitrum:'28A0F0',
-                        blast:'FCFC03',ronin:'1273EA',gnosis:'04795B'};
-        const bg = colors[chain] || '334155';
-        const text = (symbol || '?').substring(0,3).toUpperCase();
-        const textColor = bg === 'FCFC03' ? '000000' : 'ffffff';
-        return \`data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='80' height='80' rx='40' fill='%23\${bg}'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial,sans-serif' font-weight='bold' font-size='26' fill='%23\${textColor}'%3E\${encodeURIComponent(text)}%3C/text%3E%3C/svg%3E\`;
-      };
-
-      // ── TrustWallet chain slug map ─────────────────────────────────────────
-      const twChain = {ethereum:'ethereum',polygon:'polygon',avalanche:'avalanchec',
-                       base:'base',arbitrum:'arbitrum',optimism:'optimism',
-                       binance:'smartchain',bsc:'smartchain'};
 
       useEffect(() => {
         const fetchMarket = async () => {
@@ -1353,39 +1344,23 @@
                         </div>
                         <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-100"}>
                             <img
-                              src={resolveImg(nft.image)}
+                              src={nft.image || ''}
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                               onError={(e) => {
                                 const el = e.currentTarget;
-                                const svgFb = imgFallbackSvg(nft.symbol, nft.chain);
-                                const addr = nft.id || nft.address || nft.mint || '';
-                                const tw = twChain[nft.chain];
-                                // Build ordered fallback list
-                                const fallbacks = [];
-                                // IPFS: try dweb.link as second IPFS gateway
-                                const origSrc = nft.image || '';
-                                if (origSrc.startsWith('ipfs://') || origSrc.includes('/ipfs/')) {
-                                  const cid = origSrc.replace('ipfs://','').replace(/.*\/ipfs\//,'');
-                                  fallbacks.push('https://dweb.link/ipfs/' + cid);
-                                  fallbacks.push('https://gateway.pinata.cloud/ipfs/' + cid);
+                                el.onerror = null;
+                                const sym = encodeURIComponent((nft.symbol || '?').toUpperCase());
+                                const colors = {solana:'14F195',cardano:'0033AD',ethereum:'627EEA',polygon:'8247E5',base:'0052FF'};
+                                const bg = colors[nft.chain] || '334155';
+                                if (nft.id?.startsWith('0x') && !el.src.includes('trustwallet')) {
+                                  el.onerror = (e2) => { e2.currentTarget.onerror = null; e2.currentTarget.src = `https://via.placeholder.com/80/${bg}/ffffff?text=${sym}`; };
+                                  el.src = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${nft.id}/logo.png`;
+                                } else if (el.src.includes('cloudflare-ipfs') && !el.src.includes('ipfs.io')) {
+                                  el.onerror = (e2) => { e2.currentTarget.onerror = null; e2.currentTarget.src = `https://via.placeholder.com/80/${bg}/ffffff?text=${sym}`; };
+                                  el.src = el.src.replace('cloudflare-ipfs.com', 'ipfs.io');
+                                } else {
+                                  el.src = `https://via.placeholder.com/80/${bg}/ffffff?text=${sym}`;
                                 }
-                                // EVM: TrustWallet with correct chain
-                                if (tw && addr.startsWith('0x')) {
-                                  fallbacks.push(`https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${tw}/assets/${addr}/logo.png`);
-                                }
-                                // Solana: Solana token list CDN
-                                if (nft.chain === 'solana' && addr && !addr.startsWith('0x')) {
-                                  fallbacks.push(`https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/${addr}/logo.png`);
-                                }
-                                // Always end with local SVG — no external dependency
-                                fallbacks.push(svgFb);
-                                let fi = 0;
-                                el.onerror = function() {
-                                  fi++;
-                                  if (fi < fallbacks.length) { el.src = fallbacks[fi]; }
-                                  else { el.onerror = null; el.src = svgFb; }
-                                };
-                                el.src = fallbacks[0] || svgFb;
                               }}
                             />
                             <div className={`absolute ${isListView ? 'top-1 left-1 px-1.5 py-0.5 text-[6px]' : 'top-4 left-4 px-3 py-1 text-[9px]'} rounded-full text-white font-bold tracking-widest uppercase backdrop-blur-md border border-white/20 shadow-lg z-10 ${chainStyles[nft.chain]?.color}`}>
@@ -1579,8 +1554,7 @@
                                                 <td className="py-4 text-xs font-bold opacity-30 px-2">{coin.market_cap_rank}</td>
                                                 <td className="py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <img src={resolveImg(coin.image)} className="w-6 h-6 rounded-full flex-shrink-0"
-                                                          onError={(e) => { e.currentTarget.onerror=null; e.currentTarget.src=imgFallbackSvg(coin.symbol,'ethereum'); }} />
+                                                        <img src={coin.image} className="w-6 h-6 rounded-full" />
                                                         <div>
                                                             <p className="text-xs font-bold uppercase">{coin.name}</p>
                                                             <p className="text-[10px] font-bold opacity-40 uppercase">{coin.symbol}</p>
@@ -1705,27 +1679,47 @@
                       <div className={`rounded-[3rem] border p-8 glass-card ${darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
                         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                           <div className="flex items-center gap-5">
-                            {/* Avatar */}
-                            <div className="relative">
+                            {/* Avatar — circular like Twitter */}
+                            <div className="relative flex-shrink-0">
                               {userProfile.avatar_url
-                                ? <img src={userProfile.avatar_url} className="w-16 h-16 rounded-2xl object-cover" />
-                                : <div className="w-16 h-16 rounded-2xl bg-amber-400 flex items-center justify-center text-2xl font-heading font-black text-slate-900">
+                                ? <img src={userProfile.avatar_url} className="w-20 h-20 rounded-full object-cover ring-4 ring-amber-400/40" referrerPolicy="no-referrer" />
+                                : <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-3xl font-heading font-black text-slate-900 ring-4 ring-amber-400/40">
                                     {(userProfile.display_name || '?').charAt(0).toUpperCase()}
                                   </div>
                               }
-                              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-400 rounded-full border-2 border-slate-900 flex items-center justify-center">
-                                <span className="text-[8px]">✓</span>
+                              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-400 rounded-full border-2 border-slate-900 flex items-center justify-center">
+                                <span className="text-[9px] font-black">✓</span>
                               </div>
                             </div>
+
+                            {/* Name — click to edit */}
                             <div>
-                              <h2 className="text-2xl font-heading font-extrabold">{userProfile.display_name}</h2>
+                              {editingName ? (
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    autoFocus
+                                    value={nameInput}
+                                    onChange={e => setNameInput(e.target.value)}
+                                    onKeyDown={e => { if(e.key==='Enter') saveName(); if(e.key==='Escape') setEditingName(false); }}
+                                    maxLength={32}
+                                    className={`text-xl font-heading font-extrabold bg-transparent border-b-2 border-amber-400 outline-none w-48 pb-0.5 ${darkMode ? 'text-white' : 'text-slate-900'}`}
+                                  />
+                                  <button onClick={saveName} className="text-emerald-400 text-xs font-black uppercase tracking-widest hover:text-emerald-300">Save</button>
+                                  <button onClick={() => setEditingName(false)} className={`text-xs font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>✕</button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setNameInput(userProfile.display_name || ''); setEditingName(true); }}>
+                                  <h2 className="text-1xl font-heading font-extrabold">{userProfile.display_name}</h2>
+                                  <span className={`text-[1px] opacity-0 group-hover:opacity-60 transition-opacity font-bold uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>✏ Edit</span>
+                                </div>
+                              )}
                               <p className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                                 {userProfile.provider?.replace('_wallet','').replace('_',' ')} · {(userProfile.cl_wallets || []).length} wallet{(userProfile.cl_wallets || []).length !== 1 ? 's' : ''} linked
                               </p>
                             </div>
                           </div>
+
                           <div className="flex items-center gap-3">
-                            {/* Load portfolio CTA */}
                             <button onClick={loadMyPortfolio}
                               disabled={!(userProfile.cl_wallets?.length)}
                               className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed">
@@ -2066,7 +2060,7 @@
                         {hiddenList.map(nft => (
                           <div key={`${nft.chain}-${nft.address || nft.id || nft.mint || nft.name}`} className="flex items-center justify-between p-3 rounded-2xl bg-black/20 border border-white/5">
                             <div className="flex items-center gap-4">
-                              <img src={resolveImg(nft.image)} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" onError={(e)=>{e.currentTarget.onerror=null;e.currentTarget.src=imgFallbackSvg(nft.symbol,nft.chain);}} />
+                              <img src={nft.image} className="w-10 h-10 rounded-lg object-cover" />
                               <span className="text-xs font-bold uppercase tracking-tighter">{nft.name} (Hidden)</span>
                             </div>
                             <button onClick={(e) => toggleHide(e, nft)} className="text-[10px] font-bold text-blue-400 hover:text-white uppercase">Restore</button>
@@ -2075,7 +2069,7 @@
                         {spamList.map(nft => (
                           <div key={`${nft.chain}-${nft.address || nft.id || nft.mint || nft.name}`} className="flex items-center justify-between p-3 rounded-2xl bg-red-950/20 border border-red-500/10">
                             <div className="flex items-center gap-4">
-                              <img src={resolveImg(nft.image)} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" onError={(e)=>{e.currentTarget.onerror=null;e.currentTarget.src=imgFallbackSvg(nft.symbol,nft.chain);}} />
+                              <img src={nft.image} className="w-10 h-10 rounded-lg object-cover" />
                               <span className="text-xs font-bold uppercase tracking-tighter text-red-400">{nft.name} (Spam)</span>
                             </div>
                             <button onClick={(e) => toggleSpam(e, nft)} className="text-[10px] font-bold text-red-400 hover:text-white uppercase">Not Spam</button>
@@ -2098,7 +2092,7 @@
                   <button onClick={() => setSelectedAsset(null)} className="absolute top-10 right-10 w-12 h-12 flex items-center justify-center rounded-full bg-slate-800 hover:bg-red-500 text-white transition-all font-bold">✕</button>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div className="rounded-[2.5rem] overflow-hidden shadow-2xl">
-                              <img src={resolveImg(selectedAsset.image)} className="w-full h-auto rounded-2xl" onError={(e)=>{e.currentTarget.onerror=null;e.currentTarget.src=imgFallbackSvg(selectedAsset.symbol,selectedAsset.chain);}} />
+                       <img src={selectedAsset.image} className="w-full h-auto" />
                     </div>
                     <div>
                        <div className={`inline-block px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4 ${chainStyles[selectedAsset.chain]?.color} text-white`}>{selectedAsset.chain}</div>
