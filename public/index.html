@@ -40,6 +40,16 @@
   <style>
     body { font-family: 'Space Grotesk', sans-serif; scroll-behavior: smooth; }
     .font-heading { font-family: 'Syne', sans-serif; }
+
+    @keyframes shimmer {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .img-skeleton {
+      background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+    }
     
     .bg-solana-gradient {
       background: linear-gradient(45deg, #9945FF, #14F195);
@@ -517,9 +527,11 @@
         // Try CoinGecko map by symbol first
         if (symbol && coinImageMap[symbol.toLowerCase()]) return coinImageMap[symbol.toLowerCase()];
         if (!url) return '';
-        if (url.indexOf('ipfs://') === 0) return 'https://ipfs.io/ipfs/' + url.slice(7);
+        // Always use cloudflare-ipfs — it's faster and more reliable than ipfs.io
+        if (url.indexOf('ipfs://') === 0) return 'https://cloudflare-ipfs.com/ipfs/' + url.slice(7);
         if (url.indexOf('ar://') === 0) return 'https://arweave.net/' + url.slice(5);
-        if (url.indexOf('cloudflare-ipfs.com') > -1) return url.replace('cloudflare-ipfs.com', 'ipfs.io');
+        // Keep cloudflare-ipfs URLs as-is (do NOT downgrade to ipfs.io)
+        if (url.indexOf('ipfs.io/ipfs/') > -1) return url.replace('https://ipfs.io/ipfs/', 'https://cloudflare-ipfs.com/ipfs/');
         return url;
       };
 
@@ -1384,10 +1396,14 @@
                             <button onClick={(e) => toggleHide(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-blue-500 text-white backdrop-blur-sm border border-white/10">👁️</button>
                             <button onClick={(e) => toggleSpam(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-red-600 text-white backdrop-blur-sm border border-white/10">🚫</button>
                         </div>
-                        <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-100"}>
+                        <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-800 img-skeleton"}>
                             <img
                               src={resolveImg(nft.image || '', nft.symbol)}
+                              loading="lazy"
+                              decoding="async"
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                              onLoad={(e) => { e.currentTarget.style.opacity = '1'; }}
+                              style={{opacity: 0, transition: 'opacity 0.3s ease, transform 0.7s ease'}}
                               onError={(e) => {
                                 const el = e.currentTarget;
                                 const svgFb = imgFallbackSvg(nft.symbol, nft.chain);
@@ -1400,8 +1416,8 @@
                                 // IPFS: try two more gateways
                                 if (origSrc.indexOf('ipfs://') === 0 || origSrc.indexOf('/ipfs/') > -1) {
                                   const cid = origSrc.replace('ipfs://','').replace(/.*\/ipfs\//,'');
-                                  fallbacks.push('https://dweb.link/ipfs/' + cid);
                                   fallbacks.push('https://gateway.pinata.cloud/ipfs/' + cid);
+                                  fallbacks.push('https://dweb.link/ipfs/' + cid);
                                 }
                                 // EVM: TrustWallet with correct chain slug
                                 const tw = twChain[nft.chain];
