@@ -443,15 +443,25 @@
         return { address, signedSig, key };
       });
 
-      // ── Load portfolio from linked wallets ────────────────────────────────
+      // ── Load portfolio from ALL linked wallets (comma-separated per chain) ──
       const loadMyPortfolio = () => {
-        if (!userProfile?.cl_wallets) return;
+        if (!userProfile?.cl_wallets?.length) return;
         const wallets = userProfile.cl_wallets;
-        const pick = (chain) => wallets.find(w => w.chain === chain && w.is_primary) || wallets.find(w => w.chain === chain);
-        const evm = pick('evm'); const sol = pick('solana'); const ada = pick('cardano');
-        if (evm) setEvmAddr(evm.address);
-        if (sol) setSolAddr(sol.address);
-        if (ada) setAdaAddr(ada.address);
+
+        // Collect ALL addresses per chain, primary first
+        const byChain = (chain) => {
+          const primary = wallets.filter(w => w.chain === chain && w.is_primary).map(w => w.address);
+          const rest = wallets.filter(w => w.chain === chain && !w.is_primary).map(w => w.address);
+          return [...primary, ...rest].join(', ');
+        };
+
+        const evmAll = byChain('evm');
+        const solAll = byChain('solana');
+        const adaAll = byChain('cardano');
+
+        if (evmAll) setEvmAddr(evmAll);
+        if (solAll) setSolAddr(solAll);
+        if (adaAll) setAdaAddr(adaAll);
         setAutoScan(true);
         setActiveTab('portfolio');
       };
@@ -975,182 +985,159 @@
         setNfts([]);
         setTransactions([]);
         setResolvedEvm(null);
+        
+        let targetEvm = evmAddr.trim();
+        let targetAda = adaAddr.trim();
 
-        // ── Parse comma-separated addresses for each chain ───────────────────
-        const parseAddrs = (raw) => raw.split(',').map(a => a.trim()).filter(Boolean);
-        const rawEvmAddrs = parseAddrs(evmAddr);
-        const rawSolAddrs = parseAddrs(solAddr);
-        const rawAdaAddrs = parseAddrs(adaAddr);
-
-        // ── Resolve EVM domains (applied per address) ────────────────────────
-        const resolvedEvmAddrs = [];
-        for (const addr of rawEvmAddrs) {
-          let target = addr;
-          if (target.includes('.') && !target.startsWith('0x')) {
-            setIsResolving(true);
-            try {
-              const res = await fetch(`/api/resolve/unstoppable/${target}`);
-              const data = await res.json();
-              if (data.address) { target = data.address; setResolvedEvm(data.address); }
-            } catch (e) { console.error('EVM resolution error:', e); }
-            setIsResolving(false);
-          }
-          if (target) resolvedEvmAddrs.push(target);
+        // Resolve domains
+        if (targetEvm.includes('.')) {
+          setIsResolving(true);
+          try {
+            const res = await fetch(`/api/resolve/unstoppable/${targetEvm}`);
+            const data = await res.json();
+            if (data.address) {
+              targetEvm = data.address;
+              setResolvedEvm(data.address);
+            }
+          } catch (e) { console.error("Resolution error:", e); }
+          setIsResolving(false);
         }
 
-        // ── Resolve ADA handles (applied per address) ────────────────────────
-        const resolvedAdaAddrs = [];
-        for (const addr of rawAdaAddrs) {
-          let target = addr;
-          if (target && (target.startsWith('$') || !target.startsWith('addr1'))) {
-            setIsResolving(true);
-            try {
-              const res = await fetch(`/api/resolve/handle/${encodeURIComponent(target)}`);
-              const data = await res.json();
-              if (data.address) target = data.address;
-            } catch (e) { console.error('ADA resolution error:', e); }
-            setIsResolving(false);
-          }
-          if (target) resolvedAdaAddrs.push(target);
-        }
-
-        // ── Resolve Solana SNS names (applied per address) ───────────────────
-        const resolvedSolAddrs = [];
-        for (const addr of rawSolAddrs) {
-          let target = addr;
-          if (target.toLowerCase().endsWith('.sol') || (!target.startsWith('0x') && target.length < 44 && !target.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/))) {
-            const snsName = target.replace(/\.sol$/i, '');
-            setIsResolving(true);
-            try {
-              const res = await fetch(`/api/resolve/sns/${encodeURIComponent(snsName)}`);
-              const data = await res.json();
-              if (data.address) target = data.address;
-            } catch (e) { console.error('SNS resolution error:', e); }
-            setIsResolving(false);
-          }
-          if (target) resolvedSolAddrs.push(target);
+        if (targetAda && (targetAda.startsWith('$') || !targetAda.startsWith('addr1'))) {
+          setIsResolving(true);
+          try {
+            const res = await fetch(`/api/resolve/handle/${encodeURIComponent(targetAda)}`);
+            const data = await res.json();
+            if (data.address) targetAda = data.address;
+          } catch (e) { console.error("ADA Resolution error:", e); }
+          setIsResolving(false);
         }
 
         const evmChains = ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'abstract', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'hyperevm'];
-
-        // ── Build fetch tasks — one set per address ───────────────────────────
+        
+        // Parallel fetch: NFTs, Tokens, and Transactions
         const nftTasks = [];
         const tokenTasks = [];
         const txTasks = [];
 
-        // EVM — every address × every active chain
-        for (const addr of resolvedEvmAddrs) {
-          if (!addr.startsWith('0x')) continue;
-          console.log(`🔍 Scanning EVM address: ${addr.slice(0,10)}…`);
+        if (targetEvm.startsWith('0x')) {
+          console.log(`🔍 Fetching for EVM chains:`, evmChains.filter(c => activeChains.includes(c)));
+          
           evmChains.forEach(chain => {
             if (activeChains.includes(chain)) {
-              nftTasks.push(fetch(`/api/nfts/${chain}/${addr}`).then(r => r.json()));
-              tokenTasks.push(fetch(`/api/tokens/${chain}/${addr}`).then(r => r.json()));
-              txTasks.push(fetch(`/api/transactions/${chain}/${addr}`).then(r => r.json()));
+              console.log(`  📡 Fetching ${chain}: NFTs, Tokens, Transactions`);
+              nftTasks.push(fetch(`/api/nfts/${chain}/${targetEvm}`).then(r => r.json()));
+              tokenTasks.push(fetch(`/api/tokens/${chain}/${targetEvm}`).then(r => r.json()));
+              txTasks.push(fetch(`/api/transactions/${chain}/${targetEvm}`).then(r => r.json()));
             }
           });
+
           if (activeChains.includes('monad')) {
-            nftTasks.push(fetch(`/api/nfts/monad/${addr}`).then(r => r.json()));
-            tokenTasks.push(fetch(`/api/tokens/monad/${addr}`).then(r => r.json()));
-            txTasks.push(fetch(`/api/transactions/monad/${addr}`).then(r => r.json()));
+            nftTasks.push(fetch(`/api/nfts/monad/${targetEvm}`).then(r => r.json()));
+            tokenTasks.push(fetch(`/api/tokens/monad/${targetEvm}`).then(r => r.json()));
+            txTasks.push(fetch(`/api/transactions/monad/${targetEvm}`).then(r => r.json()));
           }
         }
 
-        // Solana — every address
-        for (const addr of resolvedSolAddrs) {
-          if (!addr) continue;
-          console.log(`🔍 Scanning Solana address: ${addr.slice(0,10)}…`);
-          if (activeChains.includes('solana')) {
-            nftTasks.push(fetch(`/api/nfts/solana/${addr}`).then(r => r.json()));
-            tokenTasks.push(fetch(`/api/tokens/solana/${addr}`).then(r => r.json()));
-            txTasks.push(fetch(`/api/transactions/solana/${addr}`).then(r => r.json()));
-          }
+        // Resolve SNS .sol domain to wallet address before fetching
+        let targetSol = solAddr.trim();
+        if (targetSol.toLowerCase().endsWith('.sol') || (!targetSol.startsWith('0x') && targetSol.length < 44 && !targetSol.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/))) {
+          // Looks like a SNS name — resolve it
+          const snsName = targetSol.replace(/\.sol$/i, '');
+          setIsResolving(true);
+          try {
+            console.log('🔍 Resolving SNS:', snsName + '.sol');
+            const res = await fetch(`/api/resolve/sns/${encodeURIComponent(snsName)}`);
+            const data = await res.json();
+            if (data.address) {
+              console.log('✅ SNS resolved:', snsName + '.sol', '→', data.address);
+              targetSol = data.address;
+            } else {
+              console.warn('⚠️ SNS not resolved:', data.error);
+            }
+          } catch (e) { console.error('SNS resolution error:', e); }
+          setIsResolving(false);
         }
 
-        // Cardano — every address
-        for (const addr of resolvedAdaAddrs) {
-          if (!addr) continue;
-          console.log(`🔍 Scanning Cardano address: ${addr.slice(0,10)}…`);
-          if (activeChains.includes('cardano')) {
-            nftTasks.push(fetch(`/api/nfts/cardano/${addr}`).then(r => r.json()));
-            tokenTasks.push(fetch(`/api/tokens/cardano/${addr}`).then(r => r.json()));
-            txTasks.push(fetch(`/api/transactions/cardano/${addr}`).then(r => r.json()));
-          }
+        if (targetSol && activeChains.includes('solana')) {
+          nftTasks.push(fetch(`/api/nfts/solana/${targetSol}`).then(r => r.json()));
+          tokenTasks.push(fetch(`/api/tokens/solana/${targetSol}`).then(r => r.json()));
+          txTasks.push(fetch(`/api/transactions/solana/${targetSol}`).then(r => r.json()));
+        }
+        
+        if (targetAda && activeChains.includes('cardano')) {
+          nftTasks.push(fetch(`/api/nfts/cardano/${targetAda}`).then(r => r.json()));
+          tokenTasks.push(fetch(`/api/tokens/cardano/${targetAda}`).then(r => r.json()));
+          txTasks.push(fetch(`/api/transactions/cardano/${targetAda}`).then(r => r.json()));
         }
 
         try {
+          // Fetch all in parallel
           const [nftResults, tokenResults, txResults] = await Promise.all([
             Promise.allSettled(nftTasks),
             Promise.allSettled(tokenTasks),
             Promise.allSettled(txTasks)
           ]);
-
-          // Merge NFTs — dedup by chain+id key (handles same token across multiple addresses)
+          
+          // Process NFTs
           const nftCombined = nftResults
             .filter(r => r.status === 'fulfilled' && r.value.nfts)
             .flatMap(r => r.value.nfts);
-
+          
           const nftMap = new Map();
           nftCombined.forEach(nft => {
             const rawId = nft.address || nft.id || nft.mint || nft.name;
             const key = `${nft.chain}-${String(rawId).toLowerCase()}`;
             if (!nftMap.has(key)) nftMap.set(key, { ...nft, isToken: false });
           });
-
-          // Merge Tokens — same dedup, but aggregate balances if same token held across addresses
+          
+          // Process Tokens
           const tokenCombined = tokenResults
             .filter(r => r.status === 'fulfilled' && r.value.nfts)
             .flatMap(r => r.value.nfts);
-
+          
           tokenCombined.forEach(token => {
             const rawId = token.address || token.id || token.mint || token.name;
             const key = `${token.chain}-${String(rawId).toLowerCase()}`;
-            if (nftMap.has(key)) {
-              // Same token from a second address — add the balances together
-              const existing = nftMap.get(key);
-              const combined = {
-                ...existing,
-                balance: (parseFloat(existing.balance || 0) + parseFloat(token.balance || 0)).toFixed(4),
-                totalValue: (parseFloat(existing.totalValue || 0) + parseFloat(token.totalValue || 0)).toFixed(2),
-              };
-              nftMap.set(key, combined);
-            } else {
-              nftMap.set(key, { ...token, isToken: true });
-            }
+            if (!nftMap.has(key)) nftMap.set(key, { ...token, isToken: true });
           });
-
+          
           // Filter spam from NFTs only
           const allAssets = Array.from(nftMap.values());
           const spamWords = ['voucher', 'wen', 'airdrop', 'promo', 'lucky', 'ticket', 'pass', 'jup', 'jupiter', 'unprotected', 'box', 'redeem', 'claim', 'gift', 'reward'];
           const filtered = allAssets.filter(asset => {
-            if (asset.isToken) return true;
+            if (asset.isToken) return true; // Keep all tokens
             const rawName = (asset.name || '').toLowerCase();
             const name = rawName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, "");
             return !spamWords.some(word => name.includes(word));
           });
-
+          
           setNfts(filtered);
-
-          // Merge Transactions — dedup by hash, sort newest first
+          
+          // Process Transactions
           const txCombined = txResults
             .filter(r => r.status === 'fulfilled' && r.value.transactions)
             .flatMap(r => r.value.transactions);
-
-          const txMap = new Map();
+          
+          // Log transaction counts per chain
+          const txByChain = {};
           txCombined.forEach(tx => {
-            const key = `${tx.chain}-${tx.hash || tx.id || tx.timestamp}`;
-            if (!txMap.has(key)) txMap.set(key, tx);
+            txByChain[tx.chain] = (txByChain[tx.chain] || 0) + 1;
           });
-
-          const sortedTx = Array.from(txMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+          console.log(`📊 Transactions by chain:`, txByChain);
+          
+          const sortedTx = txCombined.sort((a, b) => b.timestamp - a.timestamp);
           setTransactions(sortedTx);
-
-          const addrCount = resolvedEvmAddrs.length + resolvedSolAddrs.length + resolvedAdaAddrs.length;
-          console.log(`✅ Scanned ${addrCount} address${addrCount !== 1 ? 'es' : ''}: ${filtered.length} assets, ${sortedTx.length} transactions`);
+          
+          console.log(`✅ Loaded: ${filtered.length} assets, ${sortedTx.length} total transactions`);
+          if (sortedTx.length > 0) {
+            console.log(`📅 First tx: ${new Date(sortedTx[0].timestamp).toLocaleString()} (${sortedTx[0].chain})`);
+            console.log(`📅 Last tx: ${new Date(sortedTx[sortedTx.length-1].timestamp).toLocaleString()} (${sortedTx[sortedTx.length-1].chain})`);
+          }
         } catch (e) {
           console.error("Scan error:", e);
         }
-
+        
         setLoading(false);
       };
 
@@ -1230,7 +1217,7 @@
                         <button onClick={() => { setEvmAddr('0x01faF6DFc230d755141D84d7cB980dd68f5Efe13'); setResolvedEvm(null); }} className="text-[10px] font-bold text-blue-500 hover:underline uppercase tracking-tighter">LOAD TEST</button>
                       </div>
                       <div className="relative">
-                        <input type="text" value={evmAddr} onChange={e => { setEvmAddr(e.target.value); setResolvedEvm(null); }} placeholder="0x… or multiple addresses, comma-separated" className={`w-full p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200 focus:border-blue-400'}`} />
+                        <input type="text" value={evmAddr} onChange={e => { setEvmAddr(e.target.value); setResolvedEvm(null); }} placeholder="0x... or domain" className={`w-full p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200 focus:border-blue-400'}`} />
                         {isResolving && <div className="absolute right-4 top-4 animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>}
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -1245,7 +1232,7 @@
                         <label className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Solana Network</label>
                         <button onClick={() => setSolAddr('3noTuHnQdHkat2w5rBx18vAACMzFUvB5LodEe5vMN98d')} className="text-[10px] font-bold text-emerald-500 hover:underline uppercase tracking-tighter">LOAD TEST</button>
                       </div>
-                      <input type="text" value={solAddr} onChange={e => setSolAddr(e.target.value)} placeholder="Address… or multiple, comma-separated" className={`w-full p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-emerald-500' : 'bg-slate-50 border-slate-200 focus:border-emerald-400'}`} />
+                      <input type="text" value={solAddr} onChange={e => setSolAddr(e.target.value)} placeholder="Address..." className={`w-full p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-emerald-500' : 'bg-slate-50 border-slate-200 focus:border-emerald-400'}`} />
                       <div className="flex flex-wrap gap-2">
                         <ChainButton id="solana" />
                       </div>
@@ -1256,7 +1243,7 @@
                         <label className="text-[10px] font-bold uppercase tracking-widest text-cyan-500">Cardano Ledger</label>
                         <button onClick={() => setAdaAddr('addr1q950qv0ks9t29mavulaa5jr3sk2s50r5jfsddydjs0pazrfh32tdpt7zttt4mhl6t9purm4c9rv555z7r5mulq78aleqcg9c9h')} className="text-[10px] font-bold text-cyan-500 hover:underline uppercase tracking-tighter">LOAD TEST</button>
                       </div>
-                      <input type="text" value={adaAddr} onChange={e => setAdaAddr(e.target.value)} placeholder="$handle… or multiple addresses, comma-separated" className={`w-full p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-cyan-500' : 'bg-slate-50 border-slate-200 focus:border-cyan-400'}`} />
+                      <input type="text" value={adaAddr} onChange={e => setAdaAddr(e.target.value)} placeholder="$handle..." className={`w-full p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-cyan-500' : 'bg-slate-50 border-slate-200 focus:border-cyan-400'}`} />
                       <div className="flex flex-wrap gap-2">
                         <ChainButton id="cardano" />
                       </div>

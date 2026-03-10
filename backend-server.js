@@ -20,14 +20,44 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
 
 // ─── Ethers for EVM signature verification ────────────────────────────────────
 let ethersVerify = null;
+let ethersLib = null;
 try {
   const { ethers } = require('ethers');
+  ethersLib = ethers;
   // Works for both ethers v5 (utils.verifyMessage) and v6 (verifyMessage)
   ethersVerify = ethers.verifyMessage
     ? (msg, sig) => ethers.verifyMessage(msg, sig)
     : (msg, sig) => ethers.utils.verifyMessage(msg, sig);
   console.log('✅ ethers loaded for EVM signature verification');
 } catch (e) { console.warn('⚠️  ethers not installed — EVM sig verification skipped'); }
+
+// ─── Abstract Global Wallet: derive smart account address from EOA ────────────
+// Uses the AGW factory contract on Abstract mainnet — no extra packages needed.
+// Docs: https://docs.abs.xyz/abstract-global-wallet/agw-client/getSmartAccountAddressFromInitialSigner
+const AGW_FACTORY = '0xe86Bf72715dF28a0b7c3C8F596E7fE05a22A139c';
+const AGW_FACTORY_ABI = ['function getAddressForSalt(bytes32 salt) view returns (address)'];
+const ABSTRACT_RPC = 'https://api.mainnet.abs.xyz';
+
+const deriveAGWAddress = async (eoaAddress) => {
+  if (!ethersLib) return null;
+  try {
+    // ethers v5 vs v6 compat
+    const provider = ethersLib.JsonRpcProvider
+      ? new ethersLib.JsonRpcProvider(ABSTRACT_RPC)              // v6
+      : new ethersLib.providers.JsonRpcProvider(ABSTRACT_RPC);   // v5
+    const factory = new ethersLib.Contract(AGW_FACTORY, AGW_FACTORY_ABI, provider);
+    // Salt = keccak256(toBytes(eoaAddress)) — same as agw-client source
+    const salt = ethersLib.keccak256
+      ? ethersLib.keccak256(ethersLib.getBytes(eoaAddress))      // v6
+      : ethersLib.utils.keccak256(ethersLib.utils.arrayify(eoaAddress)); // v5
+    const agwAddress = await factory.getAddressForSalt(salt);
+    console.log(`⚡ AGW address derived for ${eoaAddress.slice(0,10)}… → ${agwAddress}`);
+    return agwAddress;
+  } catch (e) {
+    console.warn('⚠️  AGW address derivation failed:', e.message);
+    return null;
+  }
+};
 
 // ─── TweetNaCl for Solana signature verification ──────────────────────────────
 let nacl = null;
@@ -121,11 +151,11 @@ const dbFindUserBySocial = async (provider, provider_id) => {
   return dbGetUserById(data.user_id);
 };
 
-const dbLinkWallet = async (userId, { chain, address, watch_only = false }) => {
+const dbLinkWallet = async (userId, { chain, address }) => {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('cl_wallets')
-    .upsert({ user_id: userId, chain, address, verified_at: new Date().toISOString(), watch_only },
+    .upsert({ user_id: userId, chain, address, verified_at: new Date().toISOString() },
              { onConflict: 'user_id,address' })
     .select().single();
   if (error) throw error;
@@ -244,36 +274,6 @@ app.post('/api/auth/nonce', (req, res) => {
 // ── Step 2a: Login / link via wallet signature ────────────────────────────────
 // If Authorization header present → links wallet to existing account
 // If no header → creates/finds account keyed by wallet address
-
-// ── Watch-only wallet: add any address without signing (for smart contract wallets like AGW) ──
-app.post('/api/auth/add-watch-wallet', async (req, res) => {
-  const { chain, address, label } = req.body;
-  if (!chain || !address) return res.status(400).json({ error: 'chain and address required' });
-
-  // Validate EVM address format
-  if (chain === 'evm' && !/^0x[0-9a-fA-F]{40}$/.test(address))
-    return res.status(400).json({ error: 'Invalid EVM address format' });
-
-  // Must be logged in — watch-only wallets link to existing account only
-  const authHeader = req.headers.authorization?.replace('Bearer ', '');
-  if (!authHeader) return res.status(401).json({ error: 'Must be logged in to add a watch-only wallet' });
-
-  let userId;
-  try {
-    const claims = jwt.verify(authHeader, JWT_SECRET);
-    userId = claims.sub;
-  } catch (e) { return res.status(401).json({ error: 'Invalid session token' }); }
-
-  try {
-    await dbLinkWallet(userId, { chain, address: address.toLowerCase(), watch_only: true });
-    const profile = await dbGetUserById(userId);
-    console.log(`👁️ Watch-only ${chain} wallet ${address.slice(0,10)}... linked to user ${userId}`);
-    res.json({ success: true, profile });
-  } catch (e) {
-    console.error('add-watch-wallet error:', e);
-    res.status(500).json({ error: e.message });
-  }
-});
 app.post('/api/auth/wallet-login', async (req, res) => {
   const { chain, address, signature, key: cborKey, nonce } = req.body;
   if (!chain || !address || !signature || !nonce)
@@ -331,6 +331,14 @@ app.post('/api/auth/wallet-login', async (req, res) => {
     if (userId) {
       // Link wallet to existing account
       await dbLinkWallet(userId, { chain, address });
+      // ── Auto-derive AGW address if this is an EVM wallet ──────────────────
+      if (chain === 'evm') {
+        const agwAddress = await deriveAGWAddress(address);
+        if (agwAddress && agwAddress !== address) {
+          await dbLinkWallet(userId, { chain: 'evm', address: agwAddress.toLowerCase(), watch_only: true });
+          console.log(`⚡ AGW watch-wallet auto-linked for user ${userId}`);
+        }
+      }
       const profile = await dbGetUserById(userId);
       return res.json({ success: true, profile });
     } else {
@@ -342,6 +350,14 @@ app.post('/api/auth/wallet-login', async (req, res) => {
         avatar_url: null, email: null
       });
       await dbLinkWallet(user.id, { chain, address });
+      // ── Auto-derive AGW address if this is an EVM wallet ──────────────────
+      if (chain === 'evm') {
+        const agwAddress = await deriveAGWAddress(address);
+        if (agwAddress && agwAddress !== address) {
+          await dbLinkWallet(user.id, { chain: 'evm', address: agwAddress.toLowerCase(), watch_only: true });
+          console.log(`⚡ AGW watch-wallet auto-linked for new user ${user.id}`);
+        }
+      }
       const token = jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: '30d' });
       const profile = await dbGetUserById(user.id);
       return res.json({ token, profile });
