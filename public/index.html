@@ -167,6 +167,11 @@
       const [userProfile, setUserProfile] = useState(null);
       const [authLoading, setAuthLoading] = useState(false);
       const [walletConnecting, setWalletConnecting] = useState(null); // 'evm'|'solana'|'cardano'|'google'|'discord'
+      const [showEvmPicker, setShowEvmPicker] = useState(false);
+      const [evmProviders, setEvmProviders] = useState([]);
+      const [pasteMode, setPasteMode] = useState(false);
+      const [pasteAddr, setPasteAddr] = useState('');
+      const [pasteError, setPasteError] = useState('');
       const [autoScan, setAutoScan] = useState(false);
       const [editingWallet, setEditingWallet] = useState(null); // wallet id being renamed
       const [walletLabelInput, setWalletLabelInput] = useState('');
@@ -362,16 +367,68 @@
         setWalletConnecting(null);
       };
 
-      // ── EVM (MetaMask / any injected) ─────────────────────────────────────
-      const connectEVM = () => connectWallet('evm', async (nonce) => {
-        if (!window.ethereum) throw new Error('MetaMask not found. Please install it.');
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const address = accounts[0];
-        if (!nonce) return { address };
-        const message = `ChainLens login\nAddress: ${address}\nNonce: ${nonce}`;
-        const signedSig = await window.ethereum.request({ method: 'personal_sign', params: [message, address] });
-        return { address, signedSig };
+      // ── EVM: EIP-6963 multi-wallet picker ─────────────────────────────────
+      const NON_EVM_WALLETS = ['keplr','leap','cosmostation','station','ninji','compass','ctrl'];
+
+      const discoverEvmWallets = () => new Promise((resolve) => {
+        const found = []; const seen = new Set();
+        const handler = (event) => {
+          const { info, provider } = event.detail;
+          if (NON_EVM_WALLETS.some(w => (info.name||'').toLowerCase().includes(w))) return;
+          if (!seen.has(info.uuid)) { seen.add(info.uuid); found.push({ info, provider }); }
+        };
+        window.addEventListener('eip6963:announceProvider', handler);
+        window.dispatchEvent(new Event('eip6963:requestProvider'));
+        setTimeout(() => {
+          window.removeEventListener('eip6963:announceProvider', handler);
+          if (found.length === 0 && window.ethereum) {
+            found.push({ info: { uuid:'legacy', name: window.ethereum.isMetaMask ? 'MetaMask' : 'Injected Wallet', icon:'' }, provider: window.ethereum });
+          }
+          resolve(found);
+        }, 350);
       });
+
+      const closePicker = () => { setShowEvmPicker(false); setPasteMode(false); setPasteAddr(''); setPasteError(''); };
+
+      const connectEVM = async () => {
+        const wallets = await discoverEvmWallets();
+        if (wallets.length === 1) { connectEVMWithProvider(wallets[0].provider); return; }
+        setEvmProviders(wallets);
+        setPasteMode(false); setPasteAddr(''); setPasteError('');
+        setShowEvmPicker(true);
+      };
+
+      const connectEVMWithProvider = (provider) => {
+        closePicker();
+        connectWallet('evm', async (nonce) => {
+          const accounts = await provider.request({ method: 'eth_requestAccounts' });
+          const address = accounts[0];
+          if (!nonce) return { address };
+          const message = `ChainLens login\nAddress: ${address}\nNonce: ${nonce}`;
+          const signedSig = await provider.request({ method: 'personal_sign', params: [message, address] });
+          return { address, signedSig };
+        });
+      };
+
+      const submitWatchWallet = async () => {
+        setPasteError('');
+        const addr = pasteAddr.trim();
+        if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) { setPasteError('Enter a valid 0x EVM address (42 chars)'); return; }
+        if (!authToken) { setPasteError('You must be signed in first'); return; }
+        setWalletConnecting('evm');
+        try {
+          const res = await fetch('/api/auth/add-watch-wallet', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+            body: JSON.stringify({ chain: 'evm', address: addr })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to add wallet');
+          if (data.profile) setUserProfile(data.profile);
+          closePicker();
+        } catch (e) { setPasteError(e.message); }
+        setWalletConnecting(null);
+      };
 
       // ── Solana (Phantom / Backpack) ───────────────────────────────────────
       const connectSolana = () => connectWallet('solana', async (nonce) => {
@@ -443,22 +500,17 @@
         return { address, signedSig, key };
       });
 
+      // ── Load portfolio from linked wallets ────────────────────────────────
       // ── Load portfolio from ALL linked wallets (comma-separated per chain) ──
       const loadMyPortfolio = () => {
         if (!userProfile?.cl_wallets?.length) return;
         const wallets = userProfile.cl_wallets;
-
-        // Collect ALL addresses per chain, primary first
         const byChain = (chain) => {
           const primary = wallets.filter(w => w.chain === chain && w.is_primary).map(w => w.address);
-          const rest = wallets.filter(w => w.chain === chain && !w.is_primary).map(w => w.address);
+          const rest    = wallets.filter(w => w.chain === chain && !w.is_primary).map(w => w.address);
           return [...primary, ...rest].join(', ');
         };
-
-        const evmAll = byChain('evm');
-        const solAll = byChain('solana');
-        const adaAll = byChain('cardano');
-
+        const evmAll = byChain('evm'), solAll = byChain('solana'), adaAll = byChain('cardano');
         if (evmAll) setEvmAddr(evmAll);
         if (solAll) setSolAddr(solAll);
         if (adaAll) setAdaAddr(adaAll);
@@ -981,163 +1033,146 @@
 
       const handleScanAll = async () => {
         if (!evmAddr && !solAddr && !adaAddr) return;
-        setLoading(true);
-        setNfts([]);
-        setTransactions([]);
-        setResolvedEvm(null);
-        
-        let targetEvm = evmAddr.trim();
-        let targetAda = adaAddr.trim();
+        setLoading(true); setNfts([]); setTransactions([]); setResolvedEvm(null);
 
-        // Resolve domains
-        if (targetEvm.includes('.')) {
-          setIsResolving(true);
-          try {
-            const res = await fetch(`/api/resolve/unstoppable/${targetEvm}`);
-            const data = await res.json();
-            if (data.address) {
-              targetEvm = data.address;
-              setResolvedEvm(data.address);
-            }
-          } catch (e) { console.error("Resolution error:", e); }
-          setIsResolving(false);
+        // Parse comma-separated addresses per chain
+        const parseAddrs = (raw) => raw.split(',').map(a => a.trim()).filter(Boolean);
+        const rawEvmAddrs = parseAddrs(evmAddr);
+        const rawSolAddrs = parseAddrs(solAddr);
+        const rawAdaAddrs = parseAddrs(adaAddr);
+
+        // Resolve EVM domains per address
+        const resolvedEvmAddrs = [];
+        for (const addr of rawEvmAddrs) {
+          let target = addr;
+          if (target.includes('.') && !target.startsWith('0x')) {
+            setIsResolving(true);
+            try {
+              const res = await fetch(`/api/resolve/unstoppable/${target}`);
+              const data = await res.json();
+              if (data.address) { target = data.address; setResolvedEvm(data.address); }
+            } catch (e) { console.error('EVM resolution error:', e); }
+            setIsResolving(false);
+          }
+          if (target) resolvedEvmAddrs.push(target);
         }
 
-        if (targetAda && (targetAda.startsWith('$') || !targetAda.startsWith('addr1'))) {
-          setIsResolving(true);
-          try {
-            const res = await fetch(`/api/resolve/handle/${encodeURIComponent(targetAda)}`);
-            const data = await res.json();
-            if (data.address) targetAda = data.address;
-          } catch (e) { console.error("ADA Resolution error:", e); }
-          setIsResolving(false);
+        // Resolve ADA handles per address
+        const resolvedAdaAddrs = [];
+        for (const addr of rawAdaAddrs) {
+          let target = addr;
+          if (target && (target.startsWith('$') || !target.startsWith('addr1'))) {
+            setIsResolving(true);
+            try {
+              const res = await fetch(`/api/resolve/handle/${encodeURIComponent(target)}`);
+              const data = await res.json();
+              if (data.address) target = data.address;
+            } catch (e) { console.error('ADA resolution error:', e); }
+            setIsResolving(false);
+          }
+          if (target) resolvedAdaAddrs.push(target);
+        }
+
+        // Resolve Solana SNS names per address
+        const resolvedSolAddrs = [];
+        for (const addr of rawSolAddrs) {
+          let target = addr;
+          if (target.toLowerCase().endsWith('.sol') || (!target.startsWith('0x') && target.length < 44 && !target.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/))) {
+            setIsResolving(true);
+            try {
+              const res = await fetch(`/api/resolve/sns/${encodeURIComponent(target.replace(/\.sol$/i,''))}`);
+              const data = await res.json();
+              if (data.address) target = data.address;
+            } catch (e) { console.error('SNS resolution error:', e); }
+            setIsResolving(false);
+          }
+          if (target) resolvedSolAddrs.push(target);
         }
 
         const evmChains = ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'abstract', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'hyperevm'];
-        
-        // Parallel fetch: NFTs, Tokens, and Transactions
-        const nftTasks = [];
-        const tokenTasks = [];
-        const txTasks = [];
+        const nftTasks = [], tokenTasks = [], txTasks = [];
 
-        if (targetEvm.startsWith('0x')) {
-          console.log(`🔍 Fetching for EVM chains:`, evmChains.filter(c => activeChains.includes(c)));
-          
+        // EVM — every address × every active chain
+        for (const addr of resolvedEvmAddrs) {
+          if (!addr.startsWith('0x')) continue;
           evmChains.forEach(chain => {
-            if (activeChains.includes(chain)) {
-              console.log(`  📡 Fetching ${chain}: NFTs, Tokens, Transactions`);
-              nftTasks.push(fetch(`/api/nfts/${chain}/${targetEvm}`).then(r => r.json()));
-              tokenTasks.push(fetch(`/api/tokens/${chain}/${targetEvm}`).then(r => r.json()));
-              txTasks.push(fetch(`/api/transactions/${chain}/${targetEvm}`).then(r => r.json()));
-            }
+            if (!activeChains.includes(chain)) return;
+            nftTasks.push(fetch(`/api/nfts/${chain}/${addr}`).then(r => r.json()));
+            tokenTasks.push(fetch(`/api/tokens/${chain}/${addr}`).then(r => r.json()));
+            txTasks.push(fetch(`/api/transactions/${chain}/${addr}`).then(r => r.json()));
           });
-
           if (activeChains.includes('monad')) {
-            nftTasks.push(fetch(`/api/nfts/monad/${targetEvm}`).then(r => r.json()));
-            tokenTasks.push(fetch(`/api/tokens/monad/${targetEvm}`).then(r => r.json()));
-            txTasks.push(fetch(`/api/transactions/monad/${targetEvm}`).then(r => r.json()));
+            nftTasks.push(fetch(`/api/nfts/monad/${addr}`).then(r => r.json()));
+            tokenTasks.push(fetch(`/api/tokens/monad/${addr}`).then(r => r.json()));
+            txTasks.push(fetch(`/api/transactions/monad/${addr}`).then(r => r.json()));
           }
         }
 
-        // Resolve SNS .sol domain to wallet address before fetching
-        let targetSol = solAddr.trim();
-        if (targetSol.toLowerCase().endsWith('.sol') || (!targetSol.startsWith('0x') && targetSol.length < 44 && !targetSol.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/))) {
-          // Looks like a SNS name — resolve it
-          const snsName = targetSol.replace(/\.sol$/i, '');
-          setIsResolving(true);
-          try {
-            console.log('🔍 Resolving SNS:', snsName + '.sol');
-            const res = await fetch(`/api/resolve/sns/${encodeURIComponent(snsName)}`);
-            const data = await res.json();
-            if (data.address) {
-              console.log('✅ SNS resolved:', snsName + '.sol', '→', data.address);
-              targetSol = data.address;
-            } else {
-              console.warn('⚠️ SNS not resolved:', data.error);
-            }
-          } catch (e) { console.error('SNS resolution error:', e); }
-          setIsResolving(false);
+        // Solana — every address
+        for (const addr of resolvedSolAddrs) {
+          if (!addr || !activeChains.includes('solana')) continue;
+          nftTasks.push(fetch(`/api/nfts/solana/${addr}`).then(r => r.json()));
+          tokenTasks.push(fetch(`/api/tokens/solana/${addr}`).then(r => r.json()));
+          txTasks.push(fetch(`/api/transactions/solana/${addr}`).then(r => r.json()));
         }
 
-        if (targetSol && activeChains.includes('solana')) {
-          nftTasks.push(fetch(`/api/nfts/solana/${targetSol}`).then(r => r.json()));
-          tokenTasks.push(fetch(`/api/tokens/solana/${targetSol}`).then(r => r.json()));
-          txTasks.push(fetch(`/api/transactions/solana/${targetSol}`).then(r => r.json()));
-        }
-        
-        if (targetAda && activeChains.includes('cardano')) {
-          nftTasks.push(fetch(`/api/nfts/cardano/${targetAda}`).then(r => r.json()));
-          tokenTasks.push(fetch(`/api/tokens/cardano/${targetAda}`).then(r => r.json()));
-          txTasks.push(fetch(`/api/transactions/cardano/${targetAda}`).then(r => r.json()));
+        // Cardano — every address
+        for (const addr of resolvedAdaAddrs) {
+          if (!addr || !activeChains.includes('cardano')) continue;
+          nftTasks.push(fetch(`/api/nfts/cardano/${addr}`).then(r => r.json()));
+          tokenTasks.push(fetch(`/api/tokens/cardano/${addr}`).then(r => r.json()));
+          txTasks.push(fetch(`/api/transactions/cardano/${addr}`).then(r => r.json()));
         }
 
         try {
-          // Fetch all in parallel
           const [nftResults, tokenResults, txResults] = await Promise.all([
             Promise.allSettled(nftTasks),
             Promise.allSettled(tokenTasks),
             Promise.allSettled(txTasks)
           ]);
-          
-          // Process NFTs
-          const nftCombined = nftResults
-            .filter(r => r.status === 'fulfilled' && r.value.nfts)
-            .flatMap(r => r.value.nfts);
-          
+
+          // Merge NFTs
+          const nftCombined = nftResults.filter(r => r.status === 'fulfilled' && r.value.nfts).flatMap(r => r.value.nfts);
           const nftMap = new Map();
           nftCombined.forEach(nft => {
-            const rawId = nft.address || nft.id || nft.mint || nft.name;
-            const key = `${nft.chain}-${String(rawId).toLowerCase()}`;
+            const key = `${nft.chain}-${String(nft.address || nft.id || nft.mint || nft.name).toLowerCase()}`;
             if (!nftMap.has(key)) nftMap.set(key, { ...nft, isToken: false });
           });
-          
-          // Process Tokens
-          const tokenCombined = tokenResults
-            .filter(r => r.status === 'fulfilled' && r.value.nfts)
-            .flatMap(r => r.value.nfts);
-          
+
+          // Merge tokens — aggregate balances if same token across multiple addresses
+          const tokenCombined = tokenResults.filter(r => r.status === 'fulfilled' && r.value.nfts).flatMap(r => r.value.nfts);
           tokenCombined.forEach(token => {
-            const rawId = token.address || token.id || token.mint || token.name;
-            const key = `${token.chain}-${String(rawId).toLowerCase()}`;
-            if (!nftMap.has(key)) nftMap.set(key, { ...token, isToken: true });
+            const key = `${token.chain}-${String(token.address || token.id || token.mint || token.name).toLowerCase()}`;
+            if (nftMap.has(key)) {
+              const ex = nftMap.get(key);
+              nftMap.set(key, { ...ex,
+                balance: (parseFloat(ex.balance || 0) + parseFloat(token.balance || 0)).toFixed(4),
+                totalValue: (parseFloat(ex.totalValue || 0) + parseFloat(token.totalValue || 0)).toFixed(2)
+              });
+            } else {
+              nftMap.set(key, { ...token, isToken: true });
+            }
           });
-          
-          // Filter spam from NFTs only
-          const allAssets = Array.from(nftMap.values());
-          const spamWords = ['voucher', 'wen', 'airdrop', 'promo', 'lucky', 'ticket', 'pass', 'jup', 'jupiter', 'unprotected', 'box', 'redeem', 'claim', 'gift', 'reward'];
-          const filtered = allAssets.filter(asset => {
-            if (asset.isToken) return true; // Keep all tokens
-            const rawName = (asset.name || '').toLowerCase();
-            const name = rawName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, "");
-            return !spamWords.some(word => name.includes(word));
+
+          // Filter spam NFTs
+          const spamWords = ['voucher','wen','airdrop','promo','lucky','ticket','pass','jup','jupiter','unprotected','box','redeem','claim','gift','reward'];
+          const filtered = Array.from(nftMap.values()).filter(asset => {
+            if (asset.isToken) return true;
+            const name = (asset.name || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9\s]/g,"");
+            return !spamWords.some(w => name.includes(w));
           });
-          
           setNfts(filtered);
-          
-          // Process Transactions
-          const txCombined = txResults
-            .filter(r => r.status === 'fulfilled' && r.value.transactions)
-            .flatMap(r => r.value.transactions);
-          
-          // Log transaction counts per chain
-          const txByChain = {};
-          txCombined.forEach(tx => {
-            txByChain[tx.chain] = (txByChain[tx.chain] || 0) + 1;
-          });
-          console.log(`📊 Transactions by chain:`, txByChain);
-          
-          const sortedTx = txCombined.sort((a, b) => b.timestamp - a.timestamp);
-          setTransactions(sortedTx);
-          
-          console.log(`✅ Loaded: ${filtered.length} assets, ${sortedTx.length} total transactions`);
-          if (sortedTx.length > 0) {
-            console.log(`📅 First tx: ${new Date(sortedTx[0].timestamp).toLocaleString()} (${sortedTx[0].chain})`);
-            console.log(`📅 Last tx: ${new Date(sortedTx[sortedTx.length-1].timestamp).toLocaleString()} (${sortedTx[sortedTx.length-1].chain})`);
-          }
-        } catch (e) {
-          console.error("Scan error:", e);
-        }
-        
+
+          // Merge transactions — dedup by hash
+          const txCombined = txResults.filter(r => r.status === 'fulfilled' && r.value.transactions).flatMap(r => r.value.transactions);
+          const txMap = new Map();
+          txCombined.forEach(tx => { const k = `${tx.chain}-${tx.hash||tx.id||tx.timestamp}`; if (!txMap.has(k)) txMap.set(k, tx); });
+          setTransactions(Array.from(txMap.values()).sort((a,b) => b.timestamp - a.timestamp));
+
+          const total = resolvedEvmAddrs.length + resolvedSolAddrs.length + resolvedAdaAddrs.length;
+          console.log(`✅ Scanned ${total} address${total !== 1 ? 'es' : ''}: ${filtered.length} assets`);
+        } catch (e) { console.error('Scan error:', e); }
+
         setLoading(false);
       };
 
@@ -1711,11 +1746,11 @@
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 slide-up-4">
                         <button onClick={connectEVM} disabled={!!walletConnecting}
                           className="social-btn flex flex-col items-center gap-2 py-5 px-4 rounded-2xl border-2 font-bold text-sm disabled:opacity-50 border-orange-500/30 hover:border-orange-500 hover:bg-orange-500/5">
-                          <span className="text-3xl">🦊</span>
+                          <span className="text-3xl">🔗</span>
                           <span className="text-xs font-bold uppercase tracking-widest text-orange-500">
-                            {walletConnecting === 'evm' ? 'Connecting…' : 'MetaMask / EVM'}
+                            {walletConnecting === 'evm' ? 'Connecting…' : 'EVM Wallet'}
                           </span>
-                          <span className={`text-[9px] opacity-50 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Ethereum, Base, Polygon +12 more</span>
+                          <span className={`text-[9px] opacity-50 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>MetaMask, Abstract, Brave +more</span>
                         </button>
                         <button onClick={connectSolana} disabled={!!walletConnecting}
                           className="social-btn flex flex-col items-center gap-2 py-5 px-4 rounded-2xl border-2 font-bold text-sm disabled:opacity-50 border-purple-500/30 hover:border-purple-500 hover:bg-purple-500/5">
@@ -1947,7 +1982,7 @@
                                       ? 'border-emerald-500/50 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10'
                                       : darkMode ? 'border-orange-500/30 text-orange-400 hover:bg-orange-500/10' : 'border-orange-300 text-orange-500 hover:bg-orange-50'
                                   }`}>
-                                  🦊 {walletConnecting === 'evm' ? 'Connecting…' : hasEVM ? '✓ EVM Connected · Add Another' : 'Add EVM Wallet'}
+                                  🔗 {walletConnecting === 'evm' ? 'Connecting…' : hasEVM ? '✓ EVM Connected · Add Another' : 'Add EVM Wallet'}
                                 </button>
                                 <button onClick={connectSolana} disabled={!!walletConnecting}
                                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-40 ${
@@ -2149,6 +2184,103 @@
                     <button onClick={unhideAll} className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-2xl transition-all">Unhide All Assets</button>
                     <button onClick={() => setShowManager(false)} className="px-8 py-4 bg-slate-800 text-[10px] font-bold uppercase tracking-widest rounded-2xl">Close</button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── EVM Wallet Picker Modal ─────────────────────────────────── */}
+            {showEvmPicker && (
+              <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl"
+                   onClick={closePicker}>
+                <div onClick={e => e.stopPropagation()}
+                     className={`relative w-full max-w-sm rounded-[2.5rem] border shadow-2xl overflow-hidden ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className="p-8 pb-5 text-center">
+                    <button onClick={closePicker} className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center rounded-full bg-slate-800/60 hover:bg-red-500 text-white text-sm font-bold transition-all">✕</button>
+                    {pasteMode
+                      ? <><div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-4 mx-auto bg-emerald-500/20">⚡</div>
+                          <h2 className="text-xl font-heading font-black uppercase tracking-tight mb-1">Paste Address</h2>
+                          <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Watch-only · No signing required</p></>
+                      : <><div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-4 mx-auto ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>🔗</div>
+                          <h2 className="text-xl font-heading font-black uppercase tracking-tight mb-1">Select Wallet</h2>
+                          <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                            {evmProviders.length > 0 ? `${evmProviders.length} wallet${evmProviders.length !== 1 ? 's' : ''} detected` : 'No extension wallets detected'}
+                          </p></>
+                    }
+                  </div>
+
+                  <div className="px-4 pb-2 space-y-2 max-h-[30rem] overflow-y-auto">
+                    {pasteMode ? (
+                      <div className="space-y-3 pb-2">
+                        <div className={`rounded-2xl border p-4 text-xs ${darkMode ? 'bg-slate-800/60 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                          <p className="font-bold mb-1">How to find your AGW address:</p>
+                          <p>1. Go to <strong>portal.abs.xyz</strong> and sign in</p>
+                          <p>2. Copy your wallet address (starts with <code className="text-emerald-400">0x</code>)</p>
+                          <p>3. Paste it below — no gas, no signing needed</p>
+                        </div>
+                        <input autoFocus value={pasteAddr} onChange={e => { setPasteAddr(e.target.value); setPasteError(''); }}
+                          onKeyDown={e => e.key === 'Enter' && submitWatchWallet()}
+                          placeholder="0x..."
+                          className={`w-full px-4 py-3 rounded-2xl border text-sm font-mono outline-none transition-all ${darkMode ? 'bg-slate-800 border-slate-600 text-white placeholder-slate-600 focus:border-emerald-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-300 focus:border-emerald-400'}`} />
+                        {pasteError && <p className="text-red-400 text-xs font-bold px-1">{pasteError}</p>}
+                        <button onClick={submitWatchWallet} disabled={!!walletConnecting || !pasteAddr.trim()}
+                          className="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-white text-xs font-black uppercase tracking-widest transition-all">
+                          {walletConnecting === 'evm' ? 'Adding…' : 'Add Watch-Only Wallet'}
+                        </button>
+                        <button onClick={() => setPasteMode(false)} className={`w-full py-2.5 rounded-2xl text-xs font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+                          ← Back to wallet list
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        {/* AGW — always pinned at top */}
+                        <div className="mb-1">
+                          <p className={`text-[9px] font-black uppercase tracking-widest px-1 mb-2 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Featured</p>
+                          <button onClick={() => setPasteMode(true)}
+                            className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all group ${darkMode ? 'border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/5 bg-slate-800/40' : 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 bg-slate-50'}`}>
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0">⚡</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className={`font-bold text-sm ${darkMode ? 'text-white' : 'text-slate-900'}`}>Abstract Global Wallet</p>
+                                <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 tracking-widest uppercase">Paste Address</span>
+                              </div>
+                              <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Smart Wallet · No signing needed</p>
+                            </div>
+                            <span className="text-lg opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400">→</span>
+                          </button>
+                        </div>
+                        {/* Detected wallets */}
+                        {evmProviders.length > 0 && (
+                          <div>
+                            <p className={`text-[9px] font-black uppercase tracking-widest px-1 mb-2 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Detected</p>
+                            {evmProviders.map(w => (
+                              <button key={w.info.uuid} onClick={() => connectEVMWithProvider(w.provider)}
+                                className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all group mb-2 ${darkMode ? 'border-slate-700 hover:border-orange-500/60 hover:bg-orange-500/5 bg-slate-800/40' : 'border-slate-200 hover:border-orange-400 hover:bg-orange-50 bg-slate-50'}`}>
+                                {w.info.icon
+                                  ? <img src={w.info.icon} className="w-10 h-10 rounded-xl flex-shrink-0 object-contain bg-white p-0.5" alt={w.info.name} />
+                                  : <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">{w.info.name.charAt(0)}</div>
+                                }
+                                <div className="flex-1 min-w-0">
+                                  <p className={`font-bold text-sm truncate ${darkMode ? 'text-white' : 'text-slate-900'}`}>{w.info.name}</p>
+                                  <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>EVM · Click to connect</p>
+                                </div>
+                                <span className={`text-lg opacity-0 group-hover:opacity-100 transition-opacity ${darkMode ? 'text-orange-400' : 'text-orange-500'}`}>→</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {evmProviders.length === 0 && (
+                          <p className={`text-center text-xs py-3 italic ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                            No browser wallets detected. Install MetaMask or another EVM extension.
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  {!pasteMode && (
+                    <div className={`px-8 py-4 mt-2 border-t text-center ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                      <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Signing is gasless · No transaction sent</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
