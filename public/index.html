@@ -168,7 +168,8 @@
       const [authLoading, setAuthLoading] = useState(false);
       const [walletConnecting, setWalletConnecting] = useState(null); // 'evm'|'solana'|'cardano'|'google'|'discord'
       const [showEvmPicker, setShowEvmPicker] = useState(false);
-      const [evmProviders, setEvmProviders] = useState([]); // EIP-6963 discovered wallets
+      const [evmProviders, setEvmProviders] = useState([]);
+      const [agwHint, setAgwHint] = useState(false); // shows AGW "how to connect" instructions
       const [autoScan, setAutoScan] = useState(false);
       const [editingWallet, setEditingWallet] = useState(null); // wallet id being renamed
       const [walletLabelInput, setWalletLabelInput] = useState('');
@@ -365,53 +366,39 @@
       };
 
       // ── EVM: EIP-6963 multi-wallet discovery ──────────────────────────────
-      // Abstract Global Wallet icon (official SVG from abs.xyz)
-      const AGW_ICON = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIHJ4PSIyMCIgZmlsbD0iIzIyQzU1RSIvPjxwYXRoIGQ9Ik0yMCA1OEwzMiAyMkg0OEw2MCA1OEg0OEwzOCAzMEwyOCA1OEgyMFoiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48L3N2Zz4=';
+      // Cosmos wallets that incorrectly announce via EIP-6963 — exclude them
+      const NON_EVM_WALLETS = ['keplr','leap','cosmostation','station','ninji','compass','ctrl'];
 
-      // Non-EVM wallets that inject via EIP-6963 but shouldn't appear here
-      const NON_EVM_WALLETS = ['keplr', 'leap', 'cosmostation', 'station', 'ninji', 'compass'];
+      const discoverEvmWallets = () => new Promise((resolve) => {
+        const found = [];
+        const seen = new Set();
+        const handler = (event) => {
+          const { info, provider } = event.detail;
+          const nameLower = (info.name || '').toLowerCase();
+          if (NON_EVM_WALLETS.some(w => nameLower.includes(w))) return; // filter non-EVM
+          if (!seen.has(info.uuid)) { seen.add(info.uuid); found.push({ info, provider }); }
+        };
+        window.addEventListener('eip6963:announceProvider', handler);
+        window.dispatchEvent(new Event('eip6963:requestProvider'));
+        setTimeout(() => {
+          window.removeEventListener('eip6963:announceProvider', handler);
+          // Legacy fallback if no EIP-6963 wallets responded
+          if (found.length === 0 && window.ethereum) {
+            found.push({
+              info: { uuid: 'legacy', name: window.ethereum.isMetaMask ? 'MetaMask' : 'Injected Wallet', icon: '' },
+              provider: window.ethereum
+            });
+          }
+          resolve(found);
+        }, 350);
+      });
 
-      const discoverEvmWallets = () => {
-        return new Promise((resolve) => {
-          const found = [];
-          const seen = new Set();
-          const handler = (event) => {
-            const { info, provider } = event.detail;
-            const nameLower = (info.name || '').toLowerCase();
-            // Filter out Cosmos/non-EVM wallets that incorrectly announce via EIP-6963
-            if (NON_EVM_WALLETS.some(w => nameLower.includes(w))) return;
-            if (!seen.has(info.uuid)) {
-              seen.add(info.uuid);
-              found.push({ info, provider });
-            }
-          };
-          window.addEventListener('eip6963:announceProvider', handler);
-          window.dispatchEvent(new Event('eip6963:requestProvider'));
-          // Give wallets 350ms to respond
-          setTimeout(() => {
-            window.removeEventListener('eip6963:announceProvider', handler);
-            // Legacy fallback: window.ethereum exists but didn't announce via EIP-6963
-            if (found.length === 0 && window.ethereum) {
-              found.push({
-                info: { uuid: 'legacy', name: window.ethereum.isMetaMask ? 'MetaMask' : 'Injected Wallet', icon: '' },
-                provider: window.ethereum
-              });
-            }
-            resolve(found);
-          }, 350);
-        });
-      };
-
-      // Opens the EVM wallet picker, or connects directly if only 1 wallet
+      // Opens picker modal (or connects directly if only 1 wallet found)
       const connectEVM = async () => {
+        setAgwHint(false);
         const wallets = await discoverEvmWallets();
-        if (wallets.length === 0) {
-          // No extension wallets — show picker with AGW featured
-          setEvmProviders([]);
-          setShowEvmPicker(true);
-          return;
-        }
         if (wallets.length === 1) {
+          // Single wallet — skip modal, connect directly
           connectEVMWithProvider(wallets[0].provider);
           return;
         }
@@ -419,7 +406,7 @@
         setShowEvmPicker(true);
       };
 
-      // Connect using a specific provider (from picker or direct)
+      // Connect with a specific EIP-6963 provider
       const connectEVMWithProvider = (provider) => {
         setShowEvmPicker(false);
         connectWallet('evm', async (nonce) => {
@@ -432,20 +419,17 @@
         });
       };
 
-      // Abstract Global Wallet — opens abs.xyz in a popup for cross-app connection
-      const connectAGW = () => {
-        setShowEvmPicker(false);
-        // Check if AGW is available via EIP-6963 (user has AGW browser extension/session)
-        const agwProvider = evmProviders.find(w =>
-          w.info.name.toLowerCase().includes('abstract')
-        );
-        if (agwProvider) {
-          connectEVMWithProvider(agwProvider.provider);
-          return;
+      // AGW button clicked — check if it announced itself via EIP-6963 first
+      // If not, show instructions: AGW only appears when you're actively signed in
+      // at abs.xyz in the same browser (it then injects its EIP-6963 provider)
+      const connectAGW = async () => {
+        const wallets = await discoverEvmWallets();
+        const agw = wallets.find(w => w.info.name.toLowerCase().includes('abstract'));
+        if (agw) {
+          connectEVMWithProvider(agw.provider);
+        } else {
+          setAgwHint(true); // show the "how to connect" info inside the modal
         }
-        // AGW is web-based — open abs.xyz for the user to set it up
-        window.open('https://abs.xyz', '_blank', 'width=480,height=640,left=200,top=100');
-        setProfileError('Visit abs.xyz to set up your Abstract Global Wallet, then click "Add EVM Wallet" again.');
       };
 
       // ── Solana (Phantom / Backpack) ───────────────────────────────────────
@@ -2221,73 +2205,113 @@
             {/* ── EVM Wallet Picker Modal ─────────────────────────────────── */}
             {showEvmPicker && (
               <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl"
-                   onClick={() => setShowEvmPicker(false)}>
+                   onClick={() => { setShowEvmPicker(false); setAgwHint(false); }}>
                 <div onClick={e => e.stopPropagation()}
                      className={`relative w-full max-w-sm rounded-[2.5rem] border shadow-2xl overflow-hidden ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
 
                   {/* Header */}
                   <div className="p-8 pb-5 text-center">
-                    <button onClick={() => setShowEvmPicker(false)}
+                    <button onClick={() => { setShowEvmPicker(false); setAgwHint(false); }}
                       className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center rounded-full bg-slate-800/60 hover:bg-red-500 text-white text-sm font-bold transition-all">✕</button>
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-4 mx-auto ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>🔗</div>
                     <h2 className="text-xl font-heading font-black uppercase tracking-tight mb-1">Select Wallet</h2>
                     <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                      {evmProviders.length > 0 ? `${evmProviders.length} wallet${evmProviders.length !== 1 ? 's' : ''} detected` : 'No wallets detected'}
+                      {evmProviders.length > 0 ? `${evmProviders.length} wallet${evmProviders.length !== 1 ? 's' : ''} detected` : 'No extension wallets detected'}
                     </p>
                   </div>
 
-                  <div className="px-4 pb-8 space-y-2 max-h-96 overflow-y-auto">
+                  <div className="px-4 pb-2 space-y-2 max-h-[28rem] overflow-y-auto">
 
-                    {/* Abstract Global Wallet — always featured at top */}
-                    {!evmProviders.find(w => w.info.name.toLowerCase().includes('abstract')) && (
-                      <div className="mb-3">
-                        <p className={`text-[9px] font-black uppercase tracking-widest px-2 mb-2 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Featured</p>
-                        <button onClick={connectAGW}
-                          className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all group ${darkMode ? 'border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/5 bg-slate-800/40' : 'border-emerald-300 hover:border-emerald-500 hover:bg-emerald-50 bg-slate-50'}`}>
-                          <img src={AGW_ICON} className="w-10 h-10 rounded-xl flex-shrink-0 object-contain" alt="Abstract Global Wallet" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className={`font-bold text-sm ${darkMode ? 'text-white' : 'text-slate-900'}`}>Abstract Global Wallet</p>
-                              <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 tracking-widest">AGW</span>
-                            </div>
-                            <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>EVM · Smart Contract Wallet</p>
-                          </div>
-                          <span className={`text-lg opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400`}>→</span>
+                    {/* AGW hint panel — shown when user clicked AGW but it wasn't detected */}
+                    {agwHint && (
+                      <div className={`rounded-2xl border p-4 mb-3 ${darkMode ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200'}`}>
+                        <p className="text-emerald-400 font-black text-xs uppercase tracking-widest mb-2">How to connect Abstract Global Wallet</p>
+                        <ol className={`text-xs space-y-1.5 list-decimal list-inside ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                          <li>Open <strong>abs.xyz</strong> in a new tab</li>
+                          <li>Sign in / create your Abstract Global Wallet</li>
+                          <li>Keep that tab open, then come back here</li>
+                          <li>Click <strong>"Retry"</strong> below — AGW will appear in the list</li>
+                        </ol>
+                        <button onClick={async () => { setAgwHint(false); const w = await discoverEvmWallets(); setEvmProviders(w); }}
+                          className="mt-3 w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-black uppercase tracking-widest transition-all">
+                          Retry Detection
                         </button>
-                        {evmProviders.length > 0 && (
-                          <p className={`text-[9px] font-black uppercase tracking-widest px-2 mt-4 mb-2 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Detected</p>
-                        )}
                       </div>
                     )}
 
-                    {/* Detected EIP-6963 wallets */}
-                    {evmProviders.map((w) => (
-                      <button key={w.info.uuid}
-                        onClick={() => connectEVMWithProvider(w.provider)}
-                        className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all group ${darkMode ? 'border-slate-700 hover:border-orange-500/60 hover:bg-orange-500/5 bg-slate-800/40' : 'border-slate-200 hover:border-orange-400 hover:bg-orange-50 bg-slate-50'}`}>
-                        {w.info.icon
-                          ? <img src={w.info.icon} className="w-10 h-10 rounded-xl flex-shrink-0 object-contain bg-white p-0.5" alt={w.info.name} />
-                          : <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
-                              {w.info.name.charAt(0)}
+                    {/* Abstract Global Wallet — always pinned at top */}
+                    {!evmProviders.find(w => w.info.name.toLowerCase().includes('abstract')) && !agwHint && (
+                      <div className="mb-1">
+                        <p className={`text-[9px] font-black uppercase tracking-widest px-1 mb-2 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Featured</p>
+                        <button onClick={connectAGW}
+                          className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all group ${darkMode ? 'border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/5 bg-slate-800/40' : 'border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50 bg-slate-50'}`}>
+                          <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0">⚡</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className={`font-bold text-sm ${darkMode ? 'text-white' : 'text-slate-900'}`}>Abstract Global Wallet</p>
+                              <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 tracking-widest uppercase">AGW</span>
                             </div>
-                        }
-                        <div className="flex-1 min-w-0">
-                          <p className={`font-bold text-sm truncate ${darkMode ? 'text-white' : 'text-slate-900'}`}>{w.info.name}</p>
-                          <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>EVM · Click to connect</p>
-                        </div>
-                        <span className={`text-lg opacity-0 group-hover:opacity-100 transition-opacity ${darkMode ? 'text-orange-400' : 'text-orange-500'}`}>→</span>
-                      </button>
-                    ))}
+                            <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Smart Contract Wallet · abs.xyz</p>
+                          </div>
+                          <span className="text-lg opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400">→</span>
+                        </button>
+                      </div>
+                    )}
 
-                    {/* Empty state */}
-                    {evmProviders.length === 0 && (
-                      <p className={`text-center text-xs py-4 italic ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                        No browser wallet extensions detected.<br/>Install MetaMask or another EVM wallet.
+                    {/* AGW if it was actually detected via EIP-6963 */}
+                    {evmProviders.find(w => w.info.name.toLowerCase().includes('abstract')) && (
+                      <div className="mb-1">
+                        <p className={`text-[9px] font-black uppercase tracking-widest px-1 mb-2 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Featured</p>
+                        {evmProviders.filter(w => w.info.name.toLowerCase().includes('abstract')).map(w => (
+                          <button key={w.info.uuid} onClick={() => connectEVMWithProvider(w.provider)}
+                            className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all group ${darkMode ? 'border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/8 bg-slate-800/40' : 'border-emerald-300 hover:border-emerald-500 hover:bg-emerald-50 bg-slate-50'}`}>
+                            {w.info.icon
+                              ? <img src={w.info.icon} className="w-10 h-10 rounded-xl object-contain flex-shrink-0" alt={w.info.name} />
+                              : <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0">⚡</div>
+                            }
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className={`font-bold text-sm ${darkMode ? 'text-white' : 'text-slate-900'}`}>{w.info.name}</p>
+                                <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 tracking-widest uppercase">Connected ✓</span>
+                              </div>
+                              <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>EVM · Click to connect</p>
+                            </div>
+                            <span className="text-lg opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400">→</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Other detected EIP-6963 wallets (non-AGW) */}
+                    {evmProviders.filter(w => !w.info.name.toLowerCase().includes('abstract')).length > 0 && (
+                      <div>
+                        <p className={`text-[9px] font-black uppercase tracking-widest px-1 mb-2 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Detected</p>
+                        {evmProviders.filter(w => !w.info.name.toLowerCase().includes('abstract')).map((w) => (
+                          <button key={w.info.uuid} onClick={() => connectEVMWithProvider(w.provider)}
+                            className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all group mb-2 ${darkMode ? 'border-slate-700 hover:border-orange-500/60 hover:bg-orange-500/5 bg-slate-800/40' : 'border-slate-200 hover:border-orange-400 hover:bg-orange-50 bg-slate-50'}`}>
+                            {w.info.icon
+                              ? <img src={w.info.icon} className="w-10 h-10 rounded-xl flex-shrink-0 object-contain bg-white p-0.5" alt={w.info.name} />
+                              : <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">{w.info.name.charAt(0)}</div>
+                            }
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-bold text-sm truncate ${darkMode ? 'text-white' : 'text-slate-900'}`}>{w.info.name}</p>
+                              <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>EVM · Click to connect</p>
+                            </div>
+                            <span className={`text-lg opacity-0 group-hover:opacity-100 transition-opacity ${darkMode ? 'text-orange-400' : 'text-orange-500'}`}>→</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* No wallets at all */}
+                    {evmProviders.length === 0 && !agwHint && (
+                      <p className={`text-center text-xs py-3 italic ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                        No extension wallets found. Install MetaMask or another EVM wallet extension.
                       </p>
                     )}
                   </div>
 
-                  <div className={`px-8 py-4 border-t text-center ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                  <div className={`px-8 py-4 mt-2 border-t text-center ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
                     <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
                       Signing is gasless · No transaction sent
                     </p>
