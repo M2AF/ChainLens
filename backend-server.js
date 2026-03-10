@@ -121,11 +121,11 @@ const dbFindUserBySocial = async (provider, provider_id) => {
   return dbGetUserById(data.user_id);
 };
 
-const dbLinkWallet = async (userId, { chain, address }) => {
+const dbLinkWallet = async (userId, { chain, address, watch_only = false }) => {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('cl_wallets')
-    .upsert({ user_id: userId, chain, address, verified_at: new Date().toISOString() },
+    .upsert({ user_id: userId, chain, address, verified_at: new Date().toISOString(), watch_only },
              { onConflict: 'user_id,address' })
     .select().single();
   if (error) throw error;
@@ -244,6 +244,36 @@ app.post('/api/auth/nonce', (req, res) => {
 // ── Step 2a: Login / link via wallet signature ────────────────────────────────
 // If Authorization header present → links wallet to existing account
 // If no header → creates/finds account keyed by wallet address
+
+// ── Watch-only wallet: add any address without signing (for smart contract wallets like AGW) ──
+app.post('/api/auth/add-watch-wallet', async (req, res) => {
+  const { chain, address, label } = req.body;
+  if (!chain || !address) return res.status(400).json({ error: 'chain and address required' });
+
+  // Validate EVM address format
+  if (chain === 'evm' && !/^0x[0-9a-fA-F]{40}$/.test(address))
+    return res.status(400).json({ error: 'Invalid EVM address format' });
+
+  // Must be logged in — watch-only wallets link to existing account only
+  const authHeader = req.headers.authorization?.replace('Bearer ', '');
+  if (!authHeader) return res.status(401).json({ error: 'Must be logged in to add a watch-only wallet' });
+
+  let userId;
+  try {
+    const claims = jwt.verify(authHeader, JWT_SECRET);
+    userId = claims.sub;
+  } catch (e) { return res.status(401).json({ error: 'Invalid session token' }); }
+
+  try {
+    await dbLinkWallet(userId, { chain, address: address.toLowerCase(), watch_only: true });
+    const profile = await dbGetUserById(userId);
+    console.log(`👁️ Watch-only ${chain} wallet ${address.slice(0,10)}... linked to user ${userId}`);
+    res.json({ success: true, profile });
+  } catch (e) {
+    console.error('add-watch-wallet error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
 app.post('/api/auth/wallet-login', async (req, res) => {
   const { chain, address, signature, key: cborKey, nonce } = req.body;
   if (!chain || !address || !signature || !nonce)
