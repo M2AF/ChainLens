@@ -1332,36 +1332,27 @@
                     </div>
                 )}
 
-                <div className="max-w-6xl mx-auto flex justify-between items-center px-4 md:px-8 py-4 mb-8">
+                <div className="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-3 px-4 md:px-8 py-4 mb-8">
                     {/* Hidden Button - Far Left */}
-                    <div className="flex-shrink-0 min-w-[130px]">
-                        <button onClick={() => setShowManager(true)} className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${darkMode ? 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white' : 'bg-white border border-slate-200 text-slate-500'}`}>
-                            Hidden ({hiddenIds.length + spamIds.length})
-                        </button>
-                    </div>
-                    
-                    {/* Asset Type Tabs - Center */}
+                    <button onClick={() => setShowManager(true)} className={`flex-shrink-0 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${darkMode ? 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white' : 'bg-white border border-slate-200 text-slate-500'}`}>
+                        Hidden ({hiddenIds.length + spamIds.length})
+                    </button>
+
+                    {/* Asset Type Tabs */}
                     <div className={`flex items-center gap-1 p-1 rounded-2xl border transition-all ${darkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200 shadow-lg'}`}>
-                        <button 
+                        <button
                             onClick={() => { setViewMode('nfts'); setTokenMode(false); }}
-                            className={`px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'nfts' ? (darkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-900 text-white shadow-lg') : (darkMode ? 'text-slate-500 hover:text-white' : 'text-slate-400 hover:text-slate-900')}`}
-                        >
-                            NFTs
-                        </button>
-                        <button 
+                            className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'nfts' ? (darkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-900 text-white shadow-lg') : (darkMode ? 'text-slate-500 hover:text-white' : 'text-slate-400 hover:text-slate-900')}`}
+                        >NFTs</button>
+                        <button
                             onClick={() => { setViewMode('tokens'); setTokenMode(true); }}
-                            className={`px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'tokens' ? (darkMode ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-900 text-white shadow-lg') : (darkMode ? 'text-slate-500 hover:text-white' : 'text-slate-400 hover:text-slate-900')}`}
-                        >
-                            Tokens
-                        </button>
-                        <button 
+                            className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'tokens' ? (darkMode ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-900 text-white shadow-lg') : (darkMode ? 'text-slate-500 hover:text-white' : 'text-slate-400 hover:text-slate-900')}`}
+                        >Tokens</button>
+                        <button
                             onClick={() => setViewMode('transactions')}
-                            className={`px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'transactions' ? (darkMode ? 'bg-purple-600 text-white shadow-lg' : 'bg-slate-900 text-white shadow-lg') : (darkMode ? 'text-slate-500 hover:text-white' : 'text-slate-400 hover:text-slate-900')}`}
-                        >
-                            Tx's
-                        </button>
+                            className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${viewMode === 'transactions' ? (darkMode ? 'bg-purple-600 text-white shadow-lg' : 'bg-slate-900 text-white shadow-lg') : (darkMode ? 'text-slate-500 hover:text-white' : 'text-slate-400 hover:text-slate-900')}`}
+                        >Tx's</button>
                     </div>
-                    
                 </div>
 
                 {/* Transaction History View */}
@@ -1645,22 +1636,22 @@
                                 <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">Fetching global markets...</p>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
+                            <div className="overflow-x-hidden">
                                 <table className="w-full text-left">
                                     <thead>
                                         <tr className="border-b border-white/5">
-                                            <th className="pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40 px-2">#</th>
+                                            <th className="pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40 px-2 w-8">#</th>
                                             <th className="pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40">Asset</th>
                                             <th className="pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40 text-right">Price</th>
                                             <th className="pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40 text-right">24h</th>
-                                            <th className="pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40 text-right">Market Cap</th>
-                                            <th className="pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40 text-center">Last 7 Days</th>
+                                            <th className="hidden md:table-cell pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40 text-right">Market Cap</th>
+                                            <th className="hidden md:table-cell pb-4 text-[10px] font-bold uppercase tracking-widest opacity-40 text-center">Last 7 Days</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
                                         {filteredMarket.map((coin, idx) => (
-                                            <tr 
-                                                key={coin.id} 
+                                            <tr
+                                                key={coin.id}
                                                 onClick={() => loadChartData(coin)}
                                                 className="hover:bg-white/5 transition-colors group cursor-pointer"
                                             >
@@ -1669,34 +1660,36 @@
                                                     <div className="flex items-center gap-3">
                                                         <img src={coin.image} className="w-6 h-6 rounded-full flex-shrink-0"
                                                           onError={(e) => { e.currentTarget.onerror=null; e.currentTarget.src=imgFallbackSvg(coin.symbol,'ethereum'); }} />
-                                                        <div>
-                                                            <p className="text-xs font-bold uppercase">{coin.name}</p>
+                                                        <div className="min-w-0">
+                                                            <p className="text-xs font-bold uppercase truncate max-w-[90px] md:max-w-none">{coin.name}</p>
                                                             <p className="text-[10px] font-bold opacity-40 uppercase">{coin.symbol}</p>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="py-4 text-xs font-bold text-right">${coin.current_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 6})}</td>
-                                                <td className={`py-4 text-xs font-bold text-right ${coin.price_change_percentage_24h >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                <td className="py-4 text-xs font-bold text-right whitespace-nowrap">${coin.current_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 6})}</td>
+                                                <td className={`py-4 text-xs font-bold text-right whitespace-nowrap ${coin.price_change_percentage_24h >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                                                     {coin.price_change_percentage_24h?.toFixed(2)}%
                                                 </td>
-                                                <td className="py-4 text-xs font-bold opacity-60 text-right">${(coin.market_cap / 1e9).toFixed(2)}B</td>
-                                                <td className="py-4 flex justify-center">
-                                                    {coin.sparkline_in_7d?.price && (
-                                                        <svg width="96" height="32" className="opacity-80">
-                                                            <polyline
-                                                                fill="none"
-                                                                stroke={coin.price_change_percentage_24h >= 0 ? '#10b981' : '#ef4444'}
-                                                                strokeWidth="1.5"
-                                                                points={coin.sparkline_in_7d.price.map((price, i) => {
-                                                                    const minPrice = Math.min(...coin.sparkline_in_7d.price);
-                                                                    const maxPrice = Math.max(...coin.sparkline_in_7d.price);
-                                                                    const x = (i / coin.sparkline_in_7d.price.length) * 96;
-                                                                    const y = 32 - ((price - minPrice) / (maxPrice - minPrice)) * 28;
-                                                                    return `${x},${y}`;
-                                                                }).join(' ')}
-                                                            />
-                                                        </svg>
-                                                    )}
+                                                <td className="hidden md:table-cell py-4 text-xs font-bold opacity-60 text-right">${(coin.market_cap / 1e9).toFixed(2)}B</td>
+                                                <td className="hidden md:table-cell py-4">
+                                                    <div className="flex justify-center">
+                                                        {coin.sparkline_in_7d?.price && (
+                                                            <svg width="96" height="32" className="opacity-80">
+                                                                <polyline
+                                                                    fill="none"
+                                                                    stroke={coin.price_change_percentage_24h >= 0 ? '#10b981' : '#ef4444'}
+                                                                    strokeWidth="1.5"
+                                                                    points={coin.sparkline_in_7d.price.map((price, i) => {
+                                                                        const minPrice = Math.min(...coin.sparkline_in_7d.price);
+                                                                        const maxPrice = Math.max(...coin.sparkline_in_7d.price);
+                                                                        const x = (i / coin.sparkline_in_7d.price.length) * 96;
+                                                                        const y = 32 - ((price - minPrice) / (maxPrice - minPrice)) * 28;
+                                                                        return `${x},${y}`;
+                                                                    }).join(' ')}
+                                                                />
+                                                            </svg>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
