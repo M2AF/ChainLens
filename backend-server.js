@@ -221,34 +221,7 @@ const DS_CHAIN = {
   ronin:'ronin', worldchain:'worldchain',
 };
 
-// DefiLlama chain slugs (free coins API — no key needed)
-// https://coins.llama.fi/prices/current/chain:address
-const LLAMA_CHAIN = {
-  ethereum:'ethereum', base:'base', polygon:'polygon', avalanche:'avax',
-  optimism:'optimism', arbitrum:'arbitrum', blast:'blast', zora:'zora',
-  abstract:'abstract', apechain:'apechain', soneium:'soneium', ronin:'ronin',
-  worldchain:'worldchain', gnosis:'xdai', hyperevm:'hyperliquid', monad:'monad',
-  solana:'solana', cardano:'cardano',
-};
-
-// Single DefiLlama token price lookup — used as fallback when DexScreener returns 0
-const fetchLlamaPrice = async (chainId, address) => {
-  const llamaChain = LLAMA_CHAIN[chainId];
-  if (!llamaChain || !address) return 0;
-  const key = `llama-${chainId}-${address}`;
-  const hit = _cGet(key);
-  if (hit !== null) return hit;
-  try {
-    const coin = `${llamaChain}:${address}`;
-    const r = await fetch(`https://coins.llama.fi/prices/current/${encodeURIComponent(coin)}`);
-    const d = await r.json();
-    const price = d?.coins?.[coin]?.price || 0;
-    if (price > 0) console.log(`🦙 DefiLlama price for ${coin}: $${price}`);
-    return _cSet(key, price);
-  } catch (e) { return _cSet(key, 0); }
-};
-
-// ERC20 price via DexScreener → DefiLlama fallback, with cache
+// ERC20 price via DexScreener, with cache
 const fetchUSDPrice = async (chainId, address) => {
   if (!address || address === '0x0000000000000000000000000000000000000000') return 0;
   const key = `ds-${chainId}-${address}`;
@@ -259,16 +232,8 @@ const fetchUSDPrice = async (chainId, address) => {
     const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`);
     const data = await res.json();
     const pair = data.pairs?.find(p => p.chainId === dsChain) || data.pairs?.[0];
-    const dsPrice = pair ? parseFloat(pair.priceUsd) : 0;
-    if (dsPrice > 0) return _cSet(key, dsPrice);
-    // Fallback: DefiLlama Coins API
-    const llamaPrice = await fetchLlamaPrice(chainId, address);
-    return _cSet(key, llamaPrice);
-  } catch (e) {
-    // DexScreener failed — try Llama directly
-    const llamaPrice = await fetchLlamaPrice(chainId, address);
-    return _cSet(key, llamaPrice);
-  }
+    return _cSet(key, pair ? parseFloat(pair.priceUsd) : 0);
+  } catch (e) { return _cSet(key, 0); }
 };
 
 // Convert a USD value to native token equivalent, formatted to 4dp
@@ -1887,34 +1852,7 @@ app.get('/api/market/search/:query', async (req, res) => {
     } catch (e) { console.log(`  ❌ CoinGecko data fetch: ${e.message}`); }
   }
 
-  // Step 3: DefiLlama — covers DeFi tokens that CoinGecko rate-limits or misses
-  // Uses coingecko:{id} prefix if we have meta, otherwise tries symbol search
-  try {
-    const llamaId = meta?.id ? `coingecko:${meta.id}` : null;
-    if (llamaId) {
-      const r = await fetch(`https://coins.llama.fi/prices/current/${encodeURIComponent(llamaId)}`);
-      if (r.ok) {
-        const d = await r.json();
-        const entry = d?.coins?.[llamaId];
-        if (entry?.price > 0) {
-          const coin = {
-            id: meta.id, name: meta.name, symbol: meta.symbol || entry.symbol?.toUpperCase() || ticker,
-            current_price: entry.price,
-            price_change_percentage_24h: 0,
-            market_cap: 0, market_cap_rank: meta?.rank || null,
-            image: meta?.image || '',
-            sparkline_in_7d: null,
-            total_volume: 0, high_24h: 0, low_24h: 0,
-            source: 'DefiLlama',
-          };
-          console.log(`  ✅ DefiLlama: ${coin.name} $${entry.price}`);
-          return res.json(save(coin));
-        }
-      }
-    }
-  } catch (e) { console.log(`  ❌ DefiLlama market search: ${e.message}`); }
-
-  // Step 4: Kraken (major coins, ticker only)
+  // Step 3: Kraken (major coins, ticker only)
   const ticker = meta?.symbol || query.toUpperCase();
   try {
     const r = await fetch(`https://api.kraken.com/0/public/Ticker?pair=${ticker}USD`);
@@ -1937,7 +1875,7 @@ app.get('/api/market/search/:query', async (req, res) => {
     }
   } catch (e) { console.log(`  ❌ Kraken: ${e.message}`); }
 
-  // Step 5: Gemini
+  // Step 4: Gemini
   try {
     const r = await fetch(`https://api.gemini.com/v1/pubticker/${ticker.toLowerCase()}usd`);
     if (r.ok) {
