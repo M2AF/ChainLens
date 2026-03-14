@@ -240,37 +240,23 @@
         if (savedMode === 'true') setDarkMode(true);
       }, []);
 
-      // ── Swap iframe scroll guard ──────────────────────────────────────────
-      // Cross-origin iframes swallow mouse-wheel events so the parent page
-      // can't scroll. We place an invisible overlay over each swap column that:
-      //   • Captures wheel events → scrolls the parent window instead
-      //   • On mousedown → hides itself briefly so the click reaches the iframe
+      // ── Swap column scroll passthrough ────────────────────────────────────
+      // Cross-origin iframes swallow mouse-wheel events. Instead of an overlay
+      // (which blocks clicks), we attach wheel listeners directly to each
+      // .swap-column so scroll always passes to the parent — and clicks pass
+      // straight through to the iframe untouched.
       useEffect(() => {
         const install = () => {
           document.querySelectorAll('.swap-column').forEach(col => {
-            if (col.querySelector('.scroll-guard')) return; // already installed
-            const guard = document.createElement('div');
-            guard.className = 'scroll-guard';
-            guard.style.cssText = [
-              'position:absolute', 'top:0', 'left:0', 'right:0', 'bottom:0',
-              'z-index:5', 'background:transparent', 'cursor:default'
-            ].join(';');
-            col.appendChild(guard);
-
-            // Wheel on guard → pass to parent window
-            guard.addEventListener('wheel', (e) => {
+            if (col.dataset.scrollInstalled) return;
+            col.dataset.scrollInstalled = '1';
+            col.addEventListener('wheel', (e) => {
+              // Only intercept when the wheel starts on the column itself,
+              // not when it's already scrolling content inside the iframe.
               window.scrollBy({ top: e.deltaY, left: 0 });
             }, { passive: true });
-
-            // Mousedown on guard → step aside so click reaches iframe
-            guard.addEventListener('mousedown', () => {
-              guard.style.pointerEvents = 'none';
-              // Restore after a short pause — enough for the click to land
-              setTimeout(() => { guard.style.pointerEvents = ''; }, 300);
-            });
           });
         };
-        // Small delay to let the always-mounted swap section render
         const t = setTimeout(install, 200);
         return () => clearTimeout(t);
       }, []);
@@ -650,28 +636,23 @@
                        base:'base',arbitrum:'arbitrum',optimism:'optimism'};
 
       useEffect(() => {
-        const fetchMarket = async (isRetry = false) => {
+        const fetchMarket = async () => {
           setMarketLoading(true);
           try {
+            // Route through backend — avoids CoinGecko rate-limiting the browser on refresh
             const res = await fetch('/api/market/top100');
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
-            if (!Array.isArray(data) || data.length === 0) throw new Error('Empty response');
+            if (!Array.isArray(data)) throw new Error('Unexpected response');
             console.log('✅ Loaded', data.length, 'coins from market API');
             setMarketData(data);
           } catch (e) {
             console.error('❌ Market fetch failed:', e);
-            // Auto-retry once after 3s (handles Render cold-start delay)
-            if (!isRetry) {
-              console.log('🔄 Retrying market fetch in 3s...');
-              setTimeout(() => fetchMarket(true), 3000);
-              return; // keep loading spinner up during retry
-            }
           }
           setMarketLoading(false);
         };
         fetchMarket();
-        const interval = setInterval(() => fetchMarket(), 60000);
+        const interval = setInterval(fetchMarket, 60000);
         return () => clearInterval(interval);
       }, []);
 
@@ -1731,11 +1712,8 @@
                             </div>
                         </div>
                         {marketLoading && marketData.length === 0 ? (
-                            <div className="py-20 text-center">
-                                <div className="animate-pulse mb-3">
-                                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">Loading market data...</p>
-                                </div>
-                                <p className="text-[10px] opacity-30">May take a moment on first load</p>
+                            <div className="py-20 text-center animate-pulse">
+                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">Fetching global markets...</p>
                             </div>
                         ) : (
                             <div className="overflow-x-hidden">

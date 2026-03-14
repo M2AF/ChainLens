@@ -1764,7 +1764,7 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
 // Top-100 market cache — 2 minute TTL so refreshes are instant
 let _top100Cache = null;
 let _top100CacheTs = 0;
-const TOP100_TTL = 120000; // 2 minutes
+const TOP100_TTL = 120000;
 
 app.get('/api/market/top100', async (req, res) => {
   // Serve from cache if fresh
@@ -1790,12 +1790,12 @@ app.get('/api/market/top100', async (req, res) => {
         return res.json(data);
       }
     }
-    console.warn(`⚠️  CoinGecko top100 returned ${response.status} — trying Binance fallback`);
+    console.warn(`⚠️  CoinGecko top100 ${response.status} — trying Binance fallback`);
   } catch (e) {
     console.warn('⚠️  CoinGecko top100 failed:', e.message);
   }
 
-  // ── Attempt 2: Binance 24hr ticker (no sparklines, but fast and reliable) ─
+  // ── Attempt 2: Binance 24hr ticker (no sparklines, but fast) ─────────
   try {
     const r = await fetch('https://api.binance.com/api/v3/ticker/24hr', { signal: AbortSignal.timeout(6000) });
     if (r.ok) {
@@ -1807,19 +1807,13 @@ app.get('/api/market/top100', async (req, res) => {
         .map((t, i) => {
           const symbol = t.symbol.replace('USDT', '');
           return {
-            id: symbol.toLowerCase(),
-            symbol: symbol.toLowerCase(),
-            name: symbol,
-            image: '',
-            current_price: parseFloat(t.lastPrice),
-            market_cap: parseFloat(t.quoteVolume),
-            market_cap_rank: i + 1,
+            id: symbol.toLowerCase(), symbol: symbol.toLowerCase(), name: symbol,
+            image: '', current_price: parseFloat(t.lastPrice),
+            market_cap: parseFloat(t.quoteVolume), market_cap_rank: i + 1,
             price_change_percentage_24h: parseFloat(t.priceChangePercent),
             total_volume: parseFloat(t.quoteVolume),
-            high_24h: parseFloat(t.highPrice),
-            low_24h: parseFloat(t.lowPrice),
-            sparkline_in_7d: null,
-            source: 'Binance',
+            high_24h: parseFloat(t.highPrice), low_24h: parseFloat(t.lowPrice),
+            sparkline_in_7d: null, source: 'Binance',
           };
         });
       console.log(`✅ top100 Binance fallback: ${usdtPairs.length} coins`);
@@ -1831,7 +1825,7 @@ app.get('/api/market/top100', async (req, res) => {
     console.warn('⚠️  Binance top100 fallback failed:', e.message);
   }
 
-  // ── Return stale cache rather than an empty response ─────────────────
+  // ── Return stale cache rather than an empty response ──────────────────
   if (_top100Cache) {
     console.log('⚠️  All sources failed — serving stale cache');
     return res.json(_top100Cache);
@@ -2685,4 +2679,10 @@ if (!API_KEYS.alchemy) {
   console.log('✅ Alchemy API key loaded');
 }
 
-app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  // Pre-warm the market cache so the first page load is instant
+  fetch(`http://localhost:${PORT}/api/market/top100`)
+    .then(() => console.log('✅ Market cache pre-warmed'))
+    .catch(e => console.warn('⚠️  Market cache pre-warm failed:', e.message));
+});
