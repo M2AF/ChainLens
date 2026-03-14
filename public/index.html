@@ -1361,7 +1361,7 @@
                       {/* Active chain count badge when collapsed */}
                       {!showEvmChains && (
                         <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-blue-500' : 'text-slate-400'}`}>
-                          {['ethereum','base','polygon','avalanche','optimism','arbitrum','abstract','blast','zora','apechain','soneium','ronin','worldchain','gnosis','hyperevm','monad'].filter(c => activeChains.includes(c)).length} / 16 chains active
+                          {['ethereum','base','polygon','avalanche','optimism','arbitrum','abstract','blast','zora','apechain','soneium','ronin','worldchain','gnosis','hyperevm','monad'].filter(c => activeChains.includes(c)).length} / 16 active
                         </p>
                       )}
                       {/* Collapsible chain buttons */}
@@ -1389,7 +1389,7 @@
                       </div>
                       {!showSolChains && (
                         <p className={`text-[10px] font-bold uppercase tracking-widest ${activeChains.includes('solana') ? 'text-emerald-500' : (darkMode ? 'text-slate-600' : 'text-slate-400')}`}>
-                          {activeChains.includes('solana') ? 'Solana active' : 'Solana inactive'}
+                          {activeChains.includes('solana') ? 'active' : 'inactive'}
                         </p>
                       )}
                       {showSolChains && (
@@ -1414,7 +1414,7 @@
                       </div>
                       {!showAdaChains && (
                         <p className={`text-[10px] font-bold uppercase tracking-widest ${activeChains.includes('cardano') ? 'text-cyan-500' : (darkMode ? 'text-slate-600' : 'text-slate-400')}`}>
-                          {activeChains.includes('cardano') ? 'Cardano active' : 'Cardano inactive'}
+                          {activeChains.includes('cardano') ? 'active' : 'inactive'}
                         </p>
                       )}
                       {showAdaChains && (
