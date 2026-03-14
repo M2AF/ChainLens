@@ -124,8 +124,6 @@
         width: 100%;
         flex-grow: 1;
         border: none;
-        /* Allow vertical swipe to scroll the page, not get trapped in the iframe */
-        touch-action: pan-y;
     }
   </style>
 </head>
@@ -240,80 +238,6 @@
         if (savedMode === 'true') setDarkMode(true);
       }, []);
 
-      // ── Swap column scroll passthrough ────────────────────────────────────
-      // Uniswap's internal React app captures ALL touch and wheel events, so
-      // the parent page never sees them. Jupiter/DexHunter/SimpleSwap don't
-      // have this issue. Fix: transparent overlay on Uniswap column only.
-      //
-      // MOBILE: touchmove with passive:false + preventDefault gives us full
-      // control — browser hands the gesture to us, we call scrollBy manually.
-      // touchend with no movement = tap → step aside 150ms so it hits iframe.
-      //
-      // DESKTOP: wheel → scrollBy. mousedown → step aside until mouseup.
-      useEffect(() => {
-        const install = () => {
-          document.querySelectorAll('.swap-column').forEach(col => {
-            if (col.dataset.scrollInstalled) return;
-            col.dataset.scrollInstalled = '1';
-
-            // Catch wheel on the column header/border area (all columns)
-            col.addEventListener('wheel', (e) => {
-              window.scrollBy({ top: e.deltaY, left: 0 });
-            }, { passive: true });
-
-            // Uniswap only — needs the overlay
-            const iframe = col.querySelector('iframe');
-            if (!iframe || !iframe.src.includes('uniswap')) return;
-
-            const ov = document.createElement('div');
-            // touch-action:none tells the browser not to handle gestures here
-            // — our touchmove listener takes full ownership
-            ov.style.cssText = 'position:absolute;inset:0;z-index:5;background:transparent;touch-action:none;';
-            col.appendChild(ov);
-
-            // Desktop wheel
-            ov.addEventListener('wheel', (e) => {
-              window.scrollBy({ top: e.deltaY, left: 0 });
-            }, { passive: true });
-
-            // Mobile touch
-            let startY = 0, moved = false;
-
-            ov.addEventListener('touchstart', (e) => {
-              startY = e.touches[0].clientY;
-              moved = false;
-            }, { passive: true });
-
-            // passive:false + preventDefault = browser gives us full control
-            // so our scrollBy is the ONLY thing handling the gesture
-            ov.addEventListener('touchmove', (e) => {
-              e.preventDefault();
-              moved = true;
-              const delta = startY - e.touches[0].clientY;
-              startY = e.touches[0].clientY;
-              window.scrollBy(0, delta);
-            }, { passive: false });
-
-            ov.addEventListener('touchend', () => {
-              if (!moved) {
-                // Was a tap — let it through to the iframe briefly
-                ov.style.pointerEvents = 'none';
-                setTimeout(() => { ov.style.pointerEvents = ''; }, 150);
-              }
-            }, { passive: true });
-
-            // Desktop click passthrough
-            ov.addEventListener('mousedown', () => {
-              ov.style.pointerEvents = 'none';
-              window.addEventListener('mouseup', () => {
-                ov.style.pointerEvents = '';
-              }, { once: true });
-            });
-          });
-        };
-        const t = setTimeout(install, 200);
-        return () => clearTimeout(t);
-      }, []);
 
       useEffect(() => {
         localStorage.setItem('darkMode', darkMode);
