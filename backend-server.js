@@ -1761,27 +1761,83 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
 
 // --- DIA Market Data Routes ---
 // Top 100 cryptocurrencies with live prices
+// Top-100 market cache — 2 minute TTL so refreshes are instant
+let _top100Cache = null;
+let _top100CacheTs = 0;
+const TOP100_TTL = 120000; // 2 minutes
+
 app.get('/api/market/top100', async (req, res) => {
-  console.log('📊 Fetching top 100 market data...');
-  
-  try {
-    // Use CoinGecko as it's more reliable than DIA for batch data
-    const response = await fetch(
-      'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h'
-    );
-    
-    if (!response.ok) {
-      throw new Error(`CoinGecko API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log(`✅ Fetched ${data.length} coins from CoinGecko`);
-    
-    res.json(data);
-  } catch (err) {
-    console.error('❌ Market data error:', err.message);
-    res.status(500).json({ error: err.message });
+  // Serve from cache if fresh
+  if (_top100Cache && Date.now() - _top100CacheTs < TOP100_TTL) {
+    console.log('📦 top100 cache hit');
+    return res.json(_top100Cache);
   }
+
+  console.log('📊 Fetching top 100 market data...');
+
+  // ── Attempt 1: CoinGecko with sparklines ─────────────────────────────
+  try {
+    const response = await fetch(
+      'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=true&price_change_percentage=24h',
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        console.log(`✅ top100 CoinGecko: ${data.length} coins`);
+        _top100Cache = data;
+        _top100CacheTs = Date.now();
+        return res.json(data);
+      }
+    }
+    console.warn(`⚠️  CoinGecko top100 returned ${response.status} — trying Binance fallback`);
+  } catch (e) {
+    console.warn('⚠️  CoinGecko top100 failed:', e.message);
+  }
+
+  // ── Attempt 2: Binance 24hr ticker (no sparklines, but fast and reliable) ─
+  try {
+    const r = await fetch('https://api.binance.com/api/v3/ticker/24hr', { signal: AbortSignal.timeout(6000) });
+    if (r.ok) {
+      const tickers = await r.json();
+      const usdtPairs = tickers
+        .filter(t => t.symbol.endsWith('USDT') && parseFloat(t.quoteVolume) > 1000000)
+        .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+        .slice(0, 100)
+        .map((t, i) => {
+          const symbol = t.symbol.replace('USDT', '');
+          return {
+            id: symbol.toLowerCase(),
+            symbol: symbol.toLowerCase(),
+            name: symbol,
+            image: '',
+            current_price: parseFloat(t.lastPrice),
+            market_cap: parseFloat(t.quoteVolume),
+            market_cap_rank: i + 1,
+            price_change_percentage_24h: parseFloat(t.priceChangePercent),
+            total_volume: parseFloat(t.quoteVolume),
+            high_24h: parseFloat(t.highPrice),
+            low_24h: parseFloat(t.lowPrice),
+            sparkline_in_7d: null,
+            source: 'Binance',
+          };
+        });
+      console.log(`✅ top100 Binance fallback: ${usdtPairs.length} coins`);
+      _top100Cache = usdtPairs;
+      _top100CacheTs = Date.now();
+      return res.json(usdtPairs);
+    }
+  } catch (e) {
+    console.warn('⚠️  Binance top100 fallback failed:', e.message);
+  }
+
+  // ── Return stale cache rather than an empty response ─────────────────
+  if (_top100Cache) {
+    console.log('⚠️  All sources failed — serving stale cache');
+    return res.json(_top100Cache);
+  }
+
+  res.status(500).json({ error: 'Market data temporarily unavailable' });
 });
 
 // Enhanced search with Kraken and Gemini fallback

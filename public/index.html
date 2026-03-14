@@ -650,23 +650,28 @@
                        base:'base',arbitrum:'arbitrum',optimism:'optimism'};
 
       useEffect(() => {
-        const fetchMarket = async () => {
+        const fetchMarket = async (isRetry = false) => {
           setMarketLoading(true);
           try {
-            // Route through backend — avoids CoinGecko rate-limiting the browser on refresh
             const res = await fetch('/api/market/top100');
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
-            if (!Array.isArray(data)) throw new Error('Unexpected response');
+            if (!Array.isArray(data) || data.length === 0) throw new Error('Empty response');
             console.log('✅ Loaded', data.length, 'coins from market API');
             setMarketData(data);
           } catch (e) {
             console.error('❌ Market fetch failed:', e);
+            // Auto-retry once after 3s (handles Render cold-start delay)
+            if (!isRetry) {
+              console.log('🔄 Retrying market fetch in 3s...');
+              setTimeout(() => fetchMarket(true), 3000);
+              return; // keep loading spinner up during retry
+            }
           }
           setMarketLoading(false);
         };
         fetchMarket();
-        const interval = setInterval(fetchMarket, 60000);
+        const interval = setInterval(() => fetchMarket(), 60000);
         return () => clearInterval(interval);
       }, []);
 
@@ -1726,8 +1731,11 @@
                             </div>
                         </div>
                         {marketLoading && marketData.length === 0 ? (
-                            <div className="py-20 text-center animate-pulse">
-                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">Fetching global markets...</p>
+                            <div className="py-20 text-center">
+                                <div className="animate-pulse mb-3">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">Loading market data...</p>
+                                </div>
+                                <p className="text-[10px] opacity-30">May take a moment on first load</p>
                             </div>
                         ) : (
                             <div className="overflow-x-hidden">
