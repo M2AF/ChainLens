@@ -241,50 +241,72 @@
       }, []);
 
       // ── Swap column scroll passthrough ────────────────────────────────────
-      // Uniswap renders a fully scrollable React app inside its iframe, so the
-      // browser routes wheel events INTO the iframe — the parent page never
-      // sees them. Jupiter/DexHunter/SimpleSwap don't have this problem.
+      // Uniswap's internal React app captures ALL touch and wheel events, so
+      // the parent page never sees them. Jupiter/DexHunter/SimpleSwap don't
+      // have this issue. Fix: transparent overlay on Uniswap column only.
       //
-      // Fix for Uniswap: a transparent overlay that catches wheel events and
-      // forwards them to window.scrollBy. On mousedown it sets pointer-events:none
-      // so clicks pass straight through; window mouseup restores it immediately.
-      // This is more reliable than a fixed timer.
+      // MOBILE: touchmove with passive:false + preventDefault gives us full
+      // control — browser hands the gesture to us, we call scrollBy manually.
+      // touchend with no movement = tap → step aside 150ms so it hits iframe.
       //
-      // Fix for all columns: direct wheel listener on the .swap-column element
-      // catches any wheel that starts outside the iframe (e.g. on the header bar).
+      // DESKTOP: wheel → scrollBy. mousedown → step aside until mouseup.
       useEffect(() => {
         const install = () => {
           document.querySelectorAll('.swap-column').forEach(col => {
             if (col.dataset.scrollInstalled) return;
             col.dataset.scrollInstalled = '1';
 
-            // Direct listener — catches wheel on the column header/border area
+            // Catch wheel on the column header/border area (all columns)
             col.addEventListener('wheel', (e) => {
               window.scrollBy({ top: e.deltaY, left: 0 });
             }, { passive: true });
 
-            // Overlay — only needed for the Uniswap iframe (EVM Terminal)
+            // Uniswap only — needs the overlay
             const iframe = col.querySelector('iframe');
             if (!iframe || !iframe.src.includes('uniswap')) return;
 
-            const overlay = document.createElement('div');
-            overlay.style.cssText = [
-              'position:absolute', 'inset:0', 'z-index:5',
-              'background:transparent', 'cursor:default'
-            ].join(';');
-            col.appendChild(overlay);
+            const ov = document.createElement('div');
+            // touch-action:none tells the browser not to handle gestures here
+            // — our touchmove listener takes full ownership
+            ov.style.cssText = 'position:absolute;inset:0;z-index:5;background:transparent;touch-action:none;';
+            col.appendChild(ov);
 
-            // Wheel on overlay → scroll the page
-            overlay.addEventListener('wheel', (e) => {
+            // Desktop wheel
+            ov.addEventListener('wheel', (e) => {
               window.scrollBy({ top: e.deltaY, left: 0 });
             }, { passive: true });
 
-            // Mousedown → step aside so click reaches the iframe
-            overlay.addEventListener('mousedown', () => {
-              overlay.style.pointerEvents = 'none';
-              // Restore as soon as the mouse button is released anywhere
+            // Mobile touch
+            let startY = 0, moved = false;
+
+            ov.addEventListener('touchstart', (e) => {
+              startY = e.touches[0].clientY;
+              moved = false;
+            }, { passive: true });
+
+            // passive:false + preventDefault = browser gives us full control
+            // so our scrollBy is the ONLY thing handling the gesture
+            ov.addEventListener('touchmove', (e) => {
+              e.preventDefault();
+              moved = true;
+              const delta = startY - e.touches[0].clientY;
+              startY = e.touches[0].clientY;
+              window.scrollBy(0, delta);
+            }, { passive: false });
+
+            ov.addEventListener('touchend', () => {
+              if (!moved) {
+                // Was a tap — let it through to the iframe briefly
+                ov.style.pointerEvents = 'none';
+                setTimeout(() => { ov.style.pointerEvents = ''; }, 150);
+              }
+            }, { passive: true });
+
+            // Desktop click passthrough
+            ov.addEventListener('mousedown', () => {
+              ov.style.pointerEvents = 'none';
               window.addEventListener('mouseup', () => {
-                overlay.style.pointerEvents = '';
+                ov.style.pointerEvents = '';
               }, { once: true });
             });
           });
