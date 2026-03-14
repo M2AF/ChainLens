@@ -124,6 +124,8 @@
         width: 100%;
         flex-grow: 1;
         border: none;
+        /* Allow vertical swipe to scroll the page, not get trapped in the iframe */
+        touch-action: pan-y;
     }
   </style>
 </head>
@@ -236,6 +238,41 @@
       useEffect(() => {
         const savedMode = localStorage.getItem('darkMode');
         if (savedMode === 'true') setDarkMode(true);
+      }, []);
+
+      // ── Swap iframe scroll guard ──────────────────────────────────────────
+      // Cross-origin iframes swallow mouse-wheel events so the parent page
+      // can't scroll. We place an invisible overlay over each swap column that:
+      //   • Captures wheel events → scrolls the parent window instead
+      //   • On mousedown → hides itself briefly so the click reaches the iframe
+      useEffect(() => {
+        const install = () => {
+          document.querySelectorAll('.swap-column').forEach(col => {
+            if (col.querySelector('.scroll-guard')) return; // already installed
+            const guard = document.createElement('div');
+            guard.className = 'scroll-guard';
+            guard.style.cssText = [
+              'position:absolute', 'top:0', 'left:0', 'right:0', 'bottom:0',
+              'z-index:5', 'background:transparent', 'cursor:default'
+            ].join(';');
+            col.appendChild(guard);
+
+            // Wheel on guard → pass to parent window
+            guard.addEventListener('wheel', (e) => {
+              window.scrollBy({ top: e.deltaY, left: 0 });
+            }, { passive: true });
+
+            // Mousedown on guard → step aside so click reaches iframe
+            guard.addEventListener('mousedown', () => {
+              guard.style.pointerEvents = 'none';
+              // Restore after a short pause — enough for the click to land
+              setTimeout(() => { guard.style.pointerEvents = ''; }, 300);
+            });
+          });
+        };
+        // Small delay to let the always-mounted swap section render
+        const t = setTimeout(install, 200);
+        return () => clearTimeout(t);
       }, []);
 
       useEffect(() => {
