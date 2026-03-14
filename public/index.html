@@ -241,20 +241,52 @@
       }, []);
 
       // ── Swap column scroll passthrough ────────────────────────────────────
-      // Cross-origin iframes swallow mouse-wheel events. Instead of an overlay
-      // (which blocks clicks), we attach wheel listeners directly to each
-      // .swap-column so scroll always passes to the parent — and clicks pass
-      // straight through to the iframe untouched.
+      // Uniswap renders a fully scrollable React app inside its iframe, so the
+      // browser routes wheel events INTO the iframe — the parent page never
+      // sees them. Jupiter/DexHunter/SimpleSwap don't have this problem.
+      //
+      // Fix for Uniswap: a transparent overlay that catches wheel events and
+      // forwards them to window.scrollBy. On mousedown it sets pointer-events:none
+      // so clicks pass straight through; window mouseup restores it immediately.
+      // This is more reliable than a fixed timer.
+      //
+      // Fix for all columns: direct wheel listener on the .swap-column element
+      // catches any wheel that starts outside the iframe (e.g. on the header bar).
       useEffect(() => {
         const install = () => {
           document.querySelectorAll('.swap-column').forEach(col => {
             if (col.dataset.scrollInstalled) return;
             col.dataset.scrollInstalled = '1';
+
+            // Direct listener — catches wheel on the column header/border area
             col.addEventListener('wheel', (e) => {
-              // Only intercept when the wheel starts on the column itself,
-              // not when it's already scrolling content inside the iframe.
               window.scrollBy({ top: e.deltaY, left: 0 });
             }, { passive: true });
+
+            // Overlay — only needed for the Uniswap iframe (EVM Terminal)
+            const iframe = col.querySelector('iframe');
+            if (!iframe || !iframe.src.includes('uniswap')) return;
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = [
+              'position:absolute', 'inset:0', 'z-index:5',
+              'background:transparent', 'cursor:default'
+            ].join(';');
+            col.appendChild(overlay);
+
+            // Wheel on overlay → scroll the page
+            overlay.addEventListener('wheel', (e) => {
+              window.scrollBy({ top: e.deltaY, left: 0 });
+            }, { passive: true });
+
+            // Mousedown → step aside so click reaches the iframe
+            overlay.addEventListener('mousedown', () => {
+              overlay.style.pointerEvents = 'none';
+              // Restore as soon as the mouse button is released anywhere
+              window.addEventListener('mouseup', () => {
+                overlay.style.pointerEvents = '';
+              }, { once: true });
+            });
           });
         };
         const t = setTimeout(install, 200);
