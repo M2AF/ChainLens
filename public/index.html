@@ -1071,6 +1071,8 @@
           chartInstanceRef.current = null;
         }
       }, []);
+
+      const clearAll = () => {
         setEvmAddr(''); setSolAddr(''); setAdaAddr('');
         setNfts([]); setTransactions([]); setResolvedEvm(null);
         setSelectedAsset(null);
