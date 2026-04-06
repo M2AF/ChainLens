@@ -131,7 +131,77 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useMemo } = React;
+    const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+    // ── AssetGrid — extracted so React keeps the same component instance
+    //    across NFT↔Token tab switches, preserving all <img> loaded states ──
+    const AssetGrid = React.memo(({ assets, isListView, darkMode, chainStyles,
+        resolveImg, handleImgError, toggleHide, toggleSpam, setSelectedAsset,
+        nativePrices, tokenMode }) => {
+      return (
+        <div className={`max-w-6xl mx-auto ${isListView ? "flex flex-col gap-3" : "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8"}`}>
+          {assets.map((nft) => {
+            const rawId = nft.address || nft.id || nft.mint || nft.name;
+            const assetKey = `${nft.chain}-${String(rawId).toLowerCase()}`;
+            return (
+              <div key={assetKey} onClick={() => setSelectedAsset(nft)} className={`group relative overflow-hidden border transition-all cursor-pointer ${isListView ? `flex items-center gap-4 p-4 rounded-2xl ${darkMode ? 'bg-slate-900 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-100 hover:shadow-lg hover:border-slate-300'}` : `rounded-[2.5rem] shadow-sm flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 hover:-translate-y-2 hover:shadow-xl'}`}`}>
+                <div className="absolute top-4 right-4 z-40 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                  <button onClick={(e) => toggleHide(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-blue-500 text-white backdrop-blur-sm border border-white/10">👁️</button>
+                  <button onClick={(e) => toggleSpam(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-red-600 text-white backdrop-blur-sm border border-white/10">🚫</button>
+                </div>
+                <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-100"}>
+                  <img
+                    src={resolveImg(nft.image || '', nft.symbol)}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    onError={(e) => handleImgError(e, nft)}
+                  />
+                  <div className={`absolute ${isListView ? 'top-1 left-1 px-1.5 py-0.5 text-[6px]' : 'top-4 left-4 px-3 py-1 text-[9px]'} rounded-full text-white font-bold tracking-widest uppercase backdrop-blur-md border border-white/20 shadow-lg z-10 ${chainStyles[nft.chain]?.color}`}>
+                    {nft.chain}
+                  </div>
+                </div>
+                <div className={isListView ? "flex-1 flex items-center justify-between overflow-hidden min-w-0" : "p-5 text-center"}>
+                  <div className={isListView ? "flex flex-col min-w-0 flex-1 pr-4" : "flex flex-col items-center mb-2"}>
+                    <p className={`font-heading font-bold uppercase tracking-tight shrink-0 ${isListView ? 'text-base md:text-lg truncate' : 'text-sm'} ${darkMode ? 'text-white' : 'text-slate-900'}`} style={{maxWidth: isListView ? '100%' : 'auto'}} title={nft.name}>{/^[0-9a-fA-F]{20,}$/.test(nft.name || '') ? (nft.symbol || 'Unknown Asset') : (nft.name || 'Unknown')}</p>
+                    {isListView && <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest truncate" style={{maxWidth: '100%'}}>{nft.symbol || 'ASSET'}</span>}
+                  </div>
+                  {(nft.isToken || tokenMode) && (
+                    <div className={isListView ? "flex flex-col items-end justify-center gap-1 text-right shrink-0" : "flex flex-col items-center gap-1 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800"}>
+                      <p className="text-emerald-500 font-bold text-sm md:text-lg leading-tight whitespace-nowrap">
+                        {nft.balance} <span className="text-[10px] opacity-60">{nft.symbol}</span>
+                      </p>
+                      <span className={`font-bold uppercase tracking-tighter text-sm md:text-base whitespace-nowrap ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                        {(() => {
+                          const sym = chainStyles[nft.chain]?.native;
+                          const nativeUsd = sym ? (nativePrices[sym] || 0) : 0;
+                          const totalUsd = parseFloat(nft.totalValue) || 0;
+                          const bal = parseFloat(nft.balance) || 0;
+                          if (sym && nft.symbol?.toUpperCase() === sym.toUpperCase()) return bal.toFixed(4);
+                          if (nativeUsd > 0 && totalUsd > 0) return (totalUsd / nativeUsd).toFixed(4);
+                          return parseFloat(nft.nativePrice || 0).toFixed(4);
+                        })()} {chainStyles[nft.chain]?.native || '???'}
+                      </span>
+                      <span className={`font-bold uppercase tracking-tighter text-xs md:text-sm opacity-70 whitespace-nowrap ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        ${(() => {
+                          const backendVal = parseFloat(nft.totalValue) || 0;
+                          if (backendVal > 0) return backendVal.toFixed(2);
+                          const sym = chainStyles[nft.chain]?.native;
+                          const nativeUsd = sym ? (nativePrices[sym] || 0) : 0;
+                          if (nativeUsd <= 0) return '0.00';
+                          const bal = parseFloat(nft.balance) || 0;
+                          if (sym && nft.symbol?.toUpperCase() === sym.toUpperCase())
+                            return (bal * nativeUsd).toFixed(2);
+                          return (parseFloat(nft.nativePrice || 0) * nativeUsd).toFixed(2);
+                        })()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    });
 
     const App = () => {
       const [activeTab, setActiveTab] = useState('portfolio'); 
@@ -170,6 +240,10 @@
       const [nativePrices, setNativePrices] = useState({}); // { ETH: 3000, SOL: 85, ADA: 0.72, MON: 0.02 }
       const [convCoin, setConvCoin] = useState('');   // coin amount input
       const [convUsd, setConvUsd] = useState('');     // usd amount input
+
+      // ── Refs for memory-safe cleanup ──────────────────────────────────────
+      const chartInstanceRef = useRef(null);   // holds the Chart.js instance
+      const scanAbortRef = useRef(null);       // AbortController for in-flight scans
 
       // ── Auth & Profile state ───────────────────────────────────────────────
       const [authToken, setAuthToken] = useState(() => localStorage.getItem('cl_token'));
@@ -613,6 +687,46 @@
       const twChain = {ethereum:'ethereum',polygon:'polygon',avalanche:'avalanchec',
                        base:'base',arbitrum:'arbitrum',optimism:'optimism'};
 
+      // Keep a ref to coinImageMap so the stable onError callback can always read
+      // the latest version without being re-created (avoids closure-per-render leaks)
+      const coinImageMapRef = useRef({});
+      useEffect(() => { coinImageMapRef.current = coinImageMap; }, [coinImageMap]);
+
+      // Stable image error handler — created once, reads live data via refs
+      const handleImgError = useCallback((e, nft) => {
+        const el = e.currentTarget;
+        const svgFb = imgFallbackSvg(nft.symbol, nft.chain);
+        const addr = nft.id || nft.address || nft.mint || '';
+        const origSrc = nft.image || '';
+        const fallbacks = [];
+        // CoinGecko by symbol (reads from ref — no stale closure)
+        const cgImg = coinImageMapRef.current[(nft.symbol||'').toLowerCase()];
+        if (cgImg && el.src !== cgImg) fallbacks.push(cgImg);
+        // IPFS: try two more gateways
+        if (origSrc.indexOf('ipfs://') === 0 || origSrc.indexOf('/ipfs/') > -1) {
+          const cid = origSrc.replace('ipfs://','').replace(/.*\/ipfs\//,'');
+          fallbacks.push('https://dweb.link/ipfs/' + cid);
+          fallbacks.push('https://gateway.pinata.cloud/ipfs/' + cid);
+        }
+        // EVM: TrustWallet with correct chain slug
+        const tw = twChain[nft.chain];
+        if (tw && addr.indexOf('0x') === 0) {
+          fallbacks.push('https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/' + tw + '/assets/' + addr + '/logo.png');
+        }
+        // Solana: token list CDN
+        if (nft.chain === 'solana' && addr && addr.indexOf('0x') !== 0) {
+          fallbacks.push('https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/' + addr + '/logo.png');
+        }
+        fallbacks.push(svgFb);
+        let fi = 0;
+        el.onerror = function() {
+          fi++;
+          el.src = fi < fallbacks.length ? fallbacks[fi] : svgFb;
+          if (fi >= fallbacks.length) el.onerror = null;
+        };
+        el.src = fallbacks[0] || svgFb;
+      }, []); // no deps — reads live data via refs
+
       useEffect(() => {
         const fetchMarket = async () => {
           setMarketLoading(true);
@@ -844,10 +958,9 @@
           
           try {
             // Destroy previous chart if exists
-            const existingChart = Chart.getChart(ctx);
-            if (existingChart) {
-              console.log('  🗑️ Destroying previous chart');
-              existingChart.destroy();
+            if (chartInstanceRef.current) {
+              chartInstanceRef.current.destroy();
+              chartInstanceRef.current = null;
             }
             
             console.log('  🎨 Creating new chart with', chartData.prices.length, 'data points');
@@ -864,7 +977,7 @@
             const labelFreq = getLabelFrequency();
             
             // Create new chart
-            new Chart(ctx, {
+            chartInstanceRef.current = new Chart(ctx, {
               type: 'line',
               data: {
                 labels: chartData.prices.map((p, i) => {
@@ -951,7 +1064,13 @@
         }
       }, [chartData, showChart]);
 
-      const clearAll = () => {
+      const closeChart = useCallback(() => {
+        setShowChart(false);
+        if (chartInstanceRef.current) {
+          chartInstanceRef.current.destroy();
+          chartInstanceRef.current = null;
+        }
+      }, []);
         setEvmAddr(''); setSolAddr(''); setAdaAddr('');
         setNfts([]); setTransactions([]); setResolvedEvm(null);
         setSelectedAsset(null);
@@ -968,49 +1087,61 @@
         }
       };
 
-      const visibleAssets = useMemo(() => {
-        let filtered = nfts.filter(nft => {
+      // Sorting helper — stable, depends only on sortBy and nativePrices
+      const sortFn = useCallback((a, b) => {
+        if (sortBy === 'value') {
+          const liveUsd = (asset) => {
+            const v = parseFloat(asset.totalValue) || 0;
+            if (v > 0) return v;
+            const sym = chainStyles[asset.chain]?.native;
+            const nativeUsd = sym ? (nativePrices[sym] || 0) : 0;
+            if (nativeUsd <= 0) return 0;
+            const bal = parseFloat(asset.balance) || 0;
+            if (sym && asset.symbol?.toUpperCase() === sym.toUpperCase()) return bal * nativeUsd;
+            return parseFloat(asset.nativePrice || 0) * nativeUsd;
+          };
+          return liveUsd(b) - liveUsd(a);
+        }
+        if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
+        if (sortBy === 'chain') {
+          const priorityA = chainPriority[a.chain.toLowerCase()] || 99;
+          const priorityB = chainPriority[b.chain.toLowerCase()] || 99;
+          return priorityA - priorityB;
+        }
+        return 0;
+      }, [sortBy, nativePrices]);
+
+      // Base filtered list — no viewMode split, so NFT and Token grids can both
+      // stay always-mounted (prevents images from reloading on tab switch)
+      const baseVisible = useMemo(() => {
+        return nfts.filter(nft => {
           const rawId = nft.address || nft.id || nft.mint || nft.name;
           const compositeKey = `${nft.chain.toLowerCase()}-${String(rawId).toLowerCase()}`;
-          const isHidden = hiddenIds.includes(compositeKey) || spamIds.includes(compositeKey);
-          
-          if (isHidden) return false;
-          
-          // Filter by view mode
-          if (viewMode === 'nfts' && nft.isToken) return false;
-          if (viewMode === 'tokens' && !nft.isToken) return false;
-          
+          if (hiddenIds.includes(compositeKey) || spamIds.includes(compositeKey)) return false;
           if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             return nft.name?.toLowerCase().includes(query) || nft.symbol?.toLowerCase().includes(query);
           }
           return true;
         });
+      }, [nfts, hiddenIds, spamIds, searchQuery]);
 
-        return filtered.sort((a, b) => {
-            if (sortBy === 'value') {
-              const liveUsd = (asset) => {
-                const v = parseFloat(asset.totalValue) || 0;
-                if (v > 0) return v;
-                // Compute live for chains where backend sends $0.00 (ADA, MON, POL native tokens)
-                const sym = chainStyles[asset.chain]?.native;
-                const nativeUsd = sym ? (nativePrices[sym] || 0) : 0;
-                if (nativeUsd <= 0) return 0;
-                const bal = parseFloat(asset.balance) || 0;
-                if (sym && asset.symbol?.toUpperCase() === sym.toUpperCase()) return bal * nativeUsd;
-                return parseFloat(asset.nativePrice || 0) * nativeUsd;
-              };
-              return liveUsd(b) - liveUsd(a);
-            }
-            if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
-            if (sortBy === 'chain') {
-                const priorityA = chainPriority[a.chain.toLowerCase()] || 99;
-                const priorityB = chainPriority[b.chain.toLowerCase()] || 99;
-                return priorityA - priorityB;
-            }
-            return 0;
-        });
-      }, [nfts, hiddenIds, spamIds, searchQuery, sortBy, viewMode]);
+      // NFT grid — always computed so its <img> elements stay mounted
+      const nftAssets = useMemo(() =>
+        [...baseVisible.filter(nft => !nft.isToken)].sort(sortFn),
+        [baseVisible, sortFn]);
+
+      // Token grid — always computed so its <img> elements stay mounted
+      const tokenAssets = useMemo(() =>
+        [...baseVisible.filter(nft => nft.isToken)].sort(sortFn),
+        [baseVisible, sortFn]);
+
+      // visibleAssets used only for the stats bar count / portfolio value
+      const visibleAssets = useMemo(() => {
+        if (viewMode === 'nfts') return nftAssets;
+        if (viewMode === 'tokens') return tokenAssets;
+        return baseVisible;
+      }, [viewMode, nftAssets, tokenAssets, baseVisible]);
 
       const totalPortfolioValue = useMemo(() => {
         return visibleAssets.reduce((sum, asset) => sum + (parseFloat(asset.totalValue) || 0), 0).toFixed(2);
@@ -1049,6 +1180,15 @@
 
       const handleScanAll = async () => {
         if (!evmAddr && !solAddr && !adaAddr) return;
+
+        // Abort any previous in-flight scan to free browser connections + memory
+        if (scanAbortRef.current) {
+          scanAbortRef.current.abort();
+        }
+        const controller = new AbortController();
+        scanAbortRef.current = controller;
+        const { signal } = controller;
+
         setLoading(true); setNfts([]); setTransactions([]); setResolvedEvm(null);
 
         // Parse comma-separated addresses per chain
@@ -1107,37 +1247,38 @@
 
         const evmChains = ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'abstract', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'hyperevm'];
         const nftTasks = [], tokenTasks = [], txTasks = [];
+        const sf = (url) => fetch(url, { signal }).then(r => r.json());
 
         // EVM — every address × every active chain
         for (const addr of resolvedEvmAddrs) {
           if (!addr.startsWith('0x')) continue;
           evmChains.forEach(chain => {
             if (!activeChains.includes(chain)) return;
-            nftTasks.push(fetch(`/api/nfts/${chain}/${addr}`).then(r => r.json()));
-            tokenTasks.push(fetch(`/api/tokens/${chain}/${addr}`).then(r => r.json()));
-            txTasks.push(fetch(`/api/transactions/${chain}/${addr}`).then(r => r.json()));
+            nftTasks.push(sf(`/api/nfts/${chain}/${addr}`));
+            tokenTasks.push(sf(`/api/tokens/${chain}/${addr}`));
+            txTasks.push(sf(`/api/transactions/${chain}/${addr}`));
           });
           if (activeChains.includes('monad')) {
-            nftTasks.push(fetch(`/api/nfts/monad/${addr}`).then(r => r.json()));
-            tokenTasks.push(fetch(`/api/tokens/monad/${addr}`).then(r => r.json()));
-            txTasks.push(fetch(`/api/transactions/monad/${addr}`).then(r => r.json()));
+            nftTasks.push(sf(`/api/nfts/monad/${addr}`));
+            tokenTasks.push(sf(`/api/tokens/monad/${addr}`));
+            txTasks.push(sf(`/api/transactions/monad/${addr}`));
           }
         }
 
         // Solana — every address
         for (const addr of resolvedSolAddrs) {
           if (!addr || !activeChains.includes('solana')) continue;
-          nftTasks.push(fetch(`/api/nfts/solana/${addr}`).then(r => r.json()));
-          tokenTasks.push(fetch(`/api/tokens/solana/${addr}`).then(r => r.json()));
-          txTasks.push(fetch(`/api/transactions/solana/${addr}`).then(r => r.json()));
+          nftTasks.push(sf(`/api/nfts/solana/${addr}`));
+          tokenTasks.push(sf(`/api/tokens/solana/${addr}`));
+          txTasks.push(sf(`/api/transactions/solana/${addr}`));
         }
 
         // Cardano — every address
         for (const addr of resolvedAdaAddrs) {
           if (!addr || !activeChains.includes('cardano')) continue;
-          nftTasks.push(fetch(`/api/nfts/cardano/${addr}`).then(r => r.json()));
-          tokenTasks.push(fetch(`/api/tokens/cardano/${addr}`).then(r => r.json()));
-          txTasks.push(fetch(`/api/transactions/cardano/${addr}`).then(r => r.json()));
+          nftTasks.push(sf(`/api/nfts/cardano/${addr}`));
+          tokenTasks.push(sf(`/api/tokens/cardano/${addr}`));
+          txTasks.push(sf(`/api/transactions/cardano/${addr}`));
         }
 
         try {
@@ -1187,7 +1328,10 @@
 
           const total = resolvedEvmAddrs.length + resolvedSolAddrs.length + resolvedAdaAddrs.length;
           console.log(`✅ Scanned ${total} address${total !== 1 ? 'es' : ''}: ${filtered.length} assets`);
-        } catch (e) { console.error('Scan error:', e); }
+        } catch (e) {
+          if (e.name === 'AbortError') return; // scan was superseded — discard
+          console.error('Scan error:', e);
+        }
 
         setLoading(false);
       };
@@ -1487,8 +1631,8 @@
                     </div>
                 </div>
 
-                {/* Transaction History View */}
-                {viewMode === 'transactions' ? (
+                {/* Transaction History View — always mounted, shown/hidden via CSS */}
+                <div style={{display: viewMode === 'transactions' ? 'block' : 'none'}}>
                   <div className="max-w-6xl mx-auto space-y-3">
                     {transactions.length === 0 ? (
                       <div className={`text-center py-20 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -1549,111 +1693,23 @@
                       })
                     )}
                   </div>
-                ) : (
-                  /* NFT/Token View */
-                  <div className={`max-w-6xl mx-auto ${isListView ? "flex flex-col gap-3" : "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8"}`}>
-                    {visibleAssets.map((nft, i) => {
-                    const rawId = nft.address || nft.id || nft.mint || nft.name;
-                    const assetKey = `${nft.chain}-${String(rawId).toLowerCase()}`;
-                    return (
-                        <div key={assetKey} onClick={() => setSelectedAsset(nft)} className={`group relative overflow-hidden border transition-all cursor-pointer ${isListView ? `flex items-center gap-4 p-4 rounded-2xl ${darkMode ? 'bg-slate-900 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-100 hover:shadow-lg hover:border-slate-300'}` : `rounded-[2.5rem] shadow-sm flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 hover:-translate-y-2 hover:shadow-xl'}`}`}>
-                        <div className="absolute top-4 right-4 z-40 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                            <button onClick={(e) => toggleHide(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-blue-500 text-white backdrop-blur-sm border border-white/10">👁️</button>
-                            <button onClick={(e) => toggleSpam(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-red-600 text-white backdrop-blur-sm border border-white/10">🚫</button>
-                        </div>
-                        <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-100"}>
-                            <img
-                              src={resolveImg(nft.image || '', nft.symbol)}
-                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                              onError={(e) => {
-                                const el = e.currentTarget;
-                                const svgFb = imgFallbackSvg(nft.symbol, nft.chain);
-                                const addr = nft.id || nft.address || nft.mint || '';
-                                const origSrc = nft.image || '';
-                                const fallbacks = [];
-                                // CoinGecko by symbol (catches common tokens not in map at render time)
-                                const cgImg = coinImageMap[(nft.symbol||'').toLowerCase()];
-                                if (cgImg && el.src !== cgImg) fallbacks.push(cgImg);
-                                // IPFS: try two more gateways
-                                if (origSrc.indexOf('ipfs://') === 0 || origSrc.indexOf('/ipfs/') > -1) {
-                                  const cid = origSrc.replace('ipfs://','').replace(/.*\/ipfs\//,'');
-                                  fallbacks.push('https://dweb.link/ipfs/' + cid);
-                                  fallbacks.push('https://gateway.pinata.cloud/ipfs/' + cid);
-                                }
-                                // EVM: TrustWallet with correct chain slug
-                                const tw = twChain[nft.chain];
-                                if (tw && addr.indexOf('0x') === 0) {
-                                  fallbacks.push('https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/' + tw + '/assets/' + addr + '/logo.png');
-                                }
-                                // Solana: token list CDN
-                                if (nft.chain === 'solana' && addr && addr.indexOf('0x') !== 0) {
-                                  fallbacks.push('https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/' + addr + '/logo.png');
-                                }
-                                fallbacks.push(svgFb);
-                                let fi = 0;
-                                el.onerror = function() {
-                                  fi++;
-                                  el.src = fi < fallbacks.length ? fallbacks[fi] : svgFb;
-                                  if (fi >= fallbacks.length) el.onerror = null;
-                                };
-                                el.src = fallbacks[0] || svgFb;
-                              }}
-                            />
-                            <div className={`absolute ${isListView ? 'top-1 left-1 px-1.5 py-0.5 text-[6px]' : 'top-4 left-4 px-3 py-1 text-[9px]'} rounded-full text-white font-bold tracking-widest uppercase backdrop-blur-md border border-white/20 shadow-lg z-10 ${chainStyles[nft.chain]?.color}`}>
-                            {nft.chain}
-                            </div>
-                        </div>
-                        <div className={isListView ? "flex-1 flex items-center justify-between overflow-hidden min-w-0" : "p-5 text-center"}>
-                            <div className={isListView ? "flex flex-col min-w-0 flex-1 pr-4" : "flex flex-col items-center mb-2"}>
-                                <p className={`font-heading font-bold uppercase tracking-tight shrink-0 ${isListView ? 'text-base md:text-lg truncate' : 'text-sm'} ${darkMode ? 'text-white' : 'text-slate-900'}`} style={{maxWidth: isListView ? '100%' : 'auto'}} title={nft.name}>{/^[0-9a-fA-F]{20,}$/.test(nft.name || '') ? (nft.symbol || 'Unknown Asset') : (nft.name || 'Unknown')}</p>
-                                {isListView && <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest truncate" style={{maxWidth: '100%'}}>{nft.symbol || 'ASSET'}</span>}
-                            </div>
-                            {(nft.isToken || tokenMode) && (
-                            <div className={isListView ? "flex flex-col items-end justify-center gap-1 text-right shrink-0" : "flex flex-col items-center gap-1 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800"}>
-                                {/* Green: Balance - Top */}
-                                <p className="text-emerald-500 font-bold text-sm md:text-lg leading-tight whitespace-nowrap">
-                                    {nft.balance} <span className="text-[10px] opacity-60">{nft.symbol}</span>
-                                </p>
-                                {/* Blue: Native - Middle */}
-                                <span className={`font-bold uppercase tracking-tighter text-sm md:text-base whitespace-nowrap ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                                    {(() => {
-                                      const sym = chainStyles[nft.chain]?.native;
-                                      const nativeUsd = sym ? (nativePrices[sym] || 0) : 0;
-                                      const totalUsd = parseFloat(nft.totalValue) || 0;
-                                      const bal = parseFloat(nft.balance) || 0;
-                                      // Native token (ADA on Cardano, MON on Monad, SOL on Solana etc.)
-                                      // backend stores nativePrice='1.0000' for these — use balance directly
-                                      if (sym && nft.symbol?.toUpperCase() === sym.toUpperCase()) return bal.toFixed(4);
-                                      // ERC20/SPL/Cardano token: total USD ÷ native token price
-                                      if (nativeUsd > 0 && totalUsd > 0) return (totalUsd / nativeUsd).toFixed(4);
-                                      return parseFloat(nft.nativePrice || 0).toFixed(4);
-                                    })()} {chainStyles[nft.chain]?.native || '???'}
-                                </span>
-                                {/* Grey: USD - Bottom */}
-                                <span className={`font-bold uppercase tracking-tighter text-xs md:text-sm opacity-70 whitespace-nowrap ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                                    ${(() => {
-                                      const backendVal = parseFloat(nft.totalValue) || 0;
-                                      if (backendVal > 0) return backendVal.toFixed(2);
-                                      // backend totalValue is $0.00 — compute from live price
-                                      const sym = chainStyles[nft.chain]?.native;
-                                      const nativeUsd = sym ? (nativePrices[sym] || 0) : 0;
-                                      if (nativeUsd <= 0) return '0.00';
-                                      const bal = parseFloat(nft.balance) || 0;
-                                      // Native token: balance × price
-                                      if (sym && nft.symbol?.toUpperCase() === sym.toUpperCase())
-                                        return (bal * nativeUsd).toFixed(2);
-                                      // Other token: use backend nativePrice × nativeUsd
-                                      return (parseFloat(nft.nativePrice || 0) * nativeUsd).toFixed(2);
-                                    })()}
-                                </span>
-                            </div>
-                            )}
-                        </div>
-                        </div>
-                    );
-                  })}
                 </div>
-                )}
+
+                {/* NFT grid — always mounted (never unmounted) so images stay cached */}
+                <div style={{display: viewMode === 'nfts' ? 'block' : 'none'}}>
+                  <AssetGrid assets={nftAssets} isListView={isListView} darkMode={darkMode}
+                    chainStyles={chainStyles} resolveImg={resolveImg} handleImgError={handleImgError}
+                    toggleHide={toggleHide} toggleSpam={toggleSpam} setSelectedAsset={setSelectedAsset}
+                    nativePrices={nativePrices} tokenMode={false} />
+                </div>
+
+                {/* Token grid — always mounted (never unmounted) so images stay cached */}
+                <div style={{display: viewMode === 'tokens' ? 'block' : 'none'}}>
+                  <AssetGrid assets={tokenAssets} isListView={isListView} darkMode={darkMode}
+                    chainStyles={chainStyles} resolveImg={resolveImg} handleImgError={handleImgError}
+                    toggleHide={toggleHide} toggleSpam={toggleSpam} setSelectedAsset={setSelectedAsset}
+                    nativePrices={nativePrices} tokenMode={true} />
+                </div>
                 </>
             ) : activeTab === 'market' ? (
                 <div className="max-w-6xl mx-auto">
@@ -2088,7 +2144,7 @@
 
             {/* Chart Modal */}
             {showChart && selectedCoin && (
-                <div className="fixed inset-0 z-[100] flex items-start md:items-center justify-center p-3 md:p-6 bg-slate-950/95 backdrop-blur-xl overflow-y-auto" onClick={() => setShowChart(false)}>
+                <div className="fixed inset-0 z-[100] flex items-start md:items-center justify-center p-3 md:p-6 bg-slate-950/95 backdrop-blur-xl overflow-y-auto" onClick={closeChart}>
                     <div className={`w-full max-w-5xl border rounded-[2rem] md:rounded-[3rem] p-4 md:p-8 shadow-2xl my-3 md:my-0 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`} onClick={(e) => e.stopPropagation()}>
                         {/* Header */}
                         <div className="flex justify-between items-start gap-3 mb-4 md:mb-6">
@@ -2102,7 +2158,7 @@
                                 </div>
                                 <p className="text-[10px] opacity-40 mt-1">{chartData?.timeframeLabel || 'Loading...'}{chartData?.source ? ` · Data from ${chartData.source}` : ''} · Tap outside to close</p>
                             </div>
-                            <button onClick={() => setShowChart(false)} className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-slate-800 text-white hover:bg-red-500 transition-colors text-xs md:text-sm">✕</button>
+                            <button onClick={closeChart} className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-slate-800 text-white hover:bg-red-500 transition-colors text-xs md:text-sm">✕</button>
                         </div>
 
                         {/* Timeframe Selector */}
