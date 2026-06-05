@@ -151,11 +151,11 @@ const dbFindUserBySocial = async (provider, provider_id) => {
   return dbGetUserById(data.user_id);
 };
 
-const dbLinkWallet = async (userId, { chain, address }) => {
+const dbLinkWallet = async (userId, { chain, address, watch_only = false }) => {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('cl_wallets')
-    .upsert({ user_id: userId, chain, address, verified_at: new Date().toISOString() },
+    .upsert({ user_id: userId, chain, address, watch_only, verified_at: new Date().toISOString() },
              { onConflict: 'user_id,address' })
     .select().single();
   if (error) throw error;
@@ -411,6 +411,26 @@ app.post('/api/auth/wallet-login', async (req, res) => {
         cl_wallets: [{ id: '1', chain, address, is_primary: true, label: null }]
       }
     });
+  }
+});
+
+// ── Watch-only wallet (no signature required) ────────────────────────────────
+app.post('/api/auth/add-watch-wallet', requireAuth, async (req, res) => {
+  const { chain, address } = req.body;
+  if (!chain || !address)
+    return res.status(400).json({ error: 'chain and address required' });
+  if (chain === 'evm' && !/^0x[0-9a-fA-F]{40}$/.test(address))
+    return res.status(400).json({ error: 'Invalid EVM address' });
+  const userId = req.user.sub;
+  try {
+    if (supabase) {
+      await dbLinkWallet(userId, { chain, address, watch_only: true });
+    }
+    const profile = await dbGetUserById(userId);
+    res.json({ success: true, profile });
+  } catch (e) {
+    console.error('add-watch-wallet error:', e);
+    res.status(500).json({ error: 'Failed to add watch wallet' });
   }
 });
 
