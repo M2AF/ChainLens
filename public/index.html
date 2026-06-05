@@ -390,7 +390,29 @@
         localStorage.removeItem('cl_token');
       };
 
-      // ── Social logins (redirect to backend OAuth) ─────────────────────────
+        // ── NFT / asset download helper ─────────────────────────────────────────
+      const downloadAsset = async (url, name) => {
+        const src = (url && url.indexOf('ipfs://') === 0)
+          ? 'https://ipfs.io/ipfs/' + url.slice(7) : url || '';
+        if (!src) return;
+        try {
+          const res = await fetch(src);
+          const blob = await res.blob();
+          const ext = blob.type.includes('png') ? 'png' : blob.type.includes('gif') ? 'gif' : blob.type.includes('svg') ? 'svg' : 'jpg';
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = ((name || 'nft').replace(/[^a-z0-9_\-]/gi, '_') + '.' + ext).toLowerCase();
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        } catch {
+          window.open(src, '_blank');
+        }
+      };
+
+          // ── Social logins (redirect to backend OAuth) ─────────────────────────
       const loginWithGoogle  = () => {
         setWalletConnecting('google');
         // Already logged in → LINK mode (attaches Google to current profile)
@@ -676,7 +698,10 @@
       const imgFallbackSvg = function(symbol, chain) {
         var colors = {solana:'14F195',cardano:'0033AD',ethereum:'627EEA',polygon:'8247E5',
                       base:'0052FF',avalanche:'E84142',optimism:'FF0420',arbitrum:'28A0F0',
-                      blast:'FCFC03',ronin:'1273EA',gnosis:'04795B'};
+                      blast:'FCFC03',ronin:'1273EA',gnosis:'04795B',
+                      abstract:'00D4FF',monad:'836EF9',apechain:'1B4DFF',
+                      zora:'2B5DF0',soneium:'6C63FF',worldchain:'1D1D1D',
+                      hyperevm:'6366F1',blast:'FCFC03'};
         var bg = colors[chain] || '334155';
         var text = encodeURIComponent(((symbol || '?').substring(0,3)).toUpperCase());
         var tc = bg === 'FCFC03' ? '000000' : 'ffffff';
@@ -685,7 +710,13 @@
 
       // ── TrustWallet chain slug map for EVM token logo fallback ────────────
       const twChain = {ethereum:'ethereum',polygon:'polygon',avalanche:'avalanchec',
-                       base:'base',arbitrum:'arbitrum',optimism:'optimism'};
+                       base:'base',arbitrum:'arbitrum',optimism:'optimism',
+                       gnosis:'xdai',ronin:'ronin',apechain:'apechain'};
+      // ── DexScreener chain slug map (covers newer chains TW doesn't have) ──
+      const dsChain = {ethereum:'ethereum',base:'base',polygon:'polygon',abstract:'abstract',
+                       monad:'monad',avalanche:'avalanche',optimism:'optimism',arbitrum:'arbitrum',
+                       blast:'blast',zora:'zora',apechain:'ape',soneium:'soneium',
+                       ronin:'ronin',worldchain:'worldchain',hyperevm:'hyperliquid'};
 
       // Keep a ref to coinImageMap so the stable onError callback can always read
       // the latest version without being re-created (avoids closure-per-render leaks)
@@ -716,6 +747,11 @@
         // Solana: token list CDN
         if (nft.chain === 'solana' && addr && addr.indexOf('0x') !== 0) {
           fallbacks.push('https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/' + addr + '/logo.png');
+        }
+        // DexScreener CDN — covers Abstract, Monad, Blast, Zora, and other newer EVM chains
+        var ds = dsChain[nft.chain];
+        if (ds && addr && addr.indexOf('0x') === 0) {
+          fallbacks.push('https://dd.dexscreener.com/ds-data/tokens/' + ds + '/' + addr.toLowerCase() + '.png');
         }
         fallbacks.push(svgFb);
         let fi = 0;
@@ -2441,7 +2477,10 @@
                                 )) : <p className="text-xs italic opacity-30">No metadata found.</p>}
                              </div>
                           </div>
-                          <div className="pt-6 border-t border-white/10">
+                          <div className="pt-6 border-t border-white/10 space-y-3">
+                             {!selectedAsset.isToken && (
+                               <button onClick={() => downloadAsset(selectedAsset.image, selectedAsset.name || selectedAsset.symbol)} className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2">⬇ Download Image</button>
+                             )}
                              <button onClick={() => setSelectedAsset(null)} className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase tracking-widest transition-all">Back to Gallery</button>
                           </div>
                        </div>

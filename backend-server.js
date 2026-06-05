@@ -292,6 +292,23 @@ const fetchTokenImage = async (symbol) => {
   } catch { _imageCache[key] = ''; return ''; }
 };
 
+// Fetch token logo by contract address — queries DexScreener, cached 24hr
+const fetchTokenImageByAddress = async (dsChain, address) => {
+  if (!dsChain || !address) return '';
+  const key = `dex-${dsChain}-${address.toLowerCase()}`;
+  if (_imageCache[key] !== undefined) return _imageCache[key];
+  try {
+    const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`);
+    if (!r.ok) { _imageCache[key] = ''; return ''; }
+    const d = await r.json();
+    // Prefer pair on the same chain, then any pair
+    const img = d.pairs?.find(p => p.chainId === dsChain)?.info?.imageUrl
+               || d.pairs?.[0]?.info?.imageUrl || '';
+    _imageCache[key] = img;
+    return img;
+  } catch { _imageCache[key] = ''; return ''; }
+};
+
 // ══════════════════════════════════════════════════════════════════════════════
 // AUTH & PROFILE ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
@@ -949,6 +966,16 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
                 if (twRes.ok) return twUrl;
               } catch {}
             }
+            // DexScreener by contract address (covers Abstract, Monad, Blast, Zora, etc.)
+            const dsChainId = { ethereum:'ethereum', base:'base', polygon:'polygon',
+              avalanche:'avalanche', optimism:'optimism', arbitrum:'arbitrum',
+              abstract:'abstract', blast:'blast', zora:'zora', apechain:'ape',
+              soneium:'soneium', gnosis:'xdai', ronin:'ronin', worldchain:'worldchain',
+              hyperevm:'hyperliquid' }[chainId];
+            if (dsChainId) {
+              const dexImg = await fetchTokenImageByAddress(dsChainId, token.contractAddress);
+              if (dexImg) return dexImg;
+            }
             // CoinGecko symbol search as final fallback
             return await fetchTokenImage(metadata.symbol);
           })(),
@@ -1099,7 +1126,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
           usdPrice,
           nativePrice: nativePrice.toFixed(4), // Price per token in MON
           totalValue: (balance * usdPrice).toFixed(2),
-          image: t.logo || t.thumbnail || await fetchTokenImage(t.symbol) || `https://via.placeholder.com/400/836EF9/ffffff?text=${t.symbol || 'MON'}`,
+          image: t.logo || t.thumbnail || await fetchTokenImageByAddress('monad', t.token_address) || await fetchTokenImage(t.symbol) || '',
           chain: 'monad',
           isToken: true,
           address: t.token_address
