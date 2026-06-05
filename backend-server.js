@@ -181,6 +181,109 @@ const API_KEYS = {
   moralis: process.env.MORALIS_KEY
 };
 
+const APP_HUB_CHAINS = [
+  { id: 'ethereum', label: 'Ethereum' },
+  { id: 'base', label: 'Base' },
+  { id: 'polygon', label: 'Polygon' },
+  { id: 'avalanche', label: 'Avalanche' },
+  { id: 'optimism', label: 'Optimism' },
+  { id: 'arbitrum', label: 'Arbitrum' },
+  { id: 'abstract', label: 'Abstract' },
+  { id: 'blast', label: 'Blast' },
+  { id: 'zora', label: 'Zora' },
+  { id: 'apechain', label: 'Ape Chain' },
+  { id: 'soneium', label: 'Soneium' },
+  { id: 'ronin', label: 'Ronin' },
+  { id: 'worldchain', label: 'World Chain' },
+  { id: 'gnosis', label: 'Gnosis' },
+  { id: 'hyperevm', label: 'HyperEVM' },
+  { id: 'monad', label: 'Monad' },
+  { id: 'solana', label: 'Solana' },
+  { id: 'cardano', label: 'Cardano' }
+];
+
+const APP_HUB_CATEGORY_META = {
+  'Bridge / Interoperability': {
+    short: 'Bridge',
+    description: 'Move assets and messages across ecosystems.',
+    accent: 'cyan'
+  },
+  'DEX / Bridge Aggregator': {
+    short: 'DEX',
+    description: 'Find routes, swaps, and cross-chain liquidity.',
+    accent: 'emerald'
+  },
+  'Portfolio & Analytics': {
+    short: 'Analytics',
+    description: 'Track wallets, markets, positions, and onchain activity.',
+    accent: 'blue'
+  },
+  'NFT Marketplace': {
+    short: 'NFTs',
+    description: 'Discover, buy, sell, and analyze NFT collections.',
+    accent: 'amber'
+  }
+};
+
+const APP_HUB_APPS = [
+  { name: 'Wormhole', category: 'Bridge / Interoperability', website: 'https://wormhole.com', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'gnosis', 'monad', 'solana', 'cardano'] },
+  { name: 'LayerZero', category: 'Bridge / Interoperability', website: 'https://layerzero.network', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'abstract', 'blast', 'zora', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'monad', 'solana'] },
+  { name: 'deBridge', category: 'Bridge / Interoperability', website: 'https://debridge.finance', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'solana'] },
+  { name: 'Across Protocol', category: 'Bridge / Interoperability', website: 'https://across.to', chains: ['ethereum', 'base', 'optimism', 'arbitrum', 'blast', 'zora'] },
+  { name: 'Stargate Finance', category: 'Bridge / Interoperability', website: 'https://stargate.finance', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast'] },
+  { name: 'Jumper Exchange', category: 'DEX / Bridge Aggregator', website: 'https://jumper.exchange', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'gnosis', 'solana'] },
+  { name: 'Pulsar Finance', category: 'Portfolio & Analytics', website: 'https://pulsar.finance', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'gnosis', 'solana', 'cardano'] },
+  { name: 'CoinStats', category: 'Portfolio & Analytics', website: 'https://coinstats.app', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'gnosis', 'solana', 'cardano'] },
+  { name: 'DeBank', category: 'Portfolio & Analytics', website: 'https://debank.com', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'ronin', 'worldchain', 'gnosis'] },
+  { name: 'Zapper', category: 'Portfolio & Analytics', website: 'https://zapper.xyz', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'gnosis'] },
+  { name: 'DefiLlama', category: 'Portfolio & Analytics', website: 'https://defillama.com', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'abstract', 'blast', 'zora', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'hyperevm', 'monad', 'solana', 'cardano'] },
+  { name: 'DappRadar', category: 'Portfolio & Analytics', website: 'https://dappradar.com', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'ronin', 'gnosis', 'solana', 'cardano'] },
+  { name: 'Magic Eden', category: 'NFT Marketplace', website: 'https://magiceden.io', chains: ['ethereum', 'base', 'polygon', 'arbitrum', 'solana'] },
+  { name: 'OpenSea', category: 'NFT Marketplace', website: 'https://opensea.io', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'solana'] },
+  { name: 'Element Market', category: 'NFT Marketplace', website: 'https://element.market', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'solana'] },
+  { name: '1inch Network', category: 'DEX / Bridge Aggregator', website: 'https://1inch.io', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'gnosis'] },
+  { name: 'OpenOcean', category: 'DEX / Bridge Aggregator', website: 'https://openocean.finance', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'gnosis', 'solana'] },
+  { name: 'Odos', category: 'DEX / Bridge Aggregator', website: 'https://odos.xyz', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'gnosis'] },
+  { name: 'Matcha', category: 'DEX / Bridge Aggregator', website: 'https://matcha.xyz', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast'] },
+  { name: 'Paraswap', category: 'DEX / Bridge Aggregator', website: 'https://paraswap.io', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum'] },
+  { name: 'Celer Network', category: 'Bridge / Interoperability', website: 'https://celer.network', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'gnosis', 'solana'] },
+  { name: 'Axelar', category: 'Bridge / Interoperability', website: 'https://axelar.network', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'gnosis'] },
+  { name: 'Orbiter Finance', category: 'Bridge / Interoperability', website: 'https://orbiter.finance', chains: ['ethereum', 'base', 'polygon', 'optimism', 'arbitrum', 'blast', 'zora'] },
+  { name: 'Symbiosis Finance', category: 'Bridge / Interoperability', website: 'https://symbiosis.finance', chains: ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'ronin'] },
+  { name: 'Owlto Finance', category: 'Bridge / Interoperability', website: 'https://owlto.finance', chains: ['ethereum', 'base', 'polygon', 'optimism', 'arbitrum', 'blast', 'zora'] }
+];
+
+const normalizeAppHubApp = (appRecord) => ({
+  ...appRecord,
+  id: appRecord.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+  chainCount: appRecord.chains.length,
+  coverage: Math.round((appRecord.chains.length / APP_HUB_CHAINS.length) * 100),
+  categoryMeta: APP_HUB_CATEGORY_META[appRecord.category] || {}
+});
+
+const getAppHubPayload = () => {
+  const apps = APP_HUB_APPS.map(normalizeAppHubApp);
+  const categories = Object.entries(APP_HUB_CATEGORY_META).map(([name, meta]) => ({
+    name,
+    ...meta,
+    count: apps.filter(appRecord => appRecord.category === name).length
+  }));
+  const chainStats = APP_HUB_CHAINS.map(chain => ({
+    ...chain,
+    count: apps.filter(appRecord => appRecord.chains.includes(chain.id)).length
+  }));
+
+  return {
+    updatedAt: '2026-06-05',
+    totalApps: apps.length,
+    totalChains: APP_HUB_CHAINS.length,
+    chains: APP_HUB_CHAINS,
+    categories,
+    chainStats,
+    apps
+  };
+};
+
 // --- Price Discovery Helper ---
 
 // CoinGecko IDs for native tokens
@@ -785,6 +888,12 @@ app.get('/api/resolve/handle/:handle', async (req, res) => {
     console.error("Resolution Error:", err);
     res.status(500).json({ error: "Server error during handle resolution." }); 
   }
+});
+
+// --- APP HUB CATALOG ---
+
+app.get('/api/app-hub', (req, res) => {
+  res.json(getAppHubPayload());
 });
 
 // --- SWAP INTEGRATIONS ---
