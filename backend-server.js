@@ -899,7 +899,7 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
       ronin:      { symbol:'RON',  name:'Ronin',      logo:'https://cryptologos.cc/logos/ronin-ron-logo.png' },
       apechain:   { symbol:'APE',  name:'ApeCoin',    logo:'https://cryptologos.cc/logos/apecoin-ape-ape-logo.png' },
       gnosis:     { symbol:'xDAI', name:'Gnosis',     logo:'https://cryptologos.cc/logos/gnosis-gno-logo.png' },
-      hyperevm:   { symbol:'HYPE', name:'HyperEVM',   logo:'https://via.placeholder.com/100/6366f1/ffffff?text=HYPE' },
+      hyperevm:   { symbol:'HYPE', name:'HyperEVM',   logo:'https://assets.coingecko.com/coins/images/53805/small/Hyperliquid.png' },
     };
     const { symbol: nativeSymbol, name: nativeName, logo: nativeLogo } =
       _nc[chainId] || { symbol:'ETH', name:'Ether', logo:'https://cryptologos.cc/logos/ethereum-eth-logo.png' };
@@ -1167,12 +1167,12 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
             const len = parseInt(clean.slice(64, 128), 16);
             if (len > 0 && len < 100) {
               const str = clean.slice(128, 128 + len * 2);
-              return Buffer.from(str, 'hex').toString('utf8').replace(/ /g, '').trim();
+              return Buffer.from(str, 'hex').toString('utf8').replace(/ /g, '').trim();
             }
           }
           // Fallback: try as bytes32 fixed string
           return Buffer.from(clean.replace(/^0+/, '').padStart(64, '0').slice(0, 64), 'hex')
-            .toString('utf8').replace(/ /g, '').trim();
+            .toString('utf8').replace(/ /g, '').trim();
         } catch { return ''; }
       };
 
@@ -1229,7 +1229,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
               usdPrice,
               nativePrice: nativePrice.toFixed(4), // Price per token in MON
               totalValue: (balance * usdPrice).toFixed(2),
-              image: `https://via.placeholder.com/50/836EF9/ffffff?text=${encodeURIComponent(symbol)}`,
+              image: await fetchTokenImageByAddress('monad', contractAddr) || await fetchTokenImage(symbol) || '',
               chain: 'monad',
               isToken: true,
               address: contractAddr
@@ -1290,7 +1290,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
                   balance: balance.toFixed(4), usdPrice,
                   totalValue: (balance * usdPrice).toFixed(2),
                   nativePrice: nativePrice.toFixed(4), // Price per token in MON
-                  image: `https://via.placeholder.com/50/836EF9/ffffff?text=${encodeURIComponent(symbol)}`,
+                  image: await fetchTokenImageByAddress('monad', contractAddr) || await fetchTokenImage(symbol) || '',
                   chain: 'monad', isToken: true, address: contractAddr
                 };
               } catch { return null; }
