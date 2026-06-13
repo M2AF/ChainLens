@@ -1484,6 +1484,16 @@
       favicon:     "https://www.google.com/s2/favicons?domain=yieldguild.io&sz=128",
       description: "Description here.",
     },
+    {
+      id:          "otherside",
+      name:        "Otherside",
+      website:     "https://www.otherside.xyz/",
+      category:    "Gaming",
+      chains:      ["apechain"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=otherside.xyz&sz=128",
+      description: "A gamified, interoperable metaverse and metaRPG by Yuga Labs, featuring multiplayer social spaces, NFT-linked ownership, and user-created worlds on ApeChain.",
+    },
 
     // ========================================================
     // Launchpad (3 apps)
