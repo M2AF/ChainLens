@@ -219,7 +219,7 @@
       const [evmAddr, setEvmAddr] = useState('');
       const [solAddr, setSolAddr] = useState('');
       const [adaAddr, setAdaAddr] = useState('');
-      const [activeChains, setActiveChains] = useState(['ethereum', 'polygon', 'base', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'hyperevm', 'solana', 'cardano', 'abstract', 'monad']);
+      const [activeChains, setActiveChains] = useState(['ethereum', 'polygon', 'base', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'hype', 'solana', 'cardano', 'abstract', 'monad']);
       
       const [nfts, setNfts] = useState([]);
       const [loading, setLoading] = useState(false);
@@ -302,7 +302,7 @@
         ronin: { color: 'bg-[#1273EA]', label: 'Ronin', native: 'RON' },
         worldchain: { color: 'bg-gradient-to-r from-blue-500 to-green-500', label: 'World Chain', native: 'ETH' },
         gnosis: { color: 'bg-[#04795B]', label: 'Gnosis', native: 'xDAI' },
-        hyperevm: { color: 'bg-[#6366f1]', label: 'HyperEVM', native: 'HYPE' },
+        hype: { color: 'bg-[#6366f1]', label: 'HyperLiquid', native: 'HYPE' },
         solana: { color: 'bg-solana-gradient-soft', label: 'Solana', native: 'SOL' },
         cardano: { color: 'bg-[#0033AD]', label: 'Cardano', native: 'ADA' },
         monad: { color: 'bg-[#836EF9]', label: 'Monad', native: 'MON' },
@@ -327,7 +327,7 @@
         'ronin': 15,
         'worldchain': 16,
         'gnosis': 17,
-        'hyperevm': 18
+        'hype': 18
       };
 
       const appHubCategoryStyles = {
@@ -786,7 +786,7 @@
           blast:'FCFC03', ronin:'1273EA', gnosis:'04795B',
           abstract:'00D4FF', monad:'836EF9', apechain:'1B4DFF',
           zora:'2B5DF0', soneium:'6C63FF', worldchain:'3D4EFF',
-          hyperevm:'6366F1'
+          hype:'6366F1'
         };
         var bg = colors[chain] || '334155';
         var text = encodeURIComponent(((symbol || '?').substring(0,3)).toUpperCase());
@@ -802,7 +802,7 @@
       const dsChain = {ethereum:'ethereum',base:'base',polygon:'polygon',abstract:'abstract',
                        monad:'monad',avalanche:'avalanche',optimism:'optimism',arbitrum:'arbitrum',
                        blast:'blast',zora:'zora',apechain:'ape',soneium:'soneium',
-                       ronin:'ronin',worldchain:'worldchain',hyperevm:'hyperliquid'};
+                       ronin:'ronin',worldchain:'worldchain',hype:'hyperliquid'};
 
       // Keep a ref to coinImageMap so the stable onError callback can always read
       // the latest version without being re-created (avoids closure-per-render leaks)
@@ -1406,7 +1406,7 @@
           if (target) resolvedSolAddrs.push(target);
         }
 
-        const evmChains = ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'abstract', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'hyperevm'];
+        const evmChains = ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'abstract', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'hype'];
         const nftTasks = [], tokenTasks = [], txTasks = [];
         const sf = (url) => fetch(url, { signal }).then(r => r.json());
 
@@ -1798,13 +1798,13 @@
                       {/* Active chain count badge when collapsed */}
                       {!showEvmChains && (
                         <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-blue-500' : 'text-slate-400'}`}>
-                          {['ethereum','base','polygon','avalanche','optimism','arbitrum','abstract','blast','zora','apechain','soneium','ronin','worldchain','gnosis','hyperevm','monad'].filter(c => activeChains.includes(c)).length} / 16 active
+                          {['ethereum','base','polygon','avalanche','optimism','arbitrum','abstract','blast','zora','apechain','soneium','ronin','worldchain','gnosis','hype','monad'].filter(c => activeChains.includes(c)).length} / 16 active
                         </p>
                       )}
                       {/* Collapsible chain buttons */}
                       {showEvmChains && (
                         <div className="flex flex-wrap gap-2 pt-1">
-                          {['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'abstract', 'blast', 'zora', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'hyperevm', 'monad'].map(id => (
+                          {['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'abstract', 'blast', 'zora', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'hype', 'monad'].map(id => (
                             <ChainButton key={id} id={id} />
                           ))}
                         </div>

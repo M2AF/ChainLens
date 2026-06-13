@@ -37,7 +37,7 @@
 //  VALID CHAIN IDs
 //  ---------------
 //    abstract  apechain  arbitrum  avalanche  base  blast
-//    cardano   ethereum  gnosis    hyperevm   monad optimism
+//    cardano   ethereum  gnosis    hype   monad    optimism
 //    polygon   ronin     solana    soneium    worldchain  zora
 //
 // ============================================================
@@ -55,7 +55,7 @@
     { id: "cardano",    label: "Cardano"    },
     { id: "ethereum",   label: "Ethereum"   },
     { id: "gnosis",     label: "Gnosis"     },
-    { id: "hyperevm",   label: "HyperEVM"   },
+    { id: "hype",       label: "HyperLiquid"   },
     { id: "monad",      label: "Monad"      },
     { id: "optimism",   label: "Optimism"   },
     { id: "polygon",    label: "Polygon"    },
@@ -215,7 +215,7 @@
       name:        "Relay",
       website:     "https://relay.link",
       category:    "Bridge / Interoperability",
-      chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "hyperevm", "monad", "optimism", "polygon", "ronin", "solana", "soneium", "worldchain", "zora"],
+      chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "hype", "monad", "optimism", "polygon", "ronin", "solana", "soneium", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=relay.link&sz=64",
       description: "Description here.",
@@ -255,7 +255,7 @@
       name:        "Thorchain",
       website:     "https://thorchain.org",
       category:    "Bridge / Interoperability",
-      chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "hyperevm", "monad", "optimism", "polygon", "ronin", "solana", "soneium", "worldchain", "zora"],
+      chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "hype", "monad", "optimism", "polygon", "ronin", "solana", "soneium", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=thorchain.org&sz=128",
       description: "Description here.",
@@ -1634,7 +1634,7 @@
       name:        "MetaMask",
       website:     "https://metamask.io",
       category:    "Wallet",
-      chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "hyperevm", "monad", "optimism", "polygon", "soneium", "worldchain", "zora"],
+      chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "hype", "monad", "optimism", "polygon", "soneium", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=metamask.io&sz=64",
       description: "Description here.",
@@ -2014,7 +2014,7 @@
       name:        "DefiLlama",
       website:     "https://defillama.com",
       category:    "Portfolio & Analytics",
-      chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "hyperevm", "monad", "optimism", "polygon", "ronin", "solana", "soneium", "worldchain", "zora"],
+      chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "hype", "monad", "optimism", "polygon", "ronin", "solana", "soneium", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=defillama.com&sz=64",
       description: "Description here.",
@@ -2239,7 +2239,7 @@
       name:        "Kalshi",
       website:     "https://kalshi.com/",
       category:    "Perps & Prediction Markets",
-      chains:      ["ethereum", "solana", "hyperevm"],
+      chains:      ["ethereum", "solana", "hype"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=kalshi.com&sz=64",
       description: "A CFTC-regulated prediction market exchange for trading contracts on real-world events and economic indicators.",
@@ -2263,6 +2263,16 @@
       featured:    false,
      favicon:     "https://www.google.com/s2/favicons?domain=strikefinance.org&sz=64",
      description: "A comprehensive decentralized platform on Cardano offering perpetual futures and prediction market capabilities.",
+    },
+    {
+      id:          "hyperfoundation",
+     name:        "Hype",
+     website:     "https://hyperfoundation.org/",
+     category:    "Infrastructure",
+     chains:      ["hyperliquid"],
+     featured:    false,
+     favicon:     "https://www.google.com/s2/favicons?domain=hyperfoundation.org&sz=64",
+     description: "The non-profit foundation stewarding the Hyperliquid network, a high-performance L1 blockchain purpose-built for decentralized financial exchange.",
     },
 
   ]; // end APPS
