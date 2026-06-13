@@ -2268,7 +2268,7 @@
       id:          "hyperfoundation",
      name:        "Hype",
      website:     "https://hyperfoundation.org/",
-     category:    "Infrastructure",
+     category:    "Perps & Prediction Markets",
      chains:      ["hype"],
      featured:    false,
      favicon:     "https://www.google.com/s2/favicons?domain=hyperfoundation.org&sz=64",
