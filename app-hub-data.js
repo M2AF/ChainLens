@@ -1564,6 +1564,16 @@
       favicon:     "https://www.google.com/s2/favicons?domain=snek.com&sz=64",
       description: "The premier culture and community-driven memecoin asset native to the Cardano blockchain ecosystem.",
     },
+    {
+      id:          "chog",
+     name:        "Chog",
+      website:     "https://www.chog.xyz/",
+      category:    "Meme",
+     chains:      ["monad"],
+     featured:    false,
+     favicon:     "https://www.google.com/s2/favicons?domain=chog.xyz&sz=128",
+      description: "A community-driven meme project native to the Monad ecosystem.",
+    },
 
     // ========================================================
     // Wallet (16 apps)
