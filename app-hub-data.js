@@ -1415,16 +1415,6 @@
       description: "Description here.",
     },
     {
-      id:          "tolian-universe",
-      name:        "Tolian Universe",
-      website:     "https://tolian.io",
-      category:    "Gaming",
-      chains:      ["abstract"],
-      featured:    false,
-      favicon:     "https://www.google.com/s2/favicons?domain=tolian.io&sz=128",
-      description: "Description here.",
-    },
-    {
       id:          "tollan-universe",
       name:        "Tollan Universe",
       website:     "https://hub.tollan.io",
