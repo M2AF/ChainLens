@@ -1725,6 +1725,16 @@
       description: "Description here.",
     },
     {
+      id:          "wayup",
+      name:        "WayUp",
+      website:     "https://www.wayup.io/",
+      category:    "NFT Marketplace",
+      chains:      ["cardano"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=wayup.io&sz=64",
+      description: "A specialized NFT marketplace and minting platform running natively on the Cardano blockchain infrastructure.",
+    },
+    {
       id:          "blur",
       name:        "Blur",
       website:     "https://blur.io",
