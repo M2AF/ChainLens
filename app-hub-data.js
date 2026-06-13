@@ -1562,7 +1562,7 @@
       chains:      ["monad"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=emonad.lol&sz=64",
-      description: "Description here.",
+      description: "I lost it all on day one.",
     },
     {
       id:          "snek",
