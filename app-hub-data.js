@@ -22,24 +22,6 @@
 //                  https://www.google.com/s2/favicons?domain=YOURDOMAIN&sz=64)
 //    description (optional) — short blurb shown in the card
 //
-//  VALID CATEGORIES
-//  ----------------
-//    "Bridge / Interoperability"
-//    "DeFi"
-//    "DEX"
-//    "Gaming"
-//    "Launchpad"
-//    "Meme"
-//    "NFT Marketplace"
-//    "Portfolio & Analytics"
-//    "Wallet"
-//
-//  VALID CHAIN IDs
-//  ---------------
-//    abstract  apechain  arbitrum  avalanche  base  blast
-//    cardano   ethereum  gnosis    hype   monad    optimism
-//    polygon   ronin     solana    soneium    worldchain  zora
-//
 // ============================================================
 
 (function () {
