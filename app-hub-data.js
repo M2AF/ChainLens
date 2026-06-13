@@ -1711,7 +1711,7 @@
     },
 
     // ========================================================
-    // NFT Marketplace (21 apps)
+    // NFT Marketplace (22 apps)
     // ========================================================
 
     {
@@ -1863,6 +1863,16 @@
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=rarible.com&sz=128",
       description: "Description here.",
+    },
+    {
+      id:          "sappy-seals",
+      name:        "Sappy Seals",
+      website:     "https://sappyseals.io",
+      category:    "NFT Marketplace",
+      chains:      ["ethereum"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=sappyseals.io&sz=64",
+      description: "Iconic Ethereum NFT collection and community hub.",
     },
     {
       id:          "scatter",

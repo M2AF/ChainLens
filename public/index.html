@@ -259,6 +259,7 @@
       const [appHubChain, setAppHubChain] = useState('all');
       const [appHubSort, setAppHubSort] = useState('coverage');
       const [expandedAppChains, setExpandedAppChains] = useState(new Set());
+      const [featuredOffset, setFeaturedOffset] = useState(0);
 
       // ── Refs for memory-safe cleanup ──────────────────────────────────────
       const chartInstanceRef = useRef(null);   // holds the Chart.js instance
@@ -1287,9 +1288,20 @@
         });
       }, [appHubData, appHubSearch, appHubCategory, appHubChain, appHubSort]);
 
+      const ALL_FEATURED_IDS = ['emonad', 'sappy-seals', 'phantom', 'opensea', 'defillama', 'relay', 'thorchain'];
+
       const appHubFeatured = useMemo(() => {
-        return [...(appHubData?.apps || [])].sort((a, b) => b.chainCount - a.chainCount).slice(0, 3);
-      }, [appHubData]);
+        if (!appHubData?.apps) return [];
+        if (appHubCategory === 'all') {
+          return ALL_FEATURED_IDS.map(id => appHubData.apps.find(a => a.id === id)).filter(Boolean);
+        }
+        return [...appHubData.apps]
+          .filter(a => a.category === appHubCategory)
+          .sort((a, b) => b.chainCount - a.chainCount || a.name.localeCompare(b.name))
+          .slice(0, 7);
+      }, [appHubData, appHubCategory]);
+
+      useEffect(() => { setFeaturedOffset(0); }, [appHubCategory]);
 
       const appHubTopChains = useMemo(() => {
         return [...(appHubData?.chainStats || [])].sort((a, b) => b.count - a.count).slice(0, 6);
@@ -1600,25 +1612,59 @@
                     </div>
 
                     {appHubFeatured.length > 0 && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {appHubFeatured.map(appRecord => {
-                          const style = appHubCategoryStyles[appRecord.category] || appHubCategoryStyles['Portfolio & Analytics'];
-                          return (
-                            <a
-                              key={appRecord.id}
-                              href={appRecord.website}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`group p-5 rounded-[2rem] border transition-all hover:-translate-y-1 ${darkMode ? 'bg-slate-900/50 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-100 shadow-lg hover:shadow-xl'}`}>
-                              <div className="flex items-center justify-between gap-4 mb-5">
-                                <img src={appRecord.favicon} alt={appRecord.name} className="app-hub-icon w-12 h-12 rounded-2xl ring-4 ring-offset-slate-900" onError={(e) => { e.target.style.display='none'; }} />
-                                <span className={`px-3 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest ${style.pill}`}>Featured</span>
-                              </div>
-                              <h3 className="text-xl font-heading font-extrabold uppercase mb-1 group-hover:text-cyan-500 transition-colors">{appRecord.name}</h3>
-                              <p className="text-xs opacity-50 font-bold uppercase tracking-widest">{appRecord.chainCount} networks covered</p>
-                            </a>
-                          );
-                        })}
+                      <div className="relative">
+                        {/* Left arrow */}
+                        {featuredOffset > 0 && (
+                          <button
+                            onClick={() => setFeaturedOffset(o => Math.max(0, o - 1))}
+                            className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-9 h-9 rounded-full border flex items-center justify-center shadow-lg transition-all hover:scale-110 ${darkMode ? 'bg-slate-800 border-slate-600 text-white hover:border-cyan-500 hover:text-cyan-400' : 'bg-white border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-500'}`}
+                            aria-label="Previous featured apps">
+                            ‹
+                          </button>
+                        )}
+                        {/* Cards — always show 3 at a time */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {appHubFeatured.slice(featuredOffset, featuredOffset + 3).map(appRecord => {
+                            const style = appHubCategoryStyles[appRecord.category] || appHubCategoryStyles['Portfolio & Analytics'];
+                            return (
+                              <a
+                                key={appRecord.id}
+                                href={appRecord.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`group p-5 rounded-[2rem] border transition-all hover:-translate-y-1 ${darkMode ? 'bg-slate-900/50 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-100 shadow-lg hover:shadow-xl'}`}>
+                                <div className="flex items-center justify-between gap-4 mb-5">
+                                  <img src={appRecord.favicon} alt={appRecord.name} className="app-hub-icon w-12 h-12 rounded-2xl ring-4 ring-offset-slate-900" onError={(e) => { e.target.style.display='none'; }} />
+                                  <span className={`px-3 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest ${style.pill}`}>Featured</span>
+                                </div>
+                                <h3 className="text-xl font-heading font-extrabold uppercase mb-1 group-hover:text-cyan-500 transition-colors">{appRecord.name}</h3>
+                                <p className="text-xs opacity-50 font-bold uppercase tracking-widest">{appRecord.chainCount} networks covered</p>
+                              </a>
+                            );
+                          })}
+                        </div>
+                        {/* Right arrow */}
+                        {featuredOffset + 3 < appHubFeatured.length && (
+                          <button
+                            onClick={() => setFeaturedOffset(o => Math.min(appHubFeatured.length - 3, o + 1))}
+                            className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-9 h-9 rounded-full border flex items-center justify-center shadow-lg transition-all hover:scale-110 ${darkMode ? 'bg-slate-800 border-slate-600 text-white hover:border-cyan-500 hover:text-cyan-400' : 'bg-white border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-500'}`}
+                            aria-label="Next featured apps">
+                            ›
+                          </button>
+                        )}
+                        {/* Dot indicators */}
+                        {appHubFeatured.length > 3 && (
+                          <div className="flex justify-center gap-1.5 mt-4">
+                            {Array.from({ length: appHubFeatured.length - 2 }).map((_, i) => (
+                              <button
+                                key={i}
+                                onClick={() => setFeaturedOffset(i)}
+                                className={`w-1.5 h-1.5 rounded-full transition-all ${i === featuredOffset ? 'bg-cyan-500 w-4' : (darkMode ? 'bg-slate-600 hover:bg-slate-400' : 'bg-slate-300 hover:bg-slate-400')}`}
+                                aria-label={`Go to featured app ${i + 1}`}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
 
