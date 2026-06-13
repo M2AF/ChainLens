@@ -2269,7 +2269,7 @@
      name:        "Hype",
      website:     "https://hyperfoundation.org/",
      category:    "Infrastructure",
-     chains:      ["hyperliquid"],
+     chains:      ["hype"],
      featured:    false,
      favicon:     "https://www.google.com/s2/favicons?domain=hyperfoundation.org&sz=64",
      description: "The non-profit foundation stewarding the Hyperliquid network, a high-performance L1 blockchain purpose-built for decentralized financial exchange.",
