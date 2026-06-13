@@ -1500,6 +1500,16 @@
       description: "Description here.",
     },
     {
+      id:          "snek-fun",
+      name:        "snek.fun",
+      website:     "https://snek.fun/",
+      category:    "Launchpad",
+      chains:      ["cardano"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=snek.fun&sz=64",
+      description: "A fair-launch memecoin launchpad on the Cardano blockchain with built-in liquidity protection and token instant-creation mechanics.",
+    },
+    {
       id:          "nad-fun",
       name:        "nad.fun",
       website:     "https://nad.fun",
@@ -1532,7 +1542,7 @@
       chains:      ["monad"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=bobmonad.com&sz=128",
-      description: "Launchpad platform on Monad.",
+      description: "Launchpad platform on Monad coming soon.",
     },
     {
       id:          "emonad",
@@ -1543,6 +1553,16 @@
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=emonad.lol&sz=64",
       description: "Description here.",
+    },
+    {
+      id:          "snek",
+     name:        "Snek",
+      website:     "https://snek.com",
+      category:    "Meme",
+      chains:      ["cardano"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=snek.com&sz=64",
+      description: "The premier culture and community-driven memecoin asset native to the Cardano blockchain ecosystem.",
     },
 
     // ========================================================
