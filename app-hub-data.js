@@ -76,6 +76,7 @@
     { name: "Meme",                      short: "Meme"      },
     { name: "NFT Marketplace",           short: "NFT"       },
     { name: "Portfolio & Analytics",     short: "Portfolio" },
+    { name: "Prediction Markets",        short: "Prediction" },
     { name: "Wallet",                    short: "Wallet"    },
   ];
 
@@ -999,7 +1000,40 @@
       favicon:     "https://www.google.com/s2/favicons?domain=zeta.markets&sz=128",
       description: "Description here.",
     },
-
+    // ========================================================
+    // Prediction Markets (3 apps)
+    // ========================================================
+    
+    {
+     id:          "polymarket",
+      name:        "Polymarket",
+      website:     "https://polymarket.com/",
+      category:    "Prediction Market",
+      chains:      ["polygon", "ethereum", "solana", "monad"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=polymarket.com&sz=64",
+      description: "A leading decentralized prediction market platform allowing users to trade on real-world event outcomes using stablecoins.",
+    },
+    {
+      id:          "kalshi",
+     name:        "Kalshi",
+     website:     "https://kalshi.com/",
+     category:    "Prediction Market",
+      chains:      ["ethereum", "solana", "hyperlane"],
+     featured:    false,
+     favicon:     "https://www.google.com/s2/favicons?domain=kalshi.com&sz=64",
+      description: "A CFTC-regulated prediction market exchange for trading contracts on real-world events and economic indicators.",
+    },
+    {
+      id:          "ascend",
+      name:        "Ascend",
+      website:     "https://www.ascend.market/",
+      category:    "Prediction Market",
+      chains:      ["cardano"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=ascend.market&sz=64",
+      description: "A decentralized prediction and perpetual market protocol built natively on the Cardano blockchain.",
+    },
     // ========================================================
     // Gaming (48 apps)
     // ========================================================
