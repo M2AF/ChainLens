@@ -76,7 +76,7 @@
     { name: "Meme",                      short: "Meme"      },
     { name: "NFT Marketplace",           short: "NFT"       },
     { name: "Portfolio & Analytics",     short: "Portfolio" },
-    { name: "Perps & Prediction Market", short: "Prediction" },
+    { name: "Perps & Prediction Markets", short: "Prediction" },
     { name: "Wallet",                    short: "Wallet"    },
   ];
 
