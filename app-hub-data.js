@@ -1829,7 +1829,7 @@
       name:        "Magic Eden",
       website:     "https://magiceden.io",
       category:    "NFT Marketplace",
-      chains:      ["arbitrum", "base", "ethereum", "polygon", "solana"],
+      chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=magiceden.io&sz=64",
       description: "Description here.",
