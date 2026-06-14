@@ -2102,6 +2102,16 @@
       description: "Description here.",
     },
     {
+      id:          "ethos-network",
+      name:        "Ethos Network",
+      website:     "https://app.ethos.network/",
+      category:    "Infrastructure",
+      chains:      ["base", "ethereum"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=ethos.network&sz=128",
+      description: "A decentralized credibility protocol that uses on-chain reputation scores, reviews, and vouching mechanisms to foster trust and accountability within the Web3 ecosystem.",
+    },
+    {
       id:          "farcaster",
       name:        "Farcaster",
       website:     "https://farcaster.xyz",
