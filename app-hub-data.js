@@ -1559,7 +1559,7 @@
     {
       id:          "iqlabs",
       name:        "IQLabs",
-      website:     "https://www.iqlabs.dev",
+      website:     "https://iqlabs.dev",
       category:    "Meme",
       chains:      ["ethereum", "monad", "solana"],
       featured:    false,
