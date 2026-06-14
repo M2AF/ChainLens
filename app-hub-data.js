@@ -1538,7 +1538,7 @@
     },
     {
       id:          "snek",
-     name:        "Snek",
+      name:        "Snek",
       website:     "https://snek.com",
       category:    "Meme",
       chains:      ["cardano"],
@@ -1548,13 +1548,23 @@
     },
     {
       id:          "chog",
-     name:        "Chog",
+      name:        "Chog",
       website:     "https://www.chog.xyz/",
       category:    "Meme",
-     chains:      ["monad"],
-     featured:    false,
-     favicon:     "https://www.google.com/s2/favicons?domain=chog.xyz&sz=128",
+      chains:      ["monad"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=chog.xyz&sz=128",
       description: "A community-driven meme project native to the Monad ecosystem.",
+    },
+    {
+      id:          "iqlabs",
+      name:        "IQLabs",
+      website:     "iqlabs.dev",
+      category:    "Meme",
+      chains:      ["ethereum", "monad", "solana"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=iqlabs.dev&sz=64",
+      description: "IQLabs is a inscription platform that seeks build the blockchain internet through inscribing immutable data to blockchains.",
     },
 
     // ========================================================
