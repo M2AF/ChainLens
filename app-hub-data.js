@@ -2217,6 +2217,16 @@
     // ========================================================
 
     {
+      id:          "atlas",
+      name:        "Atlas",
+      website:     "https://www.atlasdefi.org/",
+      category:    "Perps & Prediction Markets",
+      chains:      ["cardano"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=atlasdefi.org&sz=128",
+      description: "A privacy-focused yield tokenization protocol on Cardano that enables users to split yield-bearing assets into tradable Principal Tokens (PT) and Yield Tokens (YT).",
+    },
+    {
       id:          "polymarket",
       name:        "Polymarket",
       website:     "https://polymarket.com/",
