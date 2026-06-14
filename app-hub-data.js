@@ -1891,7 +1891,7 @@
       name:        "Sappy Seals",
       website:     "https://sappyseals.io",
       category:    "NFT Marketplace",
-      chains:      ["ethereum"],
+      chains:      ["ethereum", "monad"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=sappyseals.io&sz=64",
       description: "Iconic Ethereum NFT collection and community hub.",
