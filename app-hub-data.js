@@ -2105,7 +2105,7 @@
       id:          "ethos-network",
       name:        "Ethos Network",
       website:     "https://app.ethos.network/",
-      category:    "Infrastructure",
+      category:    "Portfolio & Analytics",
       chains:      ["base", "ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=ethos.network&sz=128",
