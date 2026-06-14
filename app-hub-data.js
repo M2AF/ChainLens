@@ -219,7 +219,7 @@
       category:    "Bridge / Interoperability",
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "optimism", "polygon", "ronin", "zora"],
       featured:    false,
-      favicon:     "https://www.google.com/s2/favicons?domain=symbiosis.finance&sz=64",
+      favicon:     "https://www.google.com/s2/favicons?domain=symbiosis.finance&sz=128",
       description: "Description here.",
     },
     {
