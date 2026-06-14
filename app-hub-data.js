@@ -1528,7 +1528,7 @@
     },
     {
       id:          "emonad",
-      name:        "eMonad",
+      name:        "Emonad",
       website:     "https://emonad.lol",
       category:    "Meme",
       chains:      ["monad"],
@@ -1566,7 +1566,7 @@
       favicon:     "https://www.google.com/s2/favicons?domain=iqlabs.dev&sz=64",
       description: "IQLabs is a inscription platform that seeks build the blockchain internet through inscribing immutable data to blockchains.",
     },
-
+    
     // ========================================================
     // Wallet (16 apps)
     // ========================================================
