@@ -1502,6 +1502,16 @@
     // ========================================================
 
     {
+      id:          "build-anything",
+      name:        "Build Anything",
+      website:     "https://buildanything.so/",
+      category:    "Launchpad",
+      chains:      ["monad"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=buildanything.so&sz=128",
+      description: "An AI-powered development platform and educational curriculum focused on helping creators build, ship, and launch applications on the Monad network.",
+    },
+    {
       id:          "chog-fun",
       name:        "Chog.Fun",
       website:     "https://www.chog.fun/",
@@ -2295,6 +2305,26 @@
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=bean.exchange&sz=128",
       description: "A high-performance hybrid decentralized exchange on Monad featuring DLMM spot trading and perpetual futures with integrated privacy-preserving order execution.",
+    },
+    {
+      id:          "crsh-market",
+      name:        "CRSH Market",
+      website:     "https://app.crshmarket.com/",
+      category:    "Perps & Prediction Markets",
+      chains:      ["monad"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=crshmarket.com&sz=128",
+      description: "A decentralized trading platform on Monad focusing on perpetuals and prediction markets, enabling high-efficiency derivative trading.",
+    },
+    {
+      id:          "kizzy",
+      name:        "Kizzy",
+      website:     "https://app.kizzy.io/home",
+      category:    "Perps & Prediction Markets",
+      chains:      ["monad"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=kizzy.io&sz=128",
+      description: "A social media betting platform on Monad that allows users to place real-money wagers on influencer content performance, including engagement metrics like views, likes, and follower growth.",
     },
     {
       id:          "polymarket",
