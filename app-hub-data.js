@@ -1502,6 +1502,16 @@
     // ========================================================
 
     {
+      id:          "chog-fun",
+      name:        "Chog.Fun",
+      website:     "https://www.chog.fun/",
+      category:    "Launchpad",
+      chains:      ["monad"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=chog.fun&sz=128",
+      description: "A community-focused launchpad and platform for meme tokens and cultural projects within the Monad ecosystem, centered around the Chog mascot.",
+    },
+    {
       id:          "moonit",
       name:        "Moonit",
       website:     "https://abstract.moon.it",
