@@ -1981,37 +1981,6 @@ app.get('/api/market/top100', async (req, res) => {
     console.warn('⚠️  Binance top100 fallback failed:', e.message);
   }
 
-  // ── Attempt 3: CoinCap (free, no API key, generous rate limits) ──────
-  try {
-    const r = await fetch('https://api.coincap.io/v2/assets?limit=100', { signal: AbortSignal.timeout(8000) });
-    if (r.ok) {
-      const json = await r.json();
-      if (Array.isArray(json.data) && json.data.length > 0) {
-        const coins = json.data.map((t, i) => ({
-          id: t.id,
-          symbol: t.symbol.toLowerCase(),
-          name: t.name,
-          image: '',
-          current_price: parseFloat(t.priceUsd) || 0,
-          market_cap: parseFloat(t.marketCapUsd) || 0,
-          market_cap_rank: parseInt(t.rank) || i + 1,
-          price_change_percentage_24h: parseFloat(t.changePercent24Hr) || 0,
-          total_volume: parseFloat(t.volumeUsd24Hr) || 0,
-          high_24h: null, low_24h: null,
-          sparkline_in_7d: null,
-          source: 'CoinCap',
-        }));
-        console.log(`✅ top100 CoinCap fallback: ${coins.length} coins`);
-        _top100Cache = coins;
-        _top100CacheTs = Date.now();
-        return res.json(coins);
-      }
-    }
-    console.warn(`⚠️  CoinCap top100 ${r.status}`);
-  } catch (e) {
-    console.warn('⚠️  CoinCap top100 fallback failed:', e.message);
-  }
-
   // ── Return stale cache rather than an empty response ──────────────────
   if (_top100Cache) {
     console.log('⚠️  All sources failed — serving stale cache');
