@@ -183,13 +183,16 @@ const API_KEYS = {
   coingecko: process.env.COINGECKO_KEY,
 };
 
-const CG_BASE = process.env.COINGECKO_KEY ? 'https://pro-api.coingecko.com' : 'https://api.coingecko.com';
+// Demo keys (CG- prefix) ONLY work on api.coingecko.com — pro keys use pro-api.coingecko.com.
+// Sending a demo key to the pro endpoint (or vice versa) returns 401.
+const _cgKey = process.env.COINGECKO_KEY;
+const _cgIsDemo = _cgKey && _cgKey.startsWith('CG-');
+const CG_BASE = (_cgKey && !_cgIsDemo) ? 'https://pro-api.coingecko.com' : 'https://api.coingecko.com';
 const cgHeaders = () => {
-  if (!process.env.COINGECKO_KEY) return {};
-  const k = process.env.COINGECKO_KEY;
-  return k.startsWith('CG-') ? { 'x-cg-demo-api-key': k } : { 'x-cg-pro-api-key': k };
+  if (!_cgKey) return {};
+  return _cgIsDemo ? { 'x-cg-demo-api-key': _cgKey } : { 'x-cg-pro-api-key': _cgKey };
 };
-console.log(process.env.COINGECKO_KEY ? '✅ CoinGecko API key loaded' : '⚠️  No COINGECKO_KEY — free tier only');
+console.log(_cgKey ? `✅ CoinGecko API key loaded (${_cgIsDemo ? 'demo' : 'pro'} tier)` : '⚠️  No COINGECKO_KEY — free tier only');
 
 // Binance endpoint rotation — if one host is throttled or down, the next is tried
 const BINANCE_HOSTS = [
