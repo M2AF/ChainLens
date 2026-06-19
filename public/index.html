@@ -320,6 +320,7 @@
 
       const [showDonate, setShowDonate] = useState(false);
       const [copiedDonate, setCopiedDonate] = useState(null);
+      const [showWallet, setShowWallet] = useState(false);
 
       const chainStyles = {
         ethereum: { color: 'bg-[#3c3c3d]', label: 'Ethereum', native: 'ETH' },
@@ -2777,13 +2778,46 @@
               </div>
             )}
 
-          {/* ── Donate Widget — fixed bottom-right, always visible ── */}
-          {showDonate && (
-            <div className="fixed inset-0 z-[69]" onClick={() => setShowDonate(false)} />
+          {/* ── Wallet / Donate Widgets — fixed bottom-right, always visible ── */}
+          {(showDonate || showWallet) && (
+            <div className="fixed inset-0 z-[69]" onClick={() => { setShowDonate(false); setShowWallet(false); }} />
           )}
           <div className="fixed bottom-6 right-6 z-[70] flex flex-col items-end gap-3">
 
-          {/* Pop-up panel */}
+          {/* Wallet pop-up panel */}
+          {showWallet && (
+            <div className={`rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-5 w-64 flex flex-col items-center gap-3 ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
+              style={{ animation: 'slideUp 0.2s ease-out both' }}
+              onClick={e => e.stopPropagation()}>
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="1.5" y="5.5" width="19" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.5" className={darkMode ? 'text-cyan-400' : 'text-cyan-500'}/>
+                  <path d="M1.5 9.5H20.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className={darkMode ? 'text-cyan-400' : 'text-cyan-500'}/>
+                  <path d="M5 2.5L17 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className={darkMode ? 'text-slate-500' : 'text-slate-400'}/>
+                  <circle cx="15.5" cy="14.5" r="1.5" fill="currentColor" className={darkMode ? 'text-cyan-400' : 'text-cyan-500'}/>
+                </svg>
+              </div>
+              <p className={`text-[11px] font-black uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Magic Money Wallet</p>
+              <p className={`text-lg font-heading font-bold tracking-tight text-center ${darkMode ? 'text-white' : 'text-slate-900'}`}>Coming Soon...</p>
+              <p className={`text-[10px] text-center leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Embedded wallet, browser extension &amp; desktop app — stay tuned.</p>
+            </div>
+          )}
+
+          {/* Wallet trigger button */}
+          <button
+            onClick={() => { setShowWallet(v => !v); setShowDonate(false); }}
+            className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showWallet
+              ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
+              : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-500 backdrop-blur-md')}`}>
+            <svg width="13" height="13" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1.5" y="5.5" width="19" height="15" rx="2.5" stroke="currentColor" strokeWidth="2"/>
+              <path d="M1.5 9.5H20.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="15.5" cy="14.5" r="1.5" fill="currentColor"/>
+            </svg>
+            Wallet
+          </button>
+
+          {/* Donate Pop-up panel */}
           {showDonate && (
             <div className={`rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-4 w-72 flex flex-col gap-2 ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
               style={{ animation: 'slideUp 0.2s ease-out both' }}>
@@ -2843,9 +2877,9 @@
             </div>
           )}
 
-          {/* Trigger button */}
+          {/* Donate Trigger button */}
           <button
-            onClick={() => setShowDonate(v => !v)}
+            onClick={() => { setShowDonate(v => !v); setShowWallet(false); }}
             className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showDonate
               ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
               : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-500 backdrop-blur-md')}`}>
