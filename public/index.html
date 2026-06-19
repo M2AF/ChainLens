@@ -2789,14 +2789,7 @@
             <div className={`rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-5 w-64 flex flex-col items-center gap-3 ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
               style={{ animation: 'slideUp 0.2s ease-out both' }}
               onClick={e => e.stopPropagation()}>
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
-                <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="1.5" y="5.5" width="19" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.5" className={darkMode ? 'text-cyan-400' : 'text-cyan-500'}/>
-                  <path d="M1.5 9.5H20.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className={darkMode ? 'text-cyan-400' : 'text-cyan-500'}/>
-                  <path d="M5 2.5L17 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className={darkMode ? 'text-slate-500' : 'text-slate-400'}/>
-                  <circle cx="15.5" cy="14.5" r="1.5" fill="currentColor" className={darkMode ? 'text-cyan-400' : 'text-cyan-500'}/>
-                </svg>
-              </div>
+              <img src="/MagicMoney_icon128.png" alt="Magic Money Wallet" className="w-16 h-16 rounded-2xl object-contain" />
               <p className={`text-[11px] font-black uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Magic Money Wallet</p>
               <p className={`text-lg font-heading font-bold tracking-tight text-center ${darkMode ? 'text-white' : 'text-slate-900'}`}>Coming Soon...</p>
               <p className={`text-[10px] text-center leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Embedded wallet, browser extension &amp; desktop app — stay tuned.</p>
