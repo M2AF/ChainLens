@@ -1788,12 +1788,25 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
     
     const addrRes = await fetch(`https://cardano-mainnet.blockfrost.io/api/v0/addresses/${address}`, { headers: blockfrostHeaders });
     if (addrRes.status === 404) return res.json({ nfts: [] });
+    if (addrRes.status === 403) {
+      console.error('❌ Blockfrost 403 — invalid or missing API key');
+      return res.status(500).json({ error: 'Blockfrost authentication failed — check BLOCKFROST_KEY' });
+    }
+    if (addrRes.status === 429) {
+      console.error('❌ Blockfrost 429 — rate limit hit');
+      return res.status(429).json({ error: 'Blockfrost rate limit exceeded — try again shortly' });
+    }
+    if (!addrRes.ok) {
+      const errBody = await addrRes.text();
+      console.error(`❌ Blockfrost address lookup failed: ${addrRes.status}`, errBody);
+      return res.status(502).json({ error: `Blockfrost error ${addrRes.status}` });
+    }
     const addrData = await addrRes.json();
-    
+
     console.log(`📊 Cardano ${mode}: Processing address ${address}`);
-    
+
     const results = [];
-    
+
     // Add native ADA balance for tokens mode
     if (mode === 'tokens') {
       const adaLovelace = parseInt(addrData.amount?.find(a => a.unit === 'lovelace')?.quantity || 0);
@@ -1814,16 +1827,21 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
         });
       }
     }
-    
+
     // Method 1: Get assets from stake address (standard approach)
     let assets = [];
     if (addrData.stake_address) {
       const assetsRes = await fetch(
-        `https://cardano-mainnet.blockfrost.io/api/v0/accounts/${addrData.stake_address}/addresses/assets`, 
+        `https://cardano-mainnet.blockfrost.io/api/v0/accounts/${addrData.stake_address}/addresses/assets`,
         { headers: blockfrostHeaders }
       );
-      assets = await assetsRes.json();
-      console.log(`  Blockfrost stake assets: ${assets.length} total`);
+      if (assetsRes.ok) {
+        const parsed = await assetsRes.json();
+        assets = Array.isArray(parsed) ? parsed : [];
+        console.log(`  Blockfrost stake assets: ${assets.length} total`);
+      } else {
+        console.warn(`  ⚠️ Stake assets fetch failed: ${assetsRes.status} — falling back to direct address assets`);
+      }
     }
     
     // Method 2: ALSO check direct address amount field (catches BRAND NEW tokens not yet in stake endpoint)
@@ -1881,9 +1899,13 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
           `https://cardano-mainnet.blockfrost.io/api/v0/assets/${a.unit}`,
           { headers: blockfrostHeaders }
         );
-        if (!metaRes.ok) return null;
+        if (!metaRes.ok) {
+          if (metaRes.status === 429) console.warn(`  ⚠️ Blockfrost rate limit on asset ${a.unit.substring(0, 16)}…`);
+          return null;
+        }
 
         const meta = await metaRes.json();
+        if (meta.error || meta.statusCode) return null;
         const isNFT = parseInt(a.quantity) === 1;
         if ((mode === 'tokens' && isNFT) || (mode === 'nfts' && !isNFT)) return null;
 
@@ -2940,6 +2962,12 @@ if (!API_KEYS.alchemy) {
   console.error('   EVM chains (Ethereum, Optimism, etc.) will not work without it.');
 } else {
   console.log('✅ Alchemy API key loaded');
+}
+if (!API_KEYS.blockfrost) {
+  console.error('⚠️  WARNING: BLOCKFROST_KEY not found in .env file!');
+  console.error('   Cardano NFTs and tokens will not work without it.');
+} else {
+  console.log(`✅ Blockfrost API key loaded (${API_KEYS.blockfrost.substring(0, 15)}…)`);
 }
 
 app.listen(PORT, '0.0.0.0', () => {
