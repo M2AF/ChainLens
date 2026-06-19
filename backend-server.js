@@ -7,7 +7,6 @@ const fetch = require('node-fetch');
 const path = require('path');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const fs = require('fs');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -173,28 +172,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 const API_KEYS = {
   alchemy: process.env.ALCHEMY_KEY,
   blockfrost: process.env.BLOCKFROST_KEY,
-  helius: process.env.HELIUS_KEY,
+  helius: process.env.HELIUS_KEY, 
   unstoppable: process.env.UNSTOPPABLE_KEY,
   dexhunter: process.env.DEXHUNTER_PARTNER_ID,
-  jupiter: process.env.JUPITER_API_KEY,
+  jupiter: process.env.JUPITER_API_KEY, 
   uniswap: process.env.UNISWAP_API_KEY,
   zerion: process.env.ZERION_KEY,
-  moralis: process.env.MORALIS_KEY,
-  coingecko: process.env.COINGECKO_KEY,
+  moralis: process.env.MORALIS_KEY
 };
-
-// CoinGecko base URL and auth headers — switches to Pro if COINGECKO_KEY is set
-const CG_BASE = process.env.COINGECKO_KEY ? 'https://pro-api.coingecko.com' : 'https://api.coingecko.com';
-const cgHeaders = () => {
-  if (!process.env.COINGECKO_KEY) return {};
-  const key = process.env.COINGECKO_KEY;
-  // Demo keys start with "CG-"; Pro keys use a different header
-  return key.startsWith('CG-')
-    ? { 'x-cg-demo-api-key': key }
-    : { 'x-cg-pro-api-key': key };
-};
-if (process.env.COINGECKO_KEY) console.log('✅ CoinGecko API key loaded');
-else console.warn('⚠️  No COINGECKO_KEY — using free tier (may rate-limit). Get a free Demo key at coingecko.com/api/pricing');
 
 const APP_HUB_CHAINS = [
   { id: 'ethereum', label: 'Ethereum' },
@@ -1930,30 +1915,15 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// --- Market Data Routes ---
-// Top-100 cache: 5 min TTL, persisted to disk so restarts serve stale data instantly
+// --- DIA Market Data Routes ---
+// Top 100 cryptocurrencies with live prices
+// Top-100 market cache — 2 minute TTL so refreshes are instant
 let _top100Cache = null;
 let _top100CacheTs = 0;
-const TOP100_TTL = 300000; // 5 min
-const TOP100_CACHE_FILE = path.join(__dirname, '.market-cache.json');
-
-// Load from disk on startup — prevents 500 on first request after a restart
-try {
-  const raw = fs.readFileSync(TOP100_CACHE_FILE, 'utf8');
-  const parsed = JSON.parse(raw);
-  if (Array.isArray(parsed) && parsed.length > 0) {
-    _top100Cache = parsed;
-    console.log(`✅ Market disk cache loaded (${parsed.length} coins)`);
-  }
-} catch (_) { /* no cache file yet */ }
-
-const _saveTop100 = (data) => {
-  _top100Cache = data;
-  _top100CacheTs = Date.now();
-  try { fs.writeFileSync(TOP100_CACHE_FILE, JSON.stringify(data)); } catch (_) {}
-};
+const TOP100_TTL = 120000;
 
 app.get('/api/market/top100', async (req, res) => {
+  // Serve from cache if fresh
   if (_top100Cache && Date.now() - _top100CacheTs < TOP100_TTL) {
     console.log('📦 top100 cache hit');
     return res.json(_top100Cache);
@@ -1961,65 +1931,40 @@ app.get('/api/market/top100', async (req, res) => {
 
   console.log('📊 Fetching top 100 market data...');
 
-  // ── Attempt 1: CoinGecko (images + sparklines, optional API key) ─────
+  // ── Attempt 1: CoinGecko with sparklines ─────────────────────────────
   try {
     const response = await fetch(
-      `${CG_BASE}/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=true&price_change_percentage=24h`,
-      { headers: cgHeaders(), signal: AbortSignal.timeout(8000) }
+      'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=true&price_change_percentage=24h',
+      { signal: AbortSignal.timeout(8000) }
     );
     if (response.ok) {
       const data = await response.json();
       if (Array.isArray(data) && data.length > 0) {
         console.log(`✅ top100 CoinGecko: ${data.length} coins`);
-        _saveTop100(data);
+        _top100Cache = data;
+        _top100CacheTs = Date.now();
         return res.json(data);
       }
     }
-    console.warn(`⚠️  CoinGecko top100 ${response.status} — trying CoinCap`);
+    console.warn(`⚠️  CoinGecko top100 ${response.status} — trying Binance fallback`);
   } catch (e) {
     console.warn('⚠️  CoinGecko top100 failed:', e.message);
   }
 
-  // ── Attempt 2: CoinCap (free, no key, proper market-cap ranking) ─────
-  try {
-    const r = await fetch('https://api.coincap.io/v2/assets?limit=100', { signal: AbortSignal.timeout(8000) });
-    if (r.ok) {
-      const json = await r.json();
-      if (Array.isArray(json.data) && json.data.length > 0) {
-        const coins = json.data.map((t, i) => ({
-          id: t.id, symbol: t.symbol.toLowerCase(), name: t.name, image: '',
-          current_price: parseFloat(t.priceUsd) || 0,
-          market_cap: parseFloat(t.marketCapUsd) || 0,
-          market_cap_rank: parseInt(t.rank) || i + 1,
-          price_change_percentage_24h: parseFloat(t.changePercent24Hr) || 0,
-          total_volume: parseFloat(t.volumeUsd24Hr) || 0,
-          high_24h: null, low_24h: null, sparkline_in_7d: null,
-          source: 'CoinCap',
-        }));
-        console.log(`✅ top100 CoinCap: ${coins.length} coins`);
-        _saveTop100(coins);
-        return res.json(coins);
-      }
-    }
-    console.warn(`⚠️  CoinCap top100 ${r.status} — trying Binance`);
-  } catch (e) {
-    console.warn('⚠️  CoinCap top100 failed:', e.message);
-  }
-
-  // ── Attempt 3: Binance 24hr ticker (volume-ranked, no images) ────────
+  // ── Attempt 2: Binance 24hr ticker (no sparklines, but fast) ─────────
   try {
     const r = await fetch('https://api.binance.com/api/v3/ticker/24hr', { signal: AbortSignal.timeout(6000) });
     if (r.ok) {
       const tickers = await r.json();
-      const coins = tickers
+      const usdtPairs = tickers
         .filter(t => t.symbol.endsWith('USDT') && parseFloat(t.quoteVolume) > 1000000)
         .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
         .slice(0, 100)
         .map((t, i) => {
-          const sym = t.symbol.replace('USDT', '');
+          const symbol = t.symbol.replace('USDT', '');
           return {
-            id: sym.toLowerCase(), symbol: sym.toLowerCase(), name: sym, image: '',
-            current_price: parseFloat(t.lastPrice),
+            id: symbol.toLowerCase(), symbol: symbol.toLowerCase(), name: symbol,
+            image: '', current_price: parseFloat(t.lastPrice),
             market_cap: parseFloat(t.quoteVolume), market_cap_rank: i + 1,
             price_change_percentage_24h: parseFloat(t.priceChangePercent),
             total_volume: parseFloat(t.quoteVolume),
@@ -2027,17 +1972,49 @@ app.get('/api/market/top100', async (req, res) => {
             sparkline_in_7d: null, source: 'Binance',
           };
         });
-      console.log(`✅ top100 Binance: ${coins.length} coins`);
-      _saveTop100(coins);
-      return res.json(coins);
+      console.log(`✅ top100 Binance fallback: ${usdtPairs.length} coins`);
+      _top100Cache = usdtPairs;
+      _top100CacheTs = Date.now();
+      return res.json(usdtPairs);
     }
   } catch (e) {
-    console.warn('⚠️  Binance top100 failed:', e.message);
+    console.warn('⚠️  Binance top100 fallback failed:', e.message);
   }
 
-  // ── Stale disk cache (survives restarts) — last resort ───────────────
+  // ── Attempt 3: CoinCap (free, no API key, generous rate limits) ──────
+  try {
+    const r = await fetch('https://api.coincap.io/v2/assets?limit=100', { signal: AbortSignal.timeout(8000) });
+    if (r.ok) {
+      const json = await r.json();
+      if (Array.isArray(json.data) && json.data.length > 0) {
+        const coins = json.data.map((t, i) => ({
+          id: t.id,
+          symbol: t.symbol.toLowerCase(),
+          name: t.name,
+          image: '',
+          current_price: parseFloat(t.priceUsd) || 0,
+          market_cap: parseFloat(t.marketCapUsd) || 0,
+          market_cap_rank: parseInt(t.rank) || i + 1,
+          price_change_percentage_24h: parseFloat(t.changePercent24Hr) || 0,
+          total_volume: parseFloat(t.volumeUsd24Hr) || 0,
+          high_24h: null, low_24h: null,
+          sparkline_in_7d: null,
+          source: 'CoinCap',
+        }));
+        console.log(`✅ top100 CoinCap fallback: ${coins.length} coins`);
+        _top100Cache = coins;
+        _top100CacheTs = Date.now();
+        return res.json(coins);
+      }
+    }
+    console.warn(`⚠️  CoinCap top100 ${r.status}`);
+  } catch (e) {
+    console.warn('⚠️  CoinCap top100 fallback failed:', e.message);
+  }
+
+  // ── Return stale cache rather than an empty response ──────────────────
   if (_top100Cache) {
-    console.log('⚠️  All live sources failed — serving stale cache');
+    console.log('⚠️  All sources failed — serving stale cache');
     return res.json(_top100Cache);
   }
 
@@ -2061,13 +2038,13 @@ app.get('/api/market/search/:query', async (req, res) => {
   const save = (data) => { _searchCache[cacheKey] = { data, ts: Date.now() }; return data; };
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-  // Step 1: CoinGecko /search — get slug, name, image, rank
+  // Step 1: CoinGecko /search — get slug, name, image, rank (high rate limit endpoint)
   let meta = null;
   try {
-    const r = await fetch(`${CG_BASE}/api/v3/search?query=${encodeURIComponent(query)}`, { headers: cgHeaders() });
+    const r = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(query)}`);
     if (r.status === 429) { await sleep(3000); }
     const r2 = r.status === 429
-      ? await fetch(`${CG_BASE}/api/v3/search?query=${encodeURIComponent(query)}`, { headers: cgHeaders() })
+      ? await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(query)}`)
       : r;
     if (r2.ok) {
       const d = await r2.json();
@@ -2080,15 +2057,17 @@ app.get('/api/market/search/:query', async (req, res) => {
     }
   } catch (e) { console.log(`  ❌ /search: ${e.message}`); }
 
-  // Step 2: CoinGecko /coins/markets + /market_chart in parallel
+  // Step 2: Fetch /coins/markets AND /market_chart in parallel
+  // Always fetch both — /markets may omit sparkline for smaller coins
   if (meta?.id) {
     try {
       await sleep(300);
       const [marketsRes, chartRes] = await Promise.all([
-        fetch(`${CG_BASE}/api/v3/coins/markets?vs_currency=usd&ids=${meta.id}&sparkline=true&price_change_percentage=24h`, { headers: cgHeaders() }),
-        fetch(`${CG_BASE}/api/v3/coins/${meta.id}/market_chart?vs_currency=usd&days=7`, { headers: cgHeaders() })
+        fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${meta.id}&sparkline=true&price_change_percentage=24h`),
+        fetch(`https://api.coingecko.com/api/v3/coins/${meta.id}/market_chart?vs_currency=usd&days=7`)
       ]);
 
+      // Extract sparkline from market_chart (more reliable than markets sparkline for smaller coins)
       let sparklineFromChart = null;
       if (chartRes.ok) {
         const cd = await chartRes.json();
@@ -2097,6 +2076,7 @@ app.get('/api/market/search/:query', async (req, res) => {
         console.log(`  ✅ market_chart: ${pts.length} sparkline points`);
       }
 
+      // Use /markets data if available, always override sparkline with chart data
       if (marketsRes.ok) {
         const d = await marketsRes.json();
         if (d?.length > 0) {
@@ -2106,6 +2086,7 @@ app.get('/api/market/search/:query', async (req, res) => {
             symbol: d[0].symbol.toUpperCase(),
             market_cap_rank: d[0].market_cap_rank || meta.rank,
             image: d[0].image || meta.image,
+            // Use chart sparkline — it's always populated, markets sparkline can be null
             sparkline_in_7d: sparklineFromChart || d[0].sparkline_in_7d,
           };
           console.log(`  ✅ Full result: ${coin.name} #${coin.market_cap_rank} $${coin.current_price} sparkline=${!!coin.sparkline_in_7d}`);
@@ -2113,13 +2094,12 @@ app.get('/api/market/search/:query', async (req, res) => {
         }
       }
 
-      // Step 3: /markets rate-limited — assemble from simple/price + chart
+      // /markets rate-limited or failed — build from meta + simple/price + chart
       if (marketsRes.status === 429 || !marketsRes.ok) {
         console.log('  ⚠️ /markets unavailable — assembling from simple/price + chart');
         await sleep(1000);
         const priceRes = await fetch(
-          `${CG_BASE}/api/v3/simple/price?ids=${meta.id}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`,
-          { headers: cgHeaders() }
+          `https://api.coingecko.com/api/v3/simple/price?ids=${meta.id}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`
         );
         if (priceRes.ok) {
           const pd = await priceRes.json();
@@ -2131,10 +2111,12 @@ app.get('/api/market/search/:query', async (req, res) => {
               price_change_percentage_24h: pd[meta.id]?.usd_24h_change || 0,
               market_cap: pd[meta.id]?.usd_market_cap || 0,
               market_cap_rank: meta.rank,
-              image: meta.image, sparkline_in_7d: sparklineFromChart,
-              total_volume: 0, high_24h: 0, low_24h: 0, source: 'CoinGecko',
+              image: meta.image,
+              sparkline_in_7d: sparklineFromChart,
+              total_volume: 0, high_24h: 0, low_24h: 0,
+              source: 'CoinGecko',
             };
-            console.log(`  ✅ Assembled: ${coin.name} #${coin.market_cap_rank} $${price}`);
+            console.log(`  ✅ Assembled: ${coin.name} #${coin.market_cap_rank} $${price} sparkline=${!!sparklineFromChart}`);
             return res.json(save(coin));
           }
         }
@@ -2142,31 +2124,8 @@ app.get('/api/market/search/:query', async (req, res) => {
     } catch (e) { console.log(`  ❌ CoinGecko data fetch: ${e.message}`); }
   }
 
-  // Step 4: CoinCap search (free, no key, returns market-cap ranked results)
-  try {
-    const r = await fetch(`https://api.coincap.io/v2/assets?search=${encodeURIComponent(query)}&limit=5`, { signal: AbortSignal.timeout(6000) });
-    if (r.ok) {
-      const json = await r.json();
-      const t = json.data?.[0];
-      if (t && parseFloat(t.priceUsd) > 0) {
-        const coin = {
-          id: t.id, symbol: t.symbol.toLowerCase(), name: t.name,
-          image: meta?.image || '',
-          current_price: parseFloat(t.priceUsd) || 0,
-          price_change_percentage_24h: parseFloat(t.changePercent24Hr) || 0,
-          market_cap: parseFloat(t.marketCapUsd) || 0,
-          market_cap_rank: parseInt(t.rank) || meta?.rank || null,
-          total_volume: parseFloat(t.volumeUsd24Hr) || 0,
-          high_24h: null, low_24h: null, sparkline_in_7d: null,
-          source: 'CoinCap',
-        };
-        console.log(`  ✅ CoinCap: ${coin.name} $${coin.current_price}`);
-        return res.json(save(coin));
-      }
-    }
-  } catch (e) { console.log(`  ❌ CoinCap search: ${e.message}`); }
-
-  // Step 5: DefiLlama — DeFi tokens CoinGecko misses or rate-limits
+  // Step 3: DefiLlama — covers DeFi tokens that CoinGecko rate-limits or misses
+  // Uses coingecko:{id} prefix if we have meta, otherwise tries symbol search
   try {
     const llamaId = meta?.id ? `coingecko:${meta.id}` : null;
     if (llamaId) {
@@ -2177,47 +2136,22 @@ app.get('/api/market/search/:query', async (req, res) => {
         if (entry?.price > 0) {
           const coin = {
             id: meta.id, name: meta.name, symbol: meta.symbol || entry.symbol?.toUpperCase() || ticker,
-            current_price: entry.price, price_change_percentage_24h: 0,
+            current_price: entry.price,
+            price_change_percentage_24h: 0,
             market_cap: 0, market_cap_rank: meta?.rank || null,
-            image: meta?.image || '', sparkline_in_7d: null,
-            total_volume: 0, high_24h: 0, low_24h: 0, source: 'DefiLlama',
+            image: meta?.image || '',
+            sparkline_in_7d: null,
+            total_volume: 0, high_24h: 0, low_24h: 0,
+            source: 'DefiLlama',
           };
           console.log(`  ✅ DefiLlama: ${coin.name} $${entry.price}`);
           return res.json(save(coin));
         }
       }
     }
-  } catch (e) { console.log(`  ❌ DefiLlama: ${e.message}`); }
+  } catch (e) { console.log(`  ❌ DefiLlama market search: ${e.message}`); }
 
-  // Step 6: DexScreener — DEX-only tokens not listed on major CEXes
-  try {
-    const r = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(6000) });
-    if (r.ok) {
-      const json = await r.json();
-      const pairs = (json.pairs || []).filter(p => parseFloat(p.priceUsd) > 0);
-      pairs.sort((a, b) => parseFloat(b.volume?.h24 || 0) - parseFloat(a.volume?.h24 || 0));
-      const pair = pairs[0];
-      if (pair) {
-        const coin = {
-          id: pair.baseToken.address.toLowerCase(),
-          symbol: pair.baseToken.symbol.toUpperCase(),
-          name: pair.baseToken.name,
-          image: pair.info?.imageUrl || meta?.image || '',
-          current_price: parseFloat(pair.priceUsd) || 0,
-          price_change_percentage_24h: parseFloat(pair.priceChange?.h24) || 0,
-          market_cap: parseFloat(pair.marketCap || pair.fdv) || 0,
-          market_cap_rank: meta?.rank || null,
-          total_volume: parseFloat(pair.volume?.h24) || 0,
-          high_24h: null, low_24h: null, sparkline_in_7d: null,
-          source: 'DexScreener',
-        };
-        console.log(`  ✅ DexScreener: ${coin.name} $${coin.current_price} via ${pair.dexId}`);
-        return res.json(save(coin));
-      }
-    }
-  } catch (e) { console.log(`  ❌ DexScreener: ${e.message}`); }
-
-  // Step 7: Kraken (major coins, ticker only)
+  // Step 4: Kraken (major coins, ticker only)
   const ticker = meta?.symbol || query.toUpperCase();
   try {
     const r = await fetch(`https://api.kraken.com/0/public/Ticker?pair=${ticker}USD`);
@@ -2232,7 +2166,7 @@ app.get('/api/market/search/:query', async (req, res) => {
         high_24h: parseFloat(tk.h[1]), low_24h: parseFloat(tk.l[1]),
         total_volume: parseFloat(tk.v[1]), market_cap: 0,
         market_cap_rank: meta?.rank || null,
-        image: meta?.image || '',
+        image: meta?.image || `https://assets.coingecko.com/coins/images/1/small/bitcoin.png`,
         sparkline_in_7d: null, source: 'Kraken',
       };
       console.log(`  ✅ Kraken: ${ticker} $${price}`);
@@ -2240,7 +2174,7 @@ app.get('/api/market/search/:query', async (req, res) => {
     }
   } catch (e) { console.log(`  ❌ Kraken: ${e.message}`); }
 
-  // Step 8: Gemini (last CEX resort)
+  // Step 5: Gemini
   try {
     const r = await fetch(`https://api.gemini.com/v1/pubticker/${ticker.toLowerCase()}usd`);
     if (r.ok) {
@@ -2251,19 +2185,14 @@ app.get('/api/market/search/:query', async (req, res) => {
           id: meta?.id || query.toLowerCase(), name: meta?.name || ticker, symbol: ticker,
           current_price: price, price_change_percentage_24h: 0,
           market_cap: 0, market_cap_rank: meta?.rank || null,
-          image: meta?.image || '', sparkline_in_7d: null, source: 'Gemini',
+          image: meta?.image || `https://assets.coingecko.com/coins/images/1/small/bitcoin.png`,
+          sparkline_in_7d: null, source: 'Gemini',
         };
         console.log(`  ✅ Gemini: ${ticker} $${price}`);
         return res.json(save(coin));
       }
     }
   } catch (e) { console.log(`  ❌ Gemini: ${e.message}`); }
-
-  // Stale cache — return last known result rather than 404
-  if (_searchCache[cacheKey]) {
-    console.log(`  ⚠️  All sources failed — serving stale search cache for: ${query}`);
-    return res.json(_searchCache[cacheKey].data);
-  }
 
   res.status(404).json({ error: `"${query}" not found. Try full name (e.g. "Monad") or ticker (e.g. "MON")` });
 });
