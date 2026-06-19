@@ -24,7 +24,7 @@
     "wagmi": "^2.19.5"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": "22.x"
   },
   "author": "",
   "license": "ISC"

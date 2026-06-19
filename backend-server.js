@@ -3,7 +3,9 @@ const _envCheck = { moralis: !!process.env.MORALIS_KEY, alchemy: !!process.env.A
 console.log('🔑 ENV check:', JSON.stringify(_envCheck));
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch');
+// Use Node's built-in fetch (undici) — avoids node-fetch v2's "Premature close"
+// bug on Node 24.17+ keep-alive sockets. Falls back to node-fetch only on <18.
+const fetch = globalThis.fetch || ((...args) => import('node-fetch').then(m => m.default(...args)));
 const path = require('path');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
@@ -2022,7 +2024,7 @@ app.get('/api/market/top100', async (req, res) => {
   // ── Attempt 2: Binance 24hr ticker (no sparklines, volume-sorted) ─────
   try {
     const r = await fetchBinance('/api/v3/ticker/24hr', 6000);
-    if (r.ok) {
+    if (r && r.ok) {
       const tickers = await r.json();
       const usdtPairs = tickers
         .filter(t => t.symbol.endsWith('USDT') && parseFloat(t.quoteVolume) > 1000000)
