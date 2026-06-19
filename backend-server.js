@@ -7,6 +7,7 @@ const fetch = require('node-fetch');
 const path = require('path');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -172,13 +173,41 @@ app.use(express.static(path.join(__dirname, 'public')));
 const API_KEYS = {
   alchemy: process.env.ALCHEMY_KEY,
   blockfrost: process.env.BLOCKFROST_KEY,
-  helius: process.env.HELIUS_KEY, 
+  helius: process.env.HELIUS_KEY,
   unstoppable: process.env.UNSTOPPABLE_KEY,
   dexhunter: process.env.DEXHUNTER_PARTNER_ID,
-  jupiter: process.env.JUPITER_API_KEY, 
+  jupiter: process.env.JUPITER_API_KEY,
   uniswap: process.env.UNISWAP_API_KEY,
   zerion: process.env.ZERION_KEY,
-  moralis: process.env.MORALIS_KEY
+  moralis: process.env.MORALIS_KEY,
+  coingecko: process.env.COINGECKO_KEY,
+};
+
+const CG_BASE = process.env.COINGECKO_KEY ? 'https://pro-api.coingecko.com' : 'https://api.coingecko.com';
+const cgHeaders = () => {
+  if (!process.env.COINGECKO_KEY) return {};
+  const k = process.env.COINGECKO_KEY;
+  return k.startsWith('CG-') ? { 'x-cg-demo-api-key': k } : { 'x-cg-pro-api-key': k };
+};
+console.log(process.env.COINGECKO_KEY ? '✅ CoinGecko API key loaded' : '⚠️  No COINGECKO_KEY — free tier only');
+
+// Binance endpoint rotation — if one host is throttled or down, the next is tried
+const BINANCE_HOSTS = [
+  'https://api.binance.com',
+  'https://api-gcp.binance.com',
+  'https://api1.binance.com',
+  'https://api2.binance.com',
+  'https://api3.binance.com',
+  'https://api4.binance.com',
+];
+const fetchBinance = async (path, timeoutMs = 5000) => {
+  for (const host of BINANCE_HOSTS) {
+    try {
+      const r = await fetch(`${host}${path}`, { signal: AbortSignal.timeout(timeoutMs) });
+      if (r.ok) return r;
+    } catch {}
+  }
+  return null;
 };
 
 const APP_HUB_CHAINS = [
@@ -1120,7 +1149,8 @@ const evmChains = [
   { id: 'ronin', net: 'ronin-mainnet' },
   { id: 'worldchain', net: 'worldchain-mainnet' },
   { id: 'gnosis', net: 'gnosis-mainnet' },
-  { id: 'hyperevm', net: 'hyperevm-mainnet' } // Hyperliquid EVM
+  { id: 'hyperevm', net: 'hyperevm-mainnet' }, // Hyperliquid EVM
+  { id: 'hype', net: 'hyperevm-mainnet' },     // alias used by frontend
 ];
 
 evmChains.forEach(chain => {
@@ -1160,40 +1190,41 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
     };
 
     if (mode === 'tokens') {
+      const tokens = [];
+
+      // ── Moralis attempt (Monad mainnet chain=0x8f) ────────────────────
+      let moralisResult = [];
+      let moralisNativeRaw = null;
+
       const [nativeRes, erc20Res] = await Promise.all([
         fetch(`https://deep-index.moralis.io/api/v2.2/${address}/balance?chain=0x8f`, { headers: moralisHeaders }),
         fetch(`https://deep-index.moralis.io/api/v2.2/${address}/erc20?chain=0x8f`, { headers: moralisHeaders })
       ]);
 
-      // Log full error body for both — previously this was swallowed silently
       if (!nativeRes.ok) {
         const errBody = await nativeRes.text();
         console.error(`❌ Moralis native balance error ${nativeRes.status}:`, errBody);
+      } else {
+        const nativeData = await nativeRes.json();
+        console.log('  Moralis native response:', JSON.stringify(nativeData));
+        moralisNativeRaw = nativeData.balance;
       }
+
       if (!erc20Res.ok) {
         const errBody = await erc20Res.text();
         console.error(`❌ Moralis ERC20 error ${erc20Res.status}:`, errBody);
+      } else {
+        const erc20Data = await erc20Res.json();
+        moralisResult = erc20Data.result || [];
+        console.log(`  Moralis returned ${moralisResult.length} ERC20 tokens`);
       }
-
-      // Previous code used AND (&&) — if only one failed we'd silently get NaN balances.
-      // Now bail if either fails.
-      if (!nativeRes.ok || !erc20Res.ok) {
-        return res.json({ nfts: [] });
-      }
-
-      const tokens = [];
-      const [nativeData, erc20Data] = await Promise.all([nativeRes.json(), erc20Res.json()]);
-
-      console.log('  Moralis native response:', JSON.stringify(nativeData));
-      console.log('  Moralis ERC20 result count:', erc20Data.result?.length ?? 'no result field');
 
       // Fetch MON price once — used by native token AND all ERC20 nativePrice calculations
       const monUsdPrice = await fetchNativePrice('MON');
 
-      // Native MON balance
-      const rawBalance = nativeData.balance;
-      if (rawBalance && rawBalance !== '0') {
-        const balance = parseInt(rawBalance, 10) / 1e18;
+      // Native MON balance (from Moralis)
+      if (moralisNativeRaw && moralisNativeRaw !== '0') {
+        const balance = parseInt(moralisNativeRaw, 10) / 1e18;
         if (balance > 0) {
           tokens.push({
             id: 'native-mon',
@@ -1201,7 +1232,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
             symbol: 'MON',
             balance: balance.toFixed(4),
             usdPrice: monUsdPrice,
-            nativePrice: '1.0000', // MON in MON = 1
+            nativePrice: '1.0000',
             totalValue: (balance * monUsdPrice).toFixed(2),
             image: 'https://assets.coingecko.com/coins/images/54540/small/monad.png',
             chain: 'monad',
@@ -1213,9 +1244,6 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
       // ERC20 tokens — Moralis first, then RPC fallback for unindexed tokens
       const MONAD_RPC = 'https://monad-mainnet.drpc.org';
       const ERC20_TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-
-      const moralisResult = erc20Data.result || [];
-      console.log(`  Moralis returned ${moralisResult.length} ERC20 tokens`);
 
       // Process whatever Moralis did return
       const moralisTokens = await Promise.all(moralisResult.map(async (t) => {
@@ -1915,15 +1943,31 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// --- DIA Market Data Routes ---
-// Top 100 cryptocurrencies with live prices
-// Top-100 market cache — 2 minute TTL so refreshes are instant
+// --- Market Data Routes ---
+// Top 100 cryptocurrencies with live prices — 5 minute TTL
 let _top100Cache = null;
 let _top100CacheTs = 0;
-const TOP100_TTL = 120000;
+const TOP100_TTL = 300000;
+
+// Persist market cache to disk so server restarts don't cause cold-start 500s
+const MARKET_CACHE_FILE = path.join(__dirname, 'market-cache.json');
+try {
+  const raw = fs.readFileSync(MARKET_CACHE_FILE, 'utf8');
+  const saved = JSON.parse(raw);
+  if (Array.isArray(saved.data) && saved.data.length > 0) {
+    _top100Cache = saved.data;
+    _top100CacheTs = saved.ts || 0;
+    console.log(`📦 Market cache restored from disk: ${saved.data.length} coins`);
+  }
+} catch (_) { /* no cache file yet */ }
+
+const saveTop100 = (data) => {
+  _top100Cache = data;
+  _top100CacheTs = Date.now();
+  try { fs.writeFileSync(MARKET_CACHE_FILE, JSON.stringify({ data, ts: _top100CacheTs })); } catch (_) {}
+};
 
 app.get('/api/market/top100', async (req, res) => {
-  // Serve from cache if fresh
   if (_top100Cache && Date.now() - _top100CacheTs < TOP100_TTL) {
     console.log('📦 top100 cache hit');
     return res.json(_top100Cache);
@@ -1934,26 +1978,25 @@ app.get('/api/market/top100', async (req, res) => {
   // ── Attempt 1: CoinGecko with sparklines ─────────────────────────────
   try {
     const response = await fetch(
-      'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=true&price_change_percentage=24h',
-      { signal: AbortSignal.timeout(8000) }
+      `${CG_BASE}/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=true&price_change_percentage=24h`,
+      { headers: cgHeaders(), signal: AbortSignal.timeout(8000) }
     );
     if (response.ok) {
       const data = await response.json();
       if (Array.isArray(data) && data.length > 0) {
         console.log(`✅ top100 CoinGecko: ${data.length} coins`);
-        _top100Cache = data;
-        _top100CacheTs = Date.now();
+        saveTop100(data);
         return res.json(data);
       }
     }
-    console.warn(`⚠️  CoinGecko top100 ${response.status} — trying Binance fallback`);
+    console.warn(`⚠️  CoinGecko top100 ${response.status} — trying Binance`);
   } catch (e) {
     console.warn('⚠️  CoinGecko top100 failed:', e.message);
   }
 
-  // ── Attempt 2: Binance 24hr ticker (no sparklines, but fast) ─────────
+  // ── Attempt 2: Binance 24hr ticker (no sparklines, volume-sorted) ─────
   try {
-    const r = await fetch('https://api.binance.com/api/v3/ticker/24hr', { signal: AbortSignal.timeout(6000) });
+    const r = await fetchBinance('/api/v3/ticker/24hr', 6000);
     if (r.ok) {
       const tickers = await r.json();
       const usdtPairs = tickers
@@ -1973,15 +2016,14 @@ app.get('/api/market/top100', async (req, res) => {
           };
         });
       console.log(`✅ top100 Binance fallback: ${usdtPairs.length} coins`);
-      _top100Cache = usdtPairs;
-      _top100CacheTs = Date.now();
+      saveTop100(usdtPairs);
       return res.json(usdtPairs);
     }
   } catch (e) {
     console.warn('⚠️  Binance top100 fallback failed:', e.message);
   }
 
-  // ── Return stale cache rather than an empty response ──────────────────
+  // ── Stale cache beats a 500 ───────────────────────────────────────────
   if (_top100Cache) {
     console.log('⚠️  All sources failed — serving stale cache');
     return res.json(_top100Cache);
@@ -2010,10 +2052,10 @@ app.get('/api/market/search/:query', async (req, res) => {
   // Step 1: CoinGecko /search — get slug, name, image, rank (high rate limit endpoint)
   let meta = null;
   try {
-    const r = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(query)}`);
+    const r = await fetch(`${CG_BASE}/api/v3/search?query=${encodeURIComponent(query)}`, { headers: cgHeaders() });
     if (r.status === 429) { await sleep(3000); }
     const r2 = r.status === 429
-      ? await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(query)}`)
+      ? await fetch(`${CG_BASE}/api/v3/search?query=${encodeURIComponent(query)}`, { headers: cgHeaders() })
       : r;
     if (r2.ok) {
       const d = await r2.json();
@@ -2032,8 +2074,8 @@ app.get('/api/market/search/:query', async (req, res) => {
     try {
       await sleep(300);
       const [marketsRes, chartRes] = await Promise.all([
-        fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${meta.id}&sparkline=true&price_change_percentage=24h`),
-        fetch(`https://api.coingecko.com/api/v3/coins/${meta.id}/market_chart?vs_currency=usd&days=7`)
+        fetch(`${CG_BASE}/api/v3/coins/markets?vs_currency=usd&ids=${meta.id}&sparkline=true&price_change_percentage=24h`, { headers: cgHeaders() }),
+        fetch(`${CG_BASE}/api/v3/coins/${meta.id}/market_chart?vs_currency=usd&days=7`, { headers: cgHeaders() })
       ]);
 
       // Extract sparkline from market_chart (more reliable than markets sparkline for smaller coins)
@@ -2068,7 +2110,8 @@ app.get('/api/market/search/:query', async (req, res) => {
         console.log('  ⚠️ /markets unavailable — assembling from simple/price + chart');
         await sleep(1000);
         const priceRes = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${meta.id}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`
+          `${CG_BASE}/api/v3/simple/price?ids=${meta.id}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`,
+          { headers: cgHeaders() }
         );
         if (priceRes.ok) {
           const pd = await priceRes.json();
@@ -2120,7 +2163,62 @@ app.get('/api/market/search/:query', async (req, res) => {
     }
   } catch (e) { console.log(`  ❌ DefiLlama market search: ${e.message}`); }
 
-  // Step 4: Kraken (major coins, ticker only)
+  // Step 4: Binance — real-time price for any symbol listed on Binance
+  try {
+    const bSymbol = (meta?.symbol || query.toUpperCase()) + 'USDT';
+    const r = await fetchBinance(`/api/v3/ticker/24hr?symbol=${bSymbol}`);
+    if (r) {
+      const t = await r.json();
+      if (t.lastPrice && parseFloat(t.lastPrice) > 0) {
+        const price = parseFloat(t.lastPrice);
+        const coin = {
+          id: meta?.id || query.toLowerCase(),
+          name: meta?.name || (meta?.symbol || query.toUpperCase()),
+          symbol: meta?.symbol || query.toUpperCase(),
+          current_price: price,
+          price_change_percentage_24h: parseFloat(t.priceChangePercent) || 0,
+          high_24h: parseFloat(t.highPrice) || 0,
+          low_24h: parseFloat(t.lowPrice) || 0,
+          total_volume: parseFloat(t.quoteVolume) || 0,
+          market_cap: 0, market_cap_rank: meta?.rank || null,
+          image: meta?.image || '',
+          sparkline_in_7d: null,
+          source: 'Binance',
+        };
+        console.log(`  ✅ Binance: ${coin.symbol} $${price}`);
+        return res.json(save(coin));
+      }
+    }
+  } catch (e) { console.log(`  ❌ Binance search: ${e.message}`); }
+
+  // Step 5: DexScreener — DEX-traded tokens (Monad memecoins, Base tokens, etc.)
+  try {
+    const r = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const json = await r.json();
+      const pairs = (json.pairs || []).sort((a, b) => parseFloat(b.volume?.h24 || 0) - parseFloat(a.volume?.h24 || 0));
+      const pair = pairs.find(p => parseFloat(p.priceUsd) > 0);
+      if (pair) {
+        const coin = {
+          id: pair.baseToken.address.toLowerCase(),
+          symbol: pair.baseToken.symbol.toUpperCase(),
+          name: pair.baseToken.name,
+          image: pair.info?.imageUrl || meta?.image || '',
+          current_price: parseFloat(pair.priceUsd),
+          price_change_percentage_24h: parseFloat(pair.priceChange?.h24) || 0,
+          market_cap: parseFloat(pair.marketCap || pair.fdv) || 0,
+          market_cap_rank: meta?.rank || null,
+          total_volume: parseFloat(pair.volume?.h24) || 0,
+          sparkline_in_7d: null, high_24h: 0, low_24h: 0,
+          source: 'DexScreener',
+        };
+        console.log(`  ✅ DexScreener: ${coin.name} $${coin.current_price}`);
+        return res.json(save(coin));
+      }
+    }
+  } catch (e) { console.log(`  ❌ DexScreener: ${e.message}`); }
+
+  // Step 6: Kraken (major coins, ticker only)
   const ticker = meta?.symbol || query.toUpperCase();
   try {
     const r = await fetch(`https://api.kraken.com/0/public/Ticker?pair=${ticker}USD`);
@@ -2143,7 +2241,7 @@ app.get('/api/market/search/:query', async (req, res) => {
     }
   } catch (e) { console.log(`  ❌ Kraken: ${e.message}`); }
 
-  // Step 5: Gemini
+  // Step 7: Gemini
   try {
     const r = await fetch(`https://api.gemini.com/v1/pubticker/${ticker.toLowerCase()}usd`);
     if (r.ok) {
@@ -2162,6 +2260,12 @@ app.get('/api/market/search/:query', async (req, res) => {
       }
     }
   } catch (e) { console.log(`  ❌ Gemini: ${e.message}`); }
+
+  // Stale cache beats a 404
+  if (_searchCache[cacheKey]) {
+    console.log(`  ⚠️  All sources failed — serving stale cache for: ${query}`);
+    return res.json(_searchCache[cacheKey].data);
+  }
 
   res.status(404).json({ error: `"${query}" not found. Try full name (e.g. "Monad") or ticker (e.g. "MON")` });
 });
@@ -2230,11 +2334,11 @@ app.get('/api/market/chart/:coinIdOrSymbol', async (req, res) => {
     console.log('  📊 Trying Binance...');
     try {
       const binanceSymbol = symbol + 'USDT';
-      const binanceUrl = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${config.binanceInterval}&limit=${config.binanceLimit}`;
-      const binanceRes = await fetch(binanceUrl);
-      const binanceData = await binanceRes.json();
+      const binancePath = `/api/v3/klines?symbol=${binanceSymbol}&interval=${config.binanceInterval}&limit=${config.binanceLimit}`;
+      const binanceRes = await fetchBinance(binancePath);
+      const binanceData = binanceRes ? await binanceRes.json() : null;
       
-      if (binanceRes.ok && Array.isArray(binanceData) && binanceData.length > 0) {
+      if (binanceData && Array.isArray(binanceData) && binanceData.length > 0) {
         const formattedPrices = binanceData.map(k => ({
           time: k[0],
           price: parseFloat(k[4])
@@ -2337,8 +2441,8 @@ app.get('/api/market/chart/:coinIdOrSymbol', async (req, res) => {
     // Step 4: Try CoinGecko
     console.log('  🦎 Trying CoinGecko...');
     try {
-      const cgUrl = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${config.days}`;
-      const cgRes = await fetch(cgUrl);
+      const cgUrl = `${CG_BASE}/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${config.days}`;
+      const cgRes = await fetch(cgUrl, { headers: cgHeaders(), signal: AbortSignal.timeout(8000) });
       const cgData = await cgRes.json();
       
       if (cgRes.ok && cgData.prices && cgData.prices.length > 0) {
@@ -2387,7 +2491,7 @@ const nativeCurrencies = {
   'zora': 'ETH', 'blast': 'ETH', 'abstract': 'ETH', 'worldchain': 'ETH',
   'soneium': 'ETH', 'polygon': 'MATIC', 'avalanche': 'AVAX',
   'apechain': 'APE', 'ronin': 'RON', 'monad': 'MON',
-  'gnosis': 'xDAI', 'hyperevm': 'HYPE',
+  'gnosis': 'xDAI', 'hyperevm': 'HYPE', 'hype': 'HYPE',
   'solana': 'SOL', 'cardano': 'ADA'
 };
 

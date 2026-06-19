@@ -273,7 +273,16 @@
       const [spamIds, setSpamIds] = useState(() => JSON.parse(localStorage.getItem('spamAssets') || '[]'));
       const [showManager, setShowManager] = useState(false);
 
-      const [marketData, setMarketData] = useState([]);
+      const [marketData, setMarketData] = useState(() => {
+        try {
+          const raw = sessionStorage.getItem('cl_market_v1');
+          if (raw) {
+            const { data, ts } = JSON.parse(raw);
+            if (Array.isArray(data) && data.length > 0 && Date.now() - ts < 120000) return data;
+          }
+        } catch {}
+        return [];
+      });
       const [marketLoading, setMarketLoading] = useState(false);
       const [marketSearch, setMarketSearch] = useState('');
       const [selectedCoin, setSelectedCoin] = useState(null);
@@ -894,6 +903,7 @@
             if (!Array.isArray(data)) throw new Error('Unexpected response');
             console.log('✅ Loaded', data.length, 'coins from market API');
             setMarketData(data);
+            try { sessionStorage.setItem('cl_market_v1', JSON.stringify({ data, ts: Date.now() })); } catch {}
           } catch (e) {
             console.error('❌ Market fetch failed:', e);
           }
@@ -1011,34 +1021,8 @@
         
         const symbol = binanceSymbols[coin.symbol.toUpperCase()] || coin.symbol.toUpperCase() + 'USDT';
         
-        // Calculate time range for CoinCap
-        const now = Date.now();
-        const getCoinCapTimeRange = () => {
-          switch(timeframe) {
-            case '1d': return { start: now - (24 * 60 * 60 * 1000), interval: 'm5' };
-            case '7d': return { start: now - (7 * 24 * 60 * 60 * 1000), interval: 'h1' };
-            case '1m': return { start: now - (30 * 24 * 60 * 60 * 1000), interval: 'h6' };
-            case '1y': return { start: now - (365 * 24 * 60 * 60 * 1000), interval: 'd1' };
-            case 'all': return { start: 0, interval: 'd1' }; // All available data
-            default: return { start: now - (7 * 24 * 60 * 60 * 1000), interval: 'h1' };
-          }
-        };
-        
-        const coinCapRange = getCoinCapTimeRange();
-        
-        // Try multiple sources for reliability — CoinGecko first (has the right slug), Binance as fallback
+        // Try multiple sources for reliability — Binance first (direct, no key needed), then backend (uses CoinGecko key)
         const sources = [
-          {
-            name: 'CoinGecko',
-            fetch: async () => {
-              console.log('  🔄 Trying CoinGecko API with id:', coin.id);
-              const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=${params.coinGeckoDays}`);
-              if (!res.ok) throw new Error(`CoinGecko returned ${res.status}`);
-              const data = await res.json();
-              if (!data.prices || data.prices.length === 0) throw new Error('No price data');
-              return data.prices.map(([time, price]) => ({ time, price }));
-            }
-          },
           {
             name: 'Binance',
             fetch: async () => {
@@ -1048,6 +1032,17 @@
               const data = await res.json();
               if (!Array.isArray(data) || data.length === 0) throw new Error('No kline data');
               return data.map(k => ({ time: k[0], price: parseFloat(k[4]) }));
+            }
+          },
+          {
+            name: 'CoinGecko',
+            fetch: async () => {
+              console.log('  🔄 Trying backend chart API with id:', coin.id);
+              const res = await fetch(`/api/market/chart/${coin.id}?timeframe=${timeframe}`);
+              if (!res.ok) throw new Error(`Chart API returned ${res.status}`);
+              const data = await res.json();
+              if (!data.prices || data.prices.length === 0) throw new Error('No price data');
+              return data.prices;
             }
           }
         ];
