@@ -2607,6 +2607,16 @@
      description: "The non-profit foundation stewarding the Hyperliquid network, a high-performance L1 blockchain purpose-built for decentralized financial exchange.",
     },
     {
+      id:          "perpl",
+      name:        "Perpl",
+      website:     "https://app.perpl.xyz",
+      category:    "Perps & Prediction Markets",
+      chains:      ["monad"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=perpl.xyz&sz=64",
+      description: "A decentralized perpetual exchange built on Monad, focusing on high-speed trading and efficient capital utilization for various market pairs."
+    },
+    {
       id:          "bodega-market",
       name:        "Bodega Market",
       website:     "https://www.bodegacardano.org",
