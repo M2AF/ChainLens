@@ -1732,6 +1732,16 @@
     // ========================================================
 
     {
+      id:          "abstract-global-wallet",
+      name:        "Abstract Global Wallet",
+      website:     "https://portal.abs.xyz/",
+      category:    "Wallet",
+      chains:      ["abstract"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=abs.xyz&sz=128",
+      description: "A cross-application smart contract wallet powering the Abstract ecosystem, utilizing native account abstraction to allow users to sign up via familiar methods like email, social accounts, and passkeys.",
+    },
+    {
       id:          "backpack-wallet",
       name:        "Backpack Wallet",
       website:     "https://backpack.app",
