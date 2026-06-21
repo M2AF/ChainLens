@@ -538,14 +538,14 @@
       description: "Description here.",
     },
     {
-      id:          "pendle",
+      id:          pendle,
       name:        "Pendle",
-      website:     "https://pendle.finance",
+      website:     "https://www.pendle.finance/",
       category:    "DeFi",
-      chains:      ["arbitrum", "base", "ethereum", "optimism"],
+      chains:      ["ethereum", "monad", "optimism", "hype", "base", "arbitrum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=pendle.finance&sz=64",
-      description: "Description here.",
+      description: "A yield-trading protocol that allows users to tokenize and trade future yield, enhancing capital efficiency across multiple ecosystems as shown in image_15e6be.png."
     },
     {
       id:          "ribbon-finance",
@@ -2222,6 +2222,16 @@
       description: "Description here.",
     },
     {
+      id:          bendingai,
+      name:        "BendingAI",
+      website:     "https://bending.ai/market",
+      category:    "Portfolio & Analytics",
+      chains:      ["cardano"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=bending.ai&sz=64",
+      description: "A data-driven platform on Cardano providing advanced market analytics and portfolio tracking tools to monitor ecosystem trends."
+    },
+    {
       id:          "coinstats",
       name:        "CoinStats",
       website:     "https://coinstats.app",
@@ -2350,6 +2360,16 @@
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=gitcoin.co&sz=128",
       description: "Description here.",
+    },
+    {
+      id:          konnektr,
+      name:        "Konnektr",
+      website:     "https://konnektr.net/",
+      category:    "Portfolio & Analytics",
+      chains:      ["cardano"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=konnektr.net&sz=64",
+      description: "An open-source developer toolset and SDK for PostgreSQL/Apache AGE, providing graph database capabilities and integration libraries for C# and .NET environments."
     },
     {
       id:          "lens-protocol",
