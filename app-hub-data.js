@@ -538,7 +538,7 @@
       description: "Description here.",
     },
     {
-      id:          pendle,
+      id:          "pendle",
       name:        "Pendle",
       website:     "https://www.pendle.finance/",
       category:    "DeFi",
@@ -2222,7 +2222,7 @@
       description: "Description here.",
     },
     {
-      id:          bendingai,
+      id:          "bendingai",
       name:        "BendingAI",
       website:     "https://bending.ai/market",
       category:    "Portfolio & Analytics",
@@ -2362,7 +2362,7 @@
       description: "Description here.",
     },
     {
-      id:          konnektr,
+      id:          "konnektr",
       name:        "Konnektr",
       website:     "https://konnektr.net/",
       category:    "Portfolio & Analytics",
