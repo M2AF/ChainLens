@@ -753,6 +753,16 @@
       description: "Description here.",
     },
     {
+      id:          "fomo",
+      name:        "fomo",
+      website:     "https://fomo.family/",
+      category:    "DeFi",
+      chains:      ["solana", "base", "monad", "bnb-chain"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=fomo.family&sz=64",
+      description: "A social-first crypto trading app that enables cross-chain trading, real-time social signals, and unified balance management across multiple blockchains."
+    },
+    {
       id:          "jumper-exchange",
       name:        "Jumper Exchange",
       website:     "https://jumper.exchange",
