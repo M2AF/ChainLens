@@ -2787,7 +2787,7 @@
       name:        "USDC",
       website:     "https://www.circle.com/xreserve",
       category:    "Stablecoins",
-      chains:      ["cardano"],
+      chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "hype", "monad", "optimism", "polygon", "ronin", "solana", "soneium", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=circle.com&sz=64",
       description: "Interoperable dollar-backed stablecoin.",
