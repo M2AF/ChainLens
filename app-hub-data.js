@@ -2783,8 +2783,8 @@
       description: "Fully reserved fiat-backed stablecoin.",
     },
     {
-      id:          "usdcx",
-      name:        "USDCx",
+      id:          "usdc",
+      name:        "USDC",
       website:     "https://www.circle.com/xreserve",
       category:    "Stablecoins",
       chains:      ["cardano"],
