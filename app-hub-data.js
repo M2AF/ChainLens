@@ -355,16 +355,6 @@
       description: "An Ethereum restaking protocol that secures new services with staked ETH.",
     },
     {
-      id:          "ens",
-      name:        "ENS",
-      website:     "https://ens.domains",
-      category:    "DeFi",
-      chains:      ["ethereum"],
-      featured:    false,
-      favicon:     "https://www.google.com/s2/favicons?domain=ens.domains&sz=128",
-      description: "The Ethereum Name Service for human-readable .eth wallet and website names.",
-    },
-    {
       id:          "francium",
       name:        "Francium",
       website:     "https://francium.io",
@@ -2807,6 +2797,36 @@
     // Identity — adastack.io import (19 apps)
     // ========================================================
 
+    {
+      id:          "ens",
+      name:        "ENS",
+      website:     "https://ens.domains",
+      category:    "Identity",
+      chains:      ["ethereum"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=ens.domains&sz=128",
+      description: "The Ethereum Name Service for human-readable .eth wallet and website names.",
+    },
+    {
+      id:          "sns",
+      name:        "Solana Name Service",
+      website:     "https://www.sns.id/",
+      category:    "Identity",
+      chains:      ["solana"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=sns.id&sz=64",
+      description: "Solana's domain name service for human-readable .sol wallet addresses.",
+    },
+    {
+      id:          "unstoppable-domains",
+      name:        "Unstoppable Domains",
+      website:     "https://unstoppabledomains.com",
+      category:    "Identity",
+      chains:      ["ethereum", "polygon"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=unstoppabledomains.com&sz=64",
+      description: "NFT-based Web3 domains for crypto payments and decentralized login, like .crypto and .nft.",
+    },
     {
       id:          "adahandle",
       name:        "ADA Handle",
