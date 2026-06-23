@@ -87,7 +87,7 @@
       chains:      ["arbitrum", "base", "blast", "ethereum", "optimism", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=across.to&sz=64",
-      description: "Description here.",
+      description: "An intents-based cross-chain bridge for fast, low-cost transfers between Ethereum and its layer-2s.",
     },
     {
       id:          "axelar",
@@ -97,7 +97,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "monad", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=axelar.network&sz=64",
-      description: "Description here.",
+      description: "A cross-chain communication network connecting blockchains for asset transfers and interoperable dApps.",
     },
     {
       id:          "bungee",
@@ -107,7 +107,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "gnosis", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=bungee.exchange&sz=64",
-      description: "Description here.",
+      description: "A bridge aggregator that finds the best route to move assets across chains.",
     },
     {
       id:          "celer-network",
@@ -117,7 +117,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "gnosis", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=celer.network&sz=64",
-      description: "Description here.",
+      description: "A cross-chain interoperability protocol for bridging tokens and messages between blockchains.",
     },
     {
       id:          "chainport",
@@ -127,7 +127,7 @@
       chains:      ["arbitrum", "avalanche", "base", "cardano", "ethereum", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=chainport.io&sz=64",
-      description: "Description here.",
+      description: "A secure cross-chain bridge for porting tokens between major blockchains.",
     },
     {
       id:          "debridge",
@@ -137,7 +137,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=debridge.finance&sz=64",
-      description: "Description here.",
+      description: "A high-speed cross-chain bridge and messaging protocol for transferring assets and data.",
     },
     {
       id:          "everclear",
@@ -147,7 +147,7 @@
       chains:      ["apechain", "arbitrum", "avalanche", "base", "blast", "ethereum", "optimism", "polygon", "ronin", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=connext.network&sz=128",
-      description: "Description here.",
+      description: "A clearing layer that nets and settles cross-chain liquidity for bridges and solvers.",
     },
     {
       id:          "hop-protocol",
@@ -157,7 +157,7 @@
       chains:      ["arbitrum", "base", "ethereum", "gnosis", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=hop.exchange&sz=128",
-      description: "Description here.",
+      description: "A bridge for moving tokens quickly across Ethereum and its rollup networks.",
     },
     {
       id:          "layerzero",
@@ -167,7 +167,7 @@
       chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "monad", "optimism", "polygon", "ronin", "solana", "soneium", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=layerzero.network&sz=64",
-      description: "Description here.",
+      description: "An omnichain interoperability protocol enabling messaging and apps across many blockchains.",
     },
     {
       id:          "lifi",
@@ -177,7 +177,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=li.fi&sz=64",
-      description: "Description here.",
+      description: "A cross-chain bridge and DEX aggregator that routes swaps and transfers across chains.",
     },
     {
       id:          "orbiter-finance",
@@ -187,7 +187,7 @@
       chains:      ["abstract", "arbitrum", "base", "blast", "ethereum", "optimism", "polygon", "soneium", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=orbiter.finance&sz=64",
-      description: "Description here.",
+      description: "A decentralized cross-rollup bridge for low-cost transfers between Ethereum layer-2s.",
     },
     {
       id:          "owlto-finance",
@@ -197,7 +197,7 @@
       chains:      ["arbitrum", "base", "blast", "ethereum", "optimism", "polygon", "soneium", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=owlto.finance&sz=64",
-      description: "Description here.",
+      description: "A cross-chain bridge for fast, low-fee transfers across layer-2 networks.",
     },
     {
       id:          "relay",
@@ -207,7 +207,7 @@
       chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "hype", "monad", "optimism", "polygon", "ronin", "solana", "soneium", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=relay.link&sz=64",
-      description: "Description here.",
+      description: "An instant, low-cost bridging and cross-chain execution protocol.",
     },
     {
       id:          "stargate-finance",
@@ -217,7 +217,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=stargate.finance&sz=64",
-      description: "Description here.",
+      description: "A LayerZero-based bridge for transferring native assets across chains with unified liquidity.",
     },
     {
       id:          "symbiosis-finance",
@@ -227,7 +227,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "optimism", "polygon", "ronin", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=symbiosis.finance&sz=128",
-      description: "Description here.",
+      description: "A cross-chain DEX and bridge for swapping tokens across any supported network.",
     },
     {
       id:          "synapse",
@@ -237,7 +237,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=synapseprotocol.com&sz=128",
-      description: "Description here.",
+      description: "A cross-chain bridge and AMM for transferring assets and stablecoins between blockchains.",
     },
     {
       id:          "thorchain",
@@ -247,7 +247,7 @@
       chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "hype", "monad", "optimism", "polygon", "ronin", "solana", "soneium", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=thorchain.org&sz=128",
-      description: "Description here.",
+      description: "A decentralized cross-chain liquidity network for swapping native assets without wrapping.",
     },
     {
       id:          "wanbridge",
@@ -257,7 +257,7 @@
       chains:      ["arbitrum", "avalanche", "cardano", "ethereum", "gnosis", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=wanchain.org&sz=64",
-      description: "Description here.",
+      description: "Wanchain's cross-chain bridge connecting Ethereum, Cardano, and other blockchains.",
     },
     {
       id:          "wormhole",
@@ -267,7 +267,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "monad", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=wormhole.com&sz=64",
-      description: "Description here.",
+      description: "A cross-chain messaging protocol connecting Solana, Ethereum, and many other networks.",
     },
 
     // ========================================================
@@ -282,7 +282,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "gnosis", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=aave.com&sz=64",
-      description: "Description here.",
+      description: "A leading decentralized lending protocol for borrowing and earning yield on crypto assets.",
     },
     {
       id:          "aerodrome",
@@ -302,7 +302,7 @@
       chains:      ["arbitrum", "ethereum", "optimism"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=alchemix.fi&sz=128",
-      description: "Description here.",
+      description: "A self-repaying loan protocol where deposited collateral pays off debt through yield.",
     },
     {
       id:          "compound",
@@ -312,7 +312,7 @@
       chains:      ["arbitrum", "base", "ethereum", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=compound.finance&sz=64",
-      description: "Description here.",
+      description: "An algorithmic money market protocol for lending and borrowing crypto assets.",
     },
     {
       id:          "convex-finance",
@@ -322,7 +322,7 @@
       chains:      ["arbitrum", "ethereum", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=convexfinance.com&sz=128",
-      description: "Description here.",
+      description: "A yield platform that boosts rewards for Curve liquidity providers and stakers.",
     },
     {
       id:          "curvance",
@@ -342,7 +342,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=dydx.exchange&sz=64",
-      description: "Description here.",
+      description: "A decentralized exchange for perpetual futures trading.",
     },
     {
       id:          "eigenlayer",
@@ -352,7 +352,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=eigenlayer.xyz&sz=128",
-      description: "Description here.",
+      description: "An Ethereum restaking protocol that secures new services with staked ETH.",
     },
     {
       id:          "ens",
@@ -362,7 +362,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=ens.domains&sz=128",
-      description: "Description here.",
+      description: "The Ethereum Name Service for human-readable .eth wallet and website names.",
     },
     {
       id:          "francium",
@@ -372,7 +372,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=francium.io&sz=128",
-      description: "Description here.",
+      description: "A leveraged yield-farming protocol on Solana.",
     },
     {
       id:          "frax-finance",
@@ -382,7 +382,7 @@
       chains:      ["arbitrum", "base", "ethereum", "optimism"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=frax.finance&sz=64",
-      description: "Description here.",
+      description: "A decentralized stablecoin and DeFi protocol ecosystem.",
     },
     {
       id:          "gmx",
@@ -392,7 +392,7 @@
       chains:      ["arbitrum", "avalanche"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=gmx.io&sz=64",
-      description: "Description here.",
+      description: "A decentralized perpetual and spot exchange with low-slippage leveraged trading.",
     },
     {
       id:          "hubble-protocol",
@@ -402,7 +402,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=hubbleprotocol.io&sz=128",
-      description: "Description here.",
+      description: "A Solana protocol for borrowing against crypto collateral and minting stablecoins.",
     },
     {
       id:          "indigo-protocol",
@@ -412,7 +412,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=indigoprotocol.io&sz=64",
-      description: "Description here.",
+      description: "A Cardano protocol for minting synthetic assets that track real-world prices.",
     },
     {
       id:          "instadapp",
@@ -422,7 +422,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=instadapp.io&sz=128",
-      description: "Description here.",
+      description: "A DeFi management platform for handling positions across lending protocols.",
     },
     {
       id:          "jito",
@@ -432,7 +432,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=jito.network&sz=128",
-      description: "Description here.",
+      description: "A Solana liquid-staking protocol and MEV infrastructure provider.",
     },
     {
       id:          "kamino-finance",
@@ -442,7 +442,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=kamino.finance&sz=64",
-      description: "Description here.",
+      description: "A Solana protocol for automated liquidity, lending, and leveraged yield strategies.",
     },
     {
       id:          "lenfi",
@@ -452,7 +452,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=lenfi.io&sz=64",
-      description: "Description here.",
+      description: "A Cardano protocol for permissionless lending and borrowing.",
     },
     {
       id:          "lido",
@@ -462,7 +462,7 @@
       chains:      ["arbitrum", "ethereum", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=lido.fi&sz=128",
-      description: "Description here.",
+      description: "A liquid-staking protocol that issues tradable tokens for staked assets.",
     },
     {
       id:          "liquity",
@@ -472,7 +472,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=liquity.org&sz=128",
-      description: "Description here.",
+      description: "A decentralized borrowing protocol issuing an interest-free stablecoin against ETH.",
     },
     {
       id:          "liqwid-finance",
@@ -482,7 +482,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=liqwid.finance&sz=64",
-      description: "Description here.",
+      description: "A Cardano lending and borrowing market for earning interest and taking loans.",
     },
     {
       id:          "makerdao",
@@ -492,7 +492,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=makerdao.com&sz=128",
-      description: "Description here.",
+      description: "The protocol behind the DAI stablecoin, backed by on-chain collateral.",
     },
     {
       id:          "mango-markets",
@@ -502,7 +502,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=mango.markets&sz=128",
-      description: "Description here.",
+      description: "A Solana decentralized exchange for margin trading and lending.",
     },
     {
       id:          "marginfi",
@@ -512,7 +512,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=marginfi.com&sz=64",
-      description: "Description here.",
+      description: "A Solana lending protocol for borrowing and earning on deposits.",
     },
     {
       id:          "morpho",
@@ -522,7 +522,7 @@
       chains:      ["base", "ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=morpho.org&sz=64",
-      description: "Description here.",
+      description: "A decentralized lending protocol optimizing rates with peer-to-peer matching and isolated markets.",
     },
     {
       id:          "nexus-mutual",
@@ -532,7 +532,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=nexusmutual.io&sz=128",
-      description: "Description here.",
+      description: "A decentralized insurance alternative covering smart-contract and protocol risks.",
     },
     {
       id:          "optim-finance",
@@ -542,7 +542,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=optim.finance&sz=64",
-      description: "Description here.",
+      description: "A Cardano yield-optimization and structured-products protocol.",
     },
     {
       id:          "pendle",
@@ -562,7 +562,7 @@
       chains:      ["avalanche", "ethereum", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=ribbon.finance&sz=128",
-      description: "Description here.",
+      description: "A protocol for automated options-based structured products and yield vaults.",
     },
     {
       id:          "rocket-pool",
@@ -572,7 +572,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=rocketpool.net&sz=128",
-      description: "Description here.",
+      description: "A decentralized Ethereum staking protocol with the rETH liquid-staking token.",
     },
     {
       id:          "sanctum",
@@ -582,7 +582,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=sanctum.so&sz=128",
-      description: "Description here.",
+      description: "A Solana liquidity layer and infrastructure for liquid-staking tokens.",
     },
     {
       id:          "solend",
@@ -592,7 +592,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=solend.fi&sz=64",
-      description: "Description here.",
+      description: "A Solana lending and borrowing protocol.",
     },
     {
       id:          "spark-protocol",
@@ -602,7 +602,7 @@
       chains:      ["ethereum", "gnosis"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=spark.fi&sz=64",
-      description: "Description here.",
+      description: "A MakerDAO-aligned lending market for borrowing and saving with DAI.",
     },
     {
       id:          "synthetix",
@@ -612,7 +612,7 @@
       chains:      ["base", "ethereum", "optimism"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=synthetix.io&sz=128",
-      description: "Description here.",
+      description: "A derivatives liquidity protocol for trading synthetic assets and perpetuals.",
     },
     {
       id:          "tulip-protocol",
@@ -622,7 +622,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=tulip.garden&sz=128",
-      description: "Description here.",
+      description: "A Solana yield-aggregation and leveraged-farming protocol.",
     },
     {
       id:          "yearn-finance",
@@ -632,7 +632,7 @@
       chains:      ["arbitrum", "base", "ethereum", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=yearn.fi&sz=64",
-      description: "Description here.",
+      description: "A yield-aggregation protocol that automates DeFi strategies across vaults.",
     },
     {
       id:          "fluidtokens",
@@ -667,7 +667,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=1inch.io&sz=64",
-      description: "Description here.",
+      description: "A DEX aggregator that finds the best swap rates across decentralized exchanges.",
     },
     {
       id:          "aborean-finance",
@@ -677,7 +677,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=aborean.finance&sz=64",
-      description: "Description here.",
+      description: "A ve(3,3) decentralized exchange and liquidity hub on Abstract.",
     },
     {
       id:          "ambient",
@@ -687,7 +687,7 @@
       chains:      ["base", "blast", "ethereum", "monad"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=ambient.finance&sz=64",
-      description: "Description here.",
+      description: "A decentralized exchange running its entire AMM in a single smart contract.",
     },
     {
       id:          "balancer",
@@ -697,7 +697,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "gnosis", "monad", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=balancer.fi&sz=64",
-      description: "Description here.",
+      description: "An automated market maker with customizable multi-token liquidity pools.",
     },
     {
       id:          "bancor",
@@ -707,7 +707,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=bancor.network&sz=128",
-      description: "Description here.",
+      description: "An on-chain liquidity protocol with single-sided staking.",
     },
     {
       id:          "blue-protocol",
@@ -717,7 +717,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=gblue.xyz&sz=64",
-      description: "Description here.",
+      description: "An OlympusDAO-style reserve-currency DeFi protocol using bonding and staking, on Abstract.",
     },
     {
       id:          "crema-finance",
@@ -727,7 +727,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=crema.finance&sz=128",
-      description: "Description here.",
+      description: "A Solana concentrated-liquidity decentralized exchange.",
     },
     {
       id:          "curve-finance",
@@ -737,7 +737,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "gnosis", "monad", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=curve.fi&sz=64",
-      description: "Description here.",
+      description: "A decentralized exchange optimized for low-slippage stablecoin and pegged-asset swaps.",
     },
     {
       id:          "dexhunter",
@@ -747,7 +747,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=dexhunter.io&sz=64",
-      description: "Description here.",
+      description: "A Cardano DEX aggregator routing trades for the best token prices.",
     },
     {
       id:          "drift-protocol",
@@ -757,7 +757,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=drift.trade&sz=128",
-      description: "Description here.",
+      description: "A Solana decentralized exchange for perpetual futures and spot trading.",
     },
     {
       id:          "fomo",
@@ -777,7 +777,7 @@
       chains:      ["abstract", "arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=jumper.exchange&sz=64",
-      description: "Description here.",
+      description: "A multi-chain swap and bridge aggregator powered by LiFi.",
     },
     {
       id:          "jupiter",
@@ -787,7 +787,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=jup.ag&sz=64",
-      description: "Description here.",
+      description: "Solana's leading swap aggregator for the best token prices across DEXs.",
     },
     {
       id:          "kona",
@@ -797,7 +797,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=app.kona.surf&sz=64",
-      description: "Description here.",
+      description: "A DeFi platform on Abstract offering DEX swaps, lending, and yield as a liquidity hub.",
     },
     {
       id:          "kyberswap",
@@ -807,7 +807,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "monad", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=kyberswap.com&sz=64",
-      description: "Description here.",
+      description: "A DEX aggregator and liquidity protocol for optimized multi-chain swaps.",
     },
     {
       id:          "lfj-trader-joe",
@@ -817,7 +817,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "monad"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=lfj.gg&sz=64",
-      description: "Description here.",
+      description: "A decentralized exchange on Avalanche and beyond, formerly Trader Joe.",
     },
     {
       id:          "lifinity",
@@ -827,7 +827,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=lifinity.io&sz=128",
-      description: "Description here.",
+      description: "A Solana proactive market-maker DEX using oracle-based pricing.",
     },
     {
       id:          "loopring",
@@ -837,7 +837,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=loopring.org&sz=128",
-      description: "Description here.",
+      description: "An Ethereum layer-2 zkRollup for low-cost token trading and payments.",
     },
     {
       id:          "lyra",
@@ -847,7 +847,7 @@
       chains:      ["arbitrum", "ethereum", "optimism"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=lyra.finance&sz=128",
-      description: "Description here.",
+      description: "A decentralized options trading protocol.",
     },
     {
       id:          "matcha",
@@ -857,7 +857,7 @@
       chains:      ["abstract", "arbitrum", "avalanche", "base", "blast", "ethereum", "monad", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=matcha.xyz&sz=64",
-      description: "Description here.",
+      description: "A user-friendly DEX aggregator powered by 0x for best-price swaps.",
     },
     {
       id:          "meteora",
@@ -867,7 +867,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=meteora.ag&sz=128",
-      description: "Description here.",
+      description: "A Solana liquidity protocol with dynamic and concentrated-liquidity pools.",
     },
     {
       id:          "minswap",
@@ -877,7 +877,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=minswap.org&sz=64",
-      description: "Description here.",
+      description: "A Cardano multi-pool decentralized exchange with yield farming.",
     },
     {
       id:          "odos",
@@ -887,7 +887,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=odos.xyz&sz=64",
-      description: "Description here.",
+      description: "A DEX aggregator that optimizes complex multi-token swap routes.",
     },
     {
       id:          "openbook",
@@ -897,7 +897,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=openbook-dex.com&sz=128",
-      description: "Description here.",
+      description: "A Solana on-chain central limit order book DEX.",
     },
     {
       id:          "openocean",
@@ -907,7 +907,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=openocean.finance&sz=64",
-      description: "Description here.",
+      description: "A DEX and CEX aggregator for best-price swaps across many chains.",
     },
     {
       id:          "orca",
@@ -917,7 +917,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=orca.so&sz=64",
-      description: "Description here.",
+      description: "A user-friendly Solana decentralized exchange with concentrated liquidity.",
     },
     {
       id:          "pancakeswap",
@@ -927,7 +927,7 @@
       chains:      ["arbitrum", "base", "ethereum", "monad", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=pancakeswap.finance&sz=64",
-      description: "Description here.",
+      description: "A multi-chain decentralized exchange with swaps, farms, and yield.",
     },
     {
       id:          "pandora-swap",
@@ -937,7 +937,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://abs.xyz/imagetransform/width=100,format=webp/https%3A%2F%2Fabstract-portal-metadata-prod.s3.amazonaws.com%2F7d15d15e-a70a-4c73-9e3e-1f1288233317.png",
-      description: "Description here.",
+      description: "The first ERC-404 project, blending ERC-20 liquidity with NFT fractionalization, on Abstract.",
     },
     {
       id:          "paraswap",
@@ -947,7 +947,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=paraswap.io&sz=64",
-      description: "Description here.",
+      description: "A DEX aggregator delivering optimized swap prices across chains.",
     },
     {
       id:          "phoenix",
@@ -957,7 +957,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=phoenix.trade&sz=128",
-      description: "Description here.",
+      description: "A Solana on-chain limit order book decentralized exchange.",
     },
     {
       id:          "raydium",
@@ -967,7 +967,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=raydium.io&sz=64",
-      description: "Description here.",
+      description: "A Solana automated market maker and liquidity provider.",
     },
     {
       id:          "sakura-swap",
@@ -977,7 +977,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=sakuraswap.com&sz=64",
-      description: "Description here.",
+      description: "A Uniswap V3-based decentralized exchange on Abstract.",
     },
     {
       id:          "sundaeswap",
@@ -987,7 +987,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=sundaeswap.finance&sz=64",
-      description: "Description here.",
+      description: "A Cardano automated market maker decentralized exchange.",
     },
     {
       id:          "sushiswap",
@@ -997,7 +997,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=sushi.com&sz=64",
-      description: "Description here.",
+      description: "A multi-chain decentralized exchange for swaps, farming, and lending.",
     },
     {
       id:          "uniswap",
@@ -1007,7 +1007,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "monad", "optimism", "polygon", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=uniswap.org&sz=64",
-      description: "Description here.",
+      description: "The leading decentralized exchange protocol for swapping ERC-20 tokens.",
     },
     {
       id:          "vyfinance",
@@ -1017,7 +1017,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=vyfi.org&sz=64",
-      description: "Description here.",
+      description: "A Cardano DeFi hub with a DEX and auto-harvesting yield vaults.",
     },
     {
       id:          "wingriders",
@@ -1027,7 +1027,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=wingriders.com&sz=64",
-      description: "Description here.",
+      description: "A Cardano automated market maker DEX with staking rewards.",
     },
     {
       id:          "zeta-markets",
@@ -1037,7 +1037,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=zeta.markets&sz=128",
-      description: "Description here.",
+      description: "A Solana decentralized exchange for perpetual futures and options.",
     },
     {
       id:          "cswap-dex",
@@ -1081,7 +1081,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=anichess.com&sz=64",
-      description: "Description here.",
+      description: "A chess game that blends traditional chess with magical spell-based mechanics.",
     },
     {
       id:          "aurory",
@@ -1091,7 +1091,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=aurory.io&sz=128",
-      description: "Description here.",
+      description: "A Solana free-to-play tactical RPG with NFT creatures called Nefties.",
     },
     {
       id:          "axie-infinity",
@@ -1101,7 +1101,7 @@
       chains:      ["ethereum", "ronin"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=axieinfinity.com&sz=128",
-      description: "Description here.",
+      description: "A monster-battling and breeding game where players collect and battle Axies.",
     },
     {
       id:          "bigcoin",
@@ -1111,7 +1111,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=bigcoin.tech&sz=64",
-      description: "Description here.",
+      description: "An on-chain mining game on Abstract inspired by Bitcoin, where NFT miners earn $BIG.",
     },
     {
       id:          "breath-of-estova",
@@ -1131,7 +1131,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=cambria.gg&sz=64",
-      description: "Description here.",
+      description: "An experimental on-chain MMO with PvP, PvE, skilling, and trading in a medieval world.",
     },
     {
       id:          "captain-company",
@@ -1141,7 +1141,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=capnco.gg&sz=64",
-      description: "Description here.",
+      description: "A pirate MMORPG with multiplayer naval ship combat, looting, and a player-crafted economy.",
     },
     {
       id:          "caves-dig-dash",
@@ -1151,7 +1151,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=caves.wolf.game&sz=64",
-      description: "Description here.",
+      description: "A fast-paced Wolf Game arcade title on Abstract where players dig caves for treasure and rewards.",
     },
     {
       id:          "decentraland",
@@ -1161,7 +1161,7 @@
       chains:      ["ethereum", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=decentraland.org&sz=128",
-      description: "Description here.",
+      description: "A virtual world where users own land, build experiences, and trade NFTs.",
     },
     {
       id:          "defi-land",
@@ -1171,7 +1171,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=defiland.app&sz=128",
-      description: "Description here.",
+      description: "A gamified, farming-themed interface for DeFi activities on Solana.",
     },
     {
       id:          "duper",
@@ -1181,7 +1181,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=duper.gg&sz=64",
-      description: "Description here.",
+      description: "A browser strategy game blending poker, trading, and diplomacy in 20-minute matches on Abstract.",
     },
     {
       id:          "ev.io",
@@ -1191,7 +1191,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=ev.io&sz=128",
-      description: "Description here.",
+      description: "A browser-based first-person shooter with Solana-based rewards and NFTs.",
     },
     {
       id:          "gala-games",
@@ -1201,7 +1201,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=gala.com&sz=128",
-      description: "Description here.",
+      description: "A Web3 gaming platform and publisher of blockchain games.",
     },
     {
       id:          "genopets",
@@ -1211,7 +1211,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=genopets.me&sz=128",
-      description: "Description here.",
+      description: "A Solana move-to-earn game where players evolve digital pets through activity.",
     },
     {
       id:          "gigachadbat",
@@ -1221,7 +1221,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=gigachadbat.fun&sz=64",
-      description: "Description here.",
+      description: "A fast, reflex-based Web3 baseball game on Abstract by YGG Play and Delabs.",
     },
     {
       id:          "gigaverse",
@@ -1231,7 +1231,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=gigaverse.io&sz=64",
-      description: "Description here.",
+      description: "A browser RPG on Abstract with dungeon runs, pet racing, and a player-driven marketplace.",
     },
     {
       id:          "gods-unchained",
@@ -1241,7 +1241,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=godsunchained.com&sz=128",
-      description: "Description here.",
+      description: "A free-to-play trading card game with player-owned NFT cards.",
     },
     {
       id:          "illuvium",
@@ -1251,7 +1251,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=illuvium.io&sz=128",
-      description: "Description here.",
+      description: "An open-world RPG and auto-battler with collectible creatures called Illuvials.",
     },
     {
       id:          "khuga-bash",
@@ -1261,7 +1261,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=portal.khuga.io&sz=64",
-      description: "Description here.",
+      description: "A multiplayer action brawler where players battle as warrior cats from the Khuga universe.",
     },
     {
       id:          "kintara",
@@ -1281,7 +1281,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=witty.game&sz=64",
-      description: "Description here.",
+      description: "A first-person word-puzzle exploration game, an early title on the Witty platform.",
     },
     {
       id:          "maze-of-gains",
@@ -1291,7 +1291,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=playmog.xyz&sz=64",
-      description: "Description here.",
+      description: "A roguelite dungeon-crawler game from the Onchain Heroes universe.",
     },
     {
       id:          "moody-madness",
@@ -1301,7 +1301,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=moodymadness.com&sz=64",
-      description: "Description here.",
+      description: "A chaotic Web3 multiplayer kart-racing game on Abstract with NFT kart parts.",
     },
     {
       id:          "nifty-island",
@@ -1311,7 +1311,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=niftyisland.com&sz=64",
-      description: "Description here.",
+      description: "A build-and-play gaming metaverse where creators make and monetize games.",
     },
     {
       id:          "onchain-heroes",
@@ -1321,7 +1321,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=onchainheroes.xyz&sz=64",
-      description: "Description here.",
+      description: "A connected on-chain game universe whose flagship title is the roguelite Maze of Gains.",
     },
     {
       id:          "pangu-clash",
@@ -1331,7 +1331,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=panguclash.com&sz=128",
-      description: "Description here.",
+      description: "A competitive on-chain multiplayer game on Abstract.",
     },
     {
       id:          "pengu-clash",
@@ -1341,7 +1341,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=penguclash.io&sz=64",
-      description: "Description here.",
+      description: "A skill-based 1v1 minigame battler from Pudgy Penguins.",
     },
     {
       id:          "penguin-life",
@@ -1351,7 +1351,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=penguinlife.playember.com&sz=64",
-      description: "Description here.",
+      description: "A cozy mobile simulation game by PlayEmber where players grow a penguin island.",
     },
     {
       id:          "plooshy-island",
@@ -1361,7 +1361,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=http://island.theplooshies.com&sz=64",
-      description: "Description here.",
+      description: "A multiplayer world in The Plooshies universe for exploring, decorating, and mining resources.",
     },
     {
       id:          "plooshy-pile-up",
@@ -1371,7 +1371,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=pileup.theplooshies.com&sz=64",
-      description: "Description here.",
+      description: "A casual stacking game and the first title in The Plooshies universe on Abstract.",
     },
     {
       id:          "polar-pair-up",
@@ -1381,7 +1381,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=polarpairup.com&sz=64",
-      description: "Description here.",
+      description: "A casual memory card-matching game on Abstract.",
     },
     {
       id:          "promotion-royale",
@@ -1391,7 +1391,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=play.promotionroyale.gg&sz=64",
-      description: "Description here.",
+      description: "An office-themed social-deduction bluffing game with on-chain ETH prize pools on Abstract.",
     },
     {
       id:          "proof-of-play-arcade",
@@ -1401,7 +1401,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=proofofplay.com&sz=64",
-      description: "Description here.",
+      description: "An arcade of fully on-chain games from the studio behind Pirate Nation.",
     },
     {
       id:          "pudgy-world",
@@ -1411,7 +1411,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=pudgyworld.com&sz=64",
-      description: "Description here.",
+      description: "A browser social game set in the Pudgy Penguins universe on Abstract.",
     },
     {
       id:          "rugpull-bakery",
@@ -1421,7 +1421,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=rugpullbakery.com&sz=64",
-      description: "Description here.",
+      description: "A satirical strategy game on Abstract where players bake cookies and 'rug' rivals for ETH.",
     },
     {
       id:          "ruyui-roots-of-embervault",
@@ -1431,7 +1431,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=embervault.ruyui.com&sz=64",
-      description: "Description here.",
+      description: "A top-down pixel-art RPG on Abstract with real-time combat, crafting, and a player economy.",
     },
    {
       id:          "sappy-seals",
@@ -1451,7 +1451,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=sorare.com&sz=128",
-      description: "Description here.",
+      description: "A global fantasy sports game with officially licensed NFT player cards.",
     },
     {
       id:          "spellborne",
@@ -1461,7 +1461,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=spellborne.gg&sz=64",
-      description: "Description here.",
+      description: "A retro-style monster-collecting MMORPG where players catch, raise, and battle creatures.",
     },
     {
       id:          "star-atlas",
@@ -1471,7 +1471,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=staratlas.com&sz=128",
-      description: "Description here.",
+      description: "A Solana space-exploration grand-strategy game and metaverse.",
     },
     {
       id:          "stepn",
@@ -1481,7 +1481,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=stepn.com&sz=128",
-      description: "Description here.",
+      description: "A move-to-earn lifestyle app rewarding users for walking and running.",
     },
     {
       id:          "sugartown",
@@ -1491,7 +1491,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=sugar.town&sz=64",
-      description: "Description here.",
+      description: "Zynga's Web3 gaming world built around the Oddie NFT characters.",
     },
     {
       id:          "supertripland",
@@ -1501,7 +1501,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=supertripland.com&sz=64",
-      description: "Description here.",
+      description: "A free-to-play browser multiplayer FPS shooter, launching on Abstract.",
     },
     {
       id:          "the-sandbox",
@@ -1511,7 +1511,7 @@
       chains:      ["ethereum", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=sandbox.game&sz=128",
-      description: "Description here.",
+      description: "A virtual world where players build, own, and monetize gaming experiences.",
     },
     {
       id:          "tollan-universe",
@@ -1521,7 +1521,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=hub.tollan.io&sz=64",
-      description: "Description here.",
+      description: "A survivors-style action game on Abstract where players fight enemy waves and upgrade abilities.",
     },
     {
       id:          "trivia-rush",
@@ -1531,7 +1531,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=triviarush.fun&sz=64",
-      description: "Description here.",
+      description: "A live trivia game where players answer questions to compete for prizes.",
     },
     {
       id:          "unchained",
@@ -1541,7 +1541,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=unchained.game&sz=64",
-      description: "Description here.",
+      description: "An 80s-style dungeon-crawler battle royale on Abstract with fast matches and instant payouts.",
     },
     {
       id:          "vibes-tcg",
@@ -1551,7 +1551,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=vibes.game&sz=64",
-      description: "Description here.",
+      description: "The official Pudgy Penguins trading card game, digital and physical, built on Abstract.",
     },
     {
       id:          "waifu-sweeper",
@@ -1561,7 +1561,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=waifusweeper.fun&sz=64",
-      description: "Description here.",
+      description: "A Minesweeper-inspired skill-based puzzle game on Abstract with collectible anime characters.",
     },
     {
       id:          "yield-guild-games",
@@ -1571,7 +1571,7 @@
       chains:      ["ethereum", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=yieldguild.io&sz=128",
-      description: "Description here.",
+      description: "A gaming guild and DAO that invests in and scholarships NFT game assets.",
     },
     {
       id:          "otherside",
@@ -1636,7 +1636,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=abstract.moon.it&sz=64",
-      description: "Description here.",
+      description: "A token-launch and meme-trading platform where creators launch tokens and earn fees.",
     },
     {
       id:          "snek-fun",
@@ -1766,7 +1766,7 @@
       chains:      ["base", "ethereum", "monad", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=backpack.app&sz=64",
-      description: "Description here.",
+      description: "A multi-chain crypto wallet for Solana and Ethereum with xNFT support.",
     },
     {
       id:          "coinbase-wallet",
@@ -1776,7 +1776,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=coinbase.com&sz=64",
-      description: "Description here.",
+      description: "A self-custodial wallet for crypto and NFTs across multiple chains.",
     },
     {
       id:          "eternl",
@@ -1786,7 +1786,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=eternl.io&sz=64",
-      description: "Description here.",
+      description: "A feature-rich Cardano wallet for staking, dApps, and asset management.",
     },
     {
       id:          "exodus",
@@ -1796,7 +1796,7 @@
       chains:      ["arbitrum", "avalanche", "base", "cardano", "ethereum", "gnosis", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=exodus.com&sz=64",
-      description: "Description here.",
+      description: "A multi-asset desktop and mobile wallet with a built-in exchange.",
     },
     {
       id:          "flint-wallet",
@@ -1806,7 +1806,7 @@
       chains:      ["cardano", "ethereum", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=flint-wallet.io&sz=64",
-      description: "Description here.",
+      description: "A Cardano and multi-chain wallet for DeFi and dApp access.",
     },
     {
       id:          "lace",
@@ -1816,7 +1816,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=lace.io&sz=64",
-      description: "Description here.",
+      description: "IOG's light wallet for Cardano with staking and dApp connectivity.",
     },
     {
       id:          "metamask",
@@ -1826,7 +1826,7 @@
       chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "hype", "monad", "optimism", "polygon", "soneium", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=metamask.io&sz=64",
-      description: "Description here.",
+      description: "The widely-used self-custodial wallet for Ethereum and EVM networks.",
     },
     {
       id:          "nami-wallet",
@@ -1836,7 +1836,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=namiwallet.io&sz=64",
-      description: "Description here.",
+      description: "A browser-based Cardano wallet for dApps and staking.",
     },
     {
       id:          "phantom",
@@ -1846,7 +1846,7 @@
       chains:      ["arbitrum", "base", "ethereum", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=phantom.app&sz=64",
-      description: "Description here.",
+      description: "A popular multi-chain wallet for Solana, Ethereum, and more.",
     },
     {
       id:          "rabby-wallet",
@@ -1856,7 +1856,7 @@
       chains:      ["apechain", "arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "optimism", "polygon", "soneium", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=rabby.io&sz=64",
-      description: "Description here.",
+      description: "A security-focused EVM wallet with clear transaction previews.",
     },
     {
       id:          "rainbow-wallet",
@@ -1866,7 +1866,7 @@
       chains:      ["arbitrum", "base", "blast", "ethereum", "optimism", "polygon", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=rainbow.me&sz=64",
-      description: "Description here.",
+      description: "A friendly Ethereum wallet for tokens, NFTs, and DeFi.",
     },
     {
       id:          "safe",
@@ -1876,7 +1876,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "gnosis", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=safe.global&sz=128",
-      description: "Description here.",
+      description: "A smart-contract multisig wallet for securing digital assets, formerly Gnosis Safe.",
     },
     {
       id:          "trust-wallet",
@@ -1886,7 +1886,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=trustwallet.com&sz=64",
-      description: "Description here.",
+      description: "A multi-chain mobile wallet for crypto and NFTs.",
     },
     {
       id:          "vespr",
@@ -1896,7 +1896,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=vespr.xyz&sz=64",
-      description: "Description here.",
+      description: "A mobile-first Cardano wallet for staking and dApps.",
     },
     {
       id:          "xdefi-ctrl-wallet",
@@ -1906,7 +1906,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "gnosis", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=ctrl.xyz&sz=64",
-      description: "Description here.",
+      description: "A multi-chain wallet for crypto, NFTs, and cross-chain swaps, formerly XDEFI.",
     },
     {
       id:          "yoroi-wallet",
@@ -1916,7 +1916,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=yoroi-wallet.com&sz=64",
-      description: "Description here.",
+      description: "A light Cardano wallet by Emurgo for staking and transactions.",
     },
     {
       id:          "begin-wallet",
@@ -1981,7 +1981,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=blever.xyz&sz=64",
-      description: "Description here.",
+      description: "An NFT launchpad on Abstract for creating and minting NFT collections.",
     },
     {
       id:          "wayup",
@@ -2001,7 +2001,7 @@
       chains:      ["base", "blast", "ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=blur.io&sz=64",
-      description: "Description here.",
+      description: "A pro-focused NFT marketplace and aggregator for active traders.",
     },
     {
       id:          "book-io",
@@ -2011,7 +2011,7 @@
       chains:      ["cardano", "ethereum", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=book.io&sz=64",
-      description: "Description here.",
+      description: "A Web3 marketplace for buying and owning ebooks and audiobooks as NFTs.",
     },
     {
       id:          "dyli",
@@ -2021,7 +2021,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=dyli.io&sz=64",
-      description: "Description here.",
+      description: "A collectible-commerce marketplace on Abstract for digital collectibles redeemable for physical goods.",
     },
     {
       id:          "element-market",
@@ -2031,7 +2031,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "optimism", "polygon", "solana", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=element.market&sz=64",
-      description: "Description here.",
+      description: "A multi-chain NFT marketplace and aggregator.",
     },
     {
       id:          "exchange.art",
@@ -2041,7 +2041,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=exchange.art&sz=128",
-      description: "Description here.",
+      description: "A Solana marketplace for fine and generative digital art.",
     },
     {
       id:          "foundation",
@@ -2051,7 +2051,7 @@
       chains:      ["base", "ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=foundation.app&sz=128",
-      description: "Description here.",
+      description: "A curated marketplace for digital art and NFTs.",
     },
     {
       id:          "hyperspace",
@@ -2061,7 +2061,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=hyperspace.xyz&sz=128",
-      description: "Description here.",
+      description: "A Solana NFT marketplace and aggregator.",
     },
     {
       id:          "jpg-store",
@@ -2071,7 +2071,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=jpg.store&sz=64",
-      description: "Description here.",
+      description: "The leading Cardano NFT marketplace.",
     },
     {
       id:          "looksrare",
@@ -2081,7 +2081,7 @@
       chains:      ["base", "ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=looksrare.org&sz=64",
-      description: "Description here.",
+      description: "A community-first NFT marketplace that rewards traders.",
     },
     {
       id:          "magic-eden",
@@ -2091,7 +2091,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=magiceden.io&sz=64",
-      description: "Description here.",
+      description: "A leading multi-chain NFT marketplace spanning Solana, Ethereum, and Bitcoin.",
     },
     {
       id:          "mintify",
@@ -2101,7 +2101,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=mintify.xyz&sz=64",
-      description: "Description here.",
+      description: "A multichain NFT trading terminal and analytics platform for professional traders.",
     },
     {
       id:          "nmkr",
@@ -2111,7 +2111,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=nmkr.io&sz=64",
-      description: "Description here.",
+      description: "A Cardano NFT minting platform and infrastructure provider.",
     },
     {
       id:          "opensea",
@@ -2121,7 +2121,7 @@
       chains:      ["abstract", "arbitrum", "avalanche", "base", "blast", "ethereum", "optimism", "polygon", "solana", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=opensea.io&sz=64",
-      description: "Description here.",
+      description: "The largest general NFT marketplace across many blockchains.",
     },
     {
       id:          "rarible",
@@ -2131,7 +2131,7 @@
       chains:      ["arbitrum", "base", "ethereum", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=rarible.com&sz=128",
-      description: "Description here.",
+      description: "A multi-chain NFT marketplace and creator platform.",
     },
     {
       id:          "scatter",
@@ -2141,7 +2141,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=scatter.art&sz=64",
-      description: "Description here.",
+      description: "An artist-first NFT launchpad and marketplace where creators self-deploy collections.",
     },
     {
       id:          "segmint",
@@ -2151,7 +2151,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=segmint.io&sz=64",
-      description: "Description here.",
+      description: "VanEck's NFT platform with a 'Lock & Key' shared-custody vault model.",
     },
     {
       id:          "solanart",
@@ -2161,7 +2161,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=solanart.io&sz=128",
-      description: "Description here.",
+      description: "A Solana NFT marketplace.",
     },
     {
       id:          "superrare",
@@ -2171,7 +2171,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=superrare.com&sz=128",
-      description: "Description here.",
+      description: "A curated marketplace for single-edition digital artworks.",
     },
     {
       id:          "tensor",
@@ -2181,7 +2181,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=tensor.trade&sz=64",
-      description: "Description here.",
+      description: "A Solana NFT marketplace and aggregator built for pro traders.",
     },
     {
       id:          "x2y2",
@@ -2191,7 +2191,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=x2y2.io&sz=128",
-      description: "Description here.",
+      description: "A decentralized Ethereum NFT marketplace.",
     },
     {
       id:          "crashr",
@@ -2236,7 +2236,7 @@
       chains:      ["base", "ethereum", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=aragon.org&sz=128",
-      description: "Description here.",
+      description: "A platform for creating and managing on-chain DAOs.",
     },
     {
       id:          "bendingai",
@@ -2256,7 +2256,7 @@
       chains:      ["arbitrum", "avalanche", "base", "cardano", "ethereum", "gnosis", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=coinstats.app&sz=64",
-      description: "Description here.",
+      description: "A portfolio tracker for crypto and DeFi across wallets and exchanges.",
     },
     {
       id:          "dappradar",
@@ -2266,7 +2266,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "optimism", "polygon", "ronin", "solana", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=dappradar.com&sz=64",
-      description: "Description here.",
+      description: "A directory and analytics platform for dApps across blockchains.",
     },
     {
       id:          "debank",
@@ -2276,7 +2276,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "optimism", "polygon", "ronin", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=debank.com&sz=64",
-      description: "Description here.",
+      description: "A DeFi portfolio tracker and Web3 dashboard for EVM chains.",
     },
     {
       id:          "defillama",
@@ -2286,7 +2286,7 @@
       chains:      ["abstract", "apechain", "arbitrum", "avalanche", "base", "blast", "cardano", "ethereum", "gnosis", "hype", "monad", "optimism", "polygon", "ronin", "solana", "soneium", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=defillama.com&sz=64",
-      description: "Description here.",
+      description: "The leading open analytics dashboard for DeFi TVL and metrics.",
     },
     {
       id:          "depth-protocol",
@@ -2296,7 +2296,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=depthsoul.com&sz=64",
-      description: "Description here.",
+      description: "A soulbound vault yield protocol on Abstract with capped emissions and token burns.",
     },
     {
       id:          "dexscreener",
@@ -2306,7 +2306,7 @@
       chains:      ["apechain", "arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "optimism", "polygon", "ronin", "solana", "soneium", "worldchain", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=dexscreener.com&sz=64",
-      description: "Description here.",
+      description: "A real-time charting and analytics tool for on-chain token trading.",
     },
     {
       id:          "dialect",
@@ -2316,7 +2316,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=dialect.to&sz=128",
-      description: "Description here.",
+      description: "A messaging and notifications protocol for Solana wallets and apps.",
     },
     {
       id:          "dune-analytics",
@@ -2326,7 +2326,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=dune.com&sz=128",
-      description: "Description here.",
+      description: "A platform for querying and visualizing on-chain blockchain data.",
     },
     {
       id:          "etherscan",
@@ -2336,7 +2336,7 @@
       chains:      ["ethereum"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=etherscan.io&sz=128",
-      description: "Description here.",
+      description: "The primary block explorer and analytics platform for Ethereum.",
     },
     {
       id:          "ethos-network",
@@ -2356,7 +2356,7 @@
       chains:      ["base", "ethereum", "optimism"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=farcaster.xyz&sz=128",
-      description: "Description here.",
+      description: "A decentralized social network protocol.",
     },
     {
       id:          "geckoterminal",
@@ -2366,7 +2366,7 @@
       chains:      ["apechain", "arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "optimism", "polygon", "ronin", "solana", "soneium", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=geckoterminal.com&sz=64",
-      description: "Description here.",
+      description: "A real-time DEX and token analytics platform by CoinGecko.",
     },
     {
       id:          "gitcoin",
@@ -2376,7 +2376,7 @@
       chains:      ["arbitrum", "ethereum", "optimism"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=gitcoin.co&sz=128",
-      description: "Description here.",
+      description: "A platform for funding open-source and public-goods projects via grants.",
     },
     {
       id:          "konnektr",
@@ -2396,7 +2396,7 @@
       chains:      ["polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=lens.xyz&sz=128",
-      description: "Description here.",
+      description: "A decentralized social graph for building Web3 social apps.",
     },
     {
       id:          "lute",
@@ -2406,7 +2406,7 @@
       chains:      ["abstract"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=lute.gg&sz=64",
-      description: "Description here.",
+      description: "A non-custodial Solana trading terminal and wallet with momentum scans and social trading.",
     },
     {
       id:          "nansen",
@@ -2416,7 +2416,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "optimism", "polygon", "ronin", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=nansen.ai&sz=128",
-      description: "Description here.",
+      description: "An on-chain analytics platform with wallet labels and smart-money insights.",
     },
     {
       id:          "pulsar-finance",
@@ -2426,7 +2426,7 @@
       chains:      ["arbitrum", "avalanche", "base", "cardano", "ethereum", "gnosis", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=pulsar.finance&sz=64",
-      description: "Description here.",
+      description: "A multi-chain portfolio tracker and management dashboard.",
     },
     {
       id:          "pyth-network",
@@ -2436,7 +2436,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "monad", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=pyth.network&sz=128",
-      description: "Description here.",
+      description: "An oracle network delivering real-time market price data on-chain.",
     },
     {
       id:          "realms",
@@ -2446,7 +2446,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=realms.today&sz=128",
-      description: "Description here.",
+      description: "A DAO governance platform for creating and managing organizations on Solana.",
     },
     {
       id:          "snapshot",
@@ -2456,7 +2456,7 @@
       chains:      ["arbitrum", "base", "ethereum", "optimism", "polygon"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=snapshot.org&sz=128",
-      description: "Description here.",
+      description: "A gasless off-chain voting platform for DAO governance.",
     },
     {
       id:          "squads",
@@ -2466,7 +2466,7 @@
       chains:      ["solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=squads.so&sz=128",
-      description: "Description here.",
+      description: "A Solana multisig and smart-account platform for teams and treasuries.",
     },
     {
       id:          "taptools",
@@ -2476,7 +2476,7 @@
       chains:      ["cardano"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=taptools.io&sz=64",
-      description: "Description here.",
+      description: "A Cardano market-data and portfolio analytics platform.",
     },
     {
       id:          "token-terminal",
@@ -2486,7 +2486,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=tokenterminal.com&sz=128",
-      description: "Description here.",
+      description: "A platform for fundamental financial metrics on crypto protocols.",
     },
     {
       id:          "zapper",
@@ -2496,7 +2496,7 @@
       chains:      ["arbitrum", "avalanche", "base", "blast", "ethereum", "gnosis", "optimism", "polygon", "zora"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=zapper.xyz&sz=64",
-      description: "Description here.",
+      description: "A DeFi portfolio dashboard for tracking and managing positions across chains.",
     },
     {
       id:          "zerion",
@@ -2506,7 +2506,7 @@
       chains:      ["arbitrum", "avalanche", "base", "ethereum", "optimism", "polygon", "solana"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=zerion.io&sz=128",
-      description: "Description here.",
+      description: "A Web3 wallet and portfolio manager for DeFi and NFTs.",
     },
     {
       id:          "cardanoscan",
