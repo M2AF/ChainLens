@@ -2449,6 +2449,16 @@
       description: "An open-source developer toolset and SDK for PostgreSQL/Apache AGE, providing graph database capabilities and integration libraries for C# and .NET environments."
     },
     {
+      id:          "mizutools",
+      name:        "MizuTools",
+      website:     "https://mizutools.xyz/",
+      category:    "Portfolio & Analytics",
+      chains:      ["cardano"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=mizutools.xyz&sz=64",
+      description: "A comprehensive analytics and portfolio tracking platform designed to provide insights into the Cardano ecosystem and asset performance."
+    },
+    {
       id:          "lens-protocol",
       name:        "Lens Protocol",
       website:     "https://lens.xyz",
@@ -3778,6 +3788,16 @@
       description: "Agricultural supply tracking.",
     },
     {
+      id:          "cswap-nft-marketplace",
+      name:        "CSwap NFT Marketplace",
+      website:     "https://app.cswap.fi",
+      category:    "Real World Assets",
+      chains:      ["cardano"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=app.cswap.fi&sz=64",
+      description: "RWA marketplace with liquidity pools.",
+    },
+    {
       id:          "digift-platform",
       name:        "DigiFT Platform",
       website:     "https://digift.io",
@@ -4331,16 +4351,6 @@
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=atomic-swap.io&sz=64",
       description: "Peer-to-peer asset swap tool.",
-    },
-    {
-      id:          "cswap-nft-marketplace",
-      name:        "CSwap NFT Marketplace",
-      website:     "https://app.cswap.fi",
-      category:    "NFT Marketplace",
-      chains:      ["cardano"],
-      featured:    false,
-      favicon:     "https://www.google.com/s2/favicons?domain=app.cswap.fi&sz=64",
-      description: "NFT marketplace with liquidity pools.",
     },
     {
       id:          "flipswap",
