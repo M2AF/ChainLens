@@ -1974,6 +1974,66 @@
       description: "An NFT launchpad on Abstract for creating and minting NFT collections.",
     },
     {
+      id:          "gamma",
+      name:        "Gamma",
+      website:     "https://gamma.io/",
+      category:    "NFT Marketplace",
+      chains:      ["bitcoin"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=gamma.io&sz=64",
+      description: "A leading Bitcoin NFT marketplace featuring a trustless Ordinals marketplace built on Bitcoin Layer-1, including a no-code launchpad and API infrastructure."
+    },
+    {
+      id:          "okx-nft",
+      name:        "OKX NFT Marketplace",
+      website:     "https://www.okx.com/web3/marketplace/nft",
+      category:    "NFT Marketplace",
+      chains:      ["bitcoin"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=okx.com&sz=64",
+      description: "An aggregator marketplace supporting Bitcoin Ordinals with bulk buying features, zero listing fees, and rigorous creator verification."
+    },
+    {
+      id:          "unisat",
+      name:        "Unisat",
+      website:     "https://unisat.io/",
+      category:    "NFT Marketplace",
+      chains:      ["bitcoin"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=unisat.io&sz=64",
+      description: "A decentralized application for creating, trading, and managing Bitcoin Ordinals, with support for over 1,500 collections."
+    },
+    {
+      id:          "ordzaar",
+      name:        "Ordzaar",
+      website:     "https://ordzaar.com/",
+      category:    "NFT Marketplace",
+      chains:      ["bitcoin"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=ordzaar.com&sz=64",
+      description: "A creator-friendly, fully on-chain Bitcoin Ordinals launchpad and marketplace that does not charge platform fees."
+    },
+    {
+      id:          "ordinals-market",
+      name:        "Ordinals Market",
+      website:     "https://ordinals.market/",
+      category:    "NFT Marketplace",
+      chains:      ["bitcoin"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=ordinals.market&sz=64",
+      description: "A user-friendly marketplace for browsing, buying, and selling digital artifacts, featuring bulk buying and verified listings."
+    },
+    {
+      id:          "ordinals-wallet",
+      name:        "Ordinals Wallet",
+      website:     "https://ordinalswallet.com/",
+      category:    "NFT Marketplace",
+      chains:      ["bitcoin"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=ordinalswallet.com&sz=64",
+      description: "A community-funded marketplace dedicated to buying and selling Bitcoin Ordinals."
+    },
+    {
       id:          "wayup",
       name:        "WayUp",
       website:     "https://www.wayup.io/",
@@ -2142,6 +2202,16 @@
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=segmint.io&sz=64",
       description: "VanEck's NFT platform with a 'Lock & Key' shared-custody vault model.",
+    },
+    {
+      id:          "satflow",
+      name:        "Sat Flow",
+      website:     "https://www.satflow.com/",
+      category:    "NFT Marketplace",
+      chains:      ["bitcoin"],
+      featured:    false,
+      favicon:     "https://www.google.com/s2/favicons?domain=satflow.com&sz=64",
+      description: "A specialized marketplace for Bitcoin Ordinals, enabling the discovery, buying, and selling of digital artifacts inscribed directly on the Bitcoin blockchain."
     },
     {
       id:          "solanart",
@@ -3732,7 +3802,7 @@
       name:        "Filecoin",
       website:     "https://filecoin.io",
       category:    "Real World Assets",
-      chains:      ["cardano"],
+      chains:      ["cardano", "ethereum", "polygon", "avalanche"],
       featured:    false,
       favicon:     "https://www.google.com/s2/favicons?domain=filecoin.io&sz=64",
       description: "Verifiable data storage.",
