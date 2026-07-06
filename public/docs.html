@@ -224,7 +224,7 @@
 
     .status-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 1fr;
       gap: 10px;
       margin-top: 18px;
     }
@@ -559,7 +559,7 @@
         <div class="eyebrow">Developer preview</div>
         <h1>Magic Money Wallet Docs</h1>
         <p class="hero-copy">
-          Integration notes for dApp developers building against Magic Money Wallet across EVM, Solana, Cardano, and WalletConnect. Use this page to detect the wallet, request accounts, submit signing requests, and understand the security boundaries.
+          Integration notes for dApp developers building against Magic Money Wallet across EVM, Solana, Cardano, Bitcoin, and WalletConnect. Use this page to detect the wallet, request accounts, submit signing requests, and understand the security boundaries.
         </p>
       </div>
 
@@ -569,9 +569,6 @@
         <p>Magic Money is a self-custody wallet designed for ChainLens, desktop, and browser extension workflows.</p>
         <div class="status-grid">
           <div class="metric"><span>Networks</span><strong>22</strong></div>
-          <div class="metric"><span>Surfaces</span><strong>3</strong></div>
-          <div class="metric"><span>EVM</span><strong>1193</strong></div>
-          <div class="metric"><span>Cardano</span><strong>CIP-30</strong></div>
         </div>
       </aside>
     </div>
@@ -585,6 +582,7 @@
         <a href="#evm">EVM Provider</a>
         <a href="#solana">Solana Provider</a>
         <a href="#cardano">Cardano CIP-30</a>
+        <a href="#bitcoin">Bitcoin Provider</a>
         <a href="#walletconnect">WalletConnect</a>
         <a href="#networks">Networks</a>
         <a href="#security">Security</a>
@@ -597,7 +595,7 @@
         <section id="overview">
           <h2>Overview</h2>
           <p>
-            Magic Money Wallet exposes standard wallet interfaces instead of a custom-only API. EVM dApps use EIP-1193 and EIP-6963, Solana dApps use the Wallet Standard and legacy <code>window.solana</code>, Cardano dApps use <code>window.cardano.magicmoney</code>, and QR or URI based flows use WalletConnect v2.
+            Magic Money Wallet exposes standard wallet interfaces instead of a custom-only API. EVM dApps use EIP-1193 and EIP-6963, Solana dApps use the Wallet Standard and legacy <code>window.solana</code>, Cardano dApps use <code>window.cardano.magicmoney</code>, Bitcoin and Ordinals dApps use <code>window.unisat</code> or <code>window.btc_providers</code>, and QR or URI based flows use WalletConnect v2.
           </p>
           <div class="cards">
             <div class="mini-card">
@@ -614,6 +612,11 @@
               <span>Cardano</span>
               <strong>CIP-30</strong>
               <p>Connect at <code>window.cardano.magicmoney</code> with UTxO, balance, signing, and submit methods.</p>
+            </div>
+            <div class="mini-card">
+              <span>Bitcoin</span>
+              <strong>UniSat + WBIP</strong>
+              <p>Connect payment and ordinals addresses, sign messages, sign PSBTs, broadcast, and send BTC.</p>
             </div>
           </div>
         </section>
@@ -653,6 +656,21 @@
   const changeAddressHex = await api.getChangeAddress();
 
   return { api, networkId, changeAddressHex };
+}</code></pre>
+
+          <div class="code-head">
+            <span>Bitcoin connect</span>
+            <button class="copy-btn" type="button" data-copy="bitcoin-connect">Copy</button>
+          </div>
+          <pre><code id="bitcoin-connect">async function connectMagicMoneyBitcoin() {
+  const provider = window.unisat;
+  if (!provider?.isMagicMoney) throw new Error("Magic Money Bitcoin provider not found");
+
+  const [paymentAddress] = await provider.requestAccounts();
+  const publicKey = await provider.getPublicKey();
+  const balance = await provider.getBalance();
+
+  return { paymentAddress, publicKey, balance };
 }</code></pre>
         </section>
 
@@ -786,6 +804,122 @@ const witnessSetHex = await api.signTx(txHex, true);
 console.log({ witnessSetHex });</code></pre>
         </section>
 
+        <section id="bitcoin">
+          <h2>Bitcoin Provider</h2>
+          <p>
+            Magic Money exposes Bitcoin dApp connectivity for payment, Ordinals, Runes, and BRC-20 style apps. It supports a UniSat-compatible <code>window.unisat</code> surface and a sats-connect/WBIP style provider through <code>window.btc_providers</code>.
+          </p>
+          <p>
+            Bitcoin access is approval-gated by origin. The wallet returns a native SegWit payment address for BTC transfers and a Taproot address for ordinals workflows.
+          </p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Address</th><th>Purpose</th><th>Type</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Payment</td><td>BTC send/receive, PSBT payment inputs</td><td><code>p2wpkh</code> native SegWit, <code>bc1q...</code></td></tr>
+                <tr><td>Ordinals</td><td>Ordinals, inscriptions, Runes, BRC-20</td><td><code>p2tr</code> Taproot, <code>bc1p...</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>UniSat-compatible API</h3>
+          <p>
+            Use <code>window.unisat</code> when your dApp already supports UniSat-style Bitcoin wallets. Magic Money only claims this global when another Bitcoin wallet has not already locked it, so dApps should still allow wallet selection when multiple wallets are available.
+          </p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Method</th><th>Purpose</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>requestAccounts()</code></td><td>Prompt the user and return the payment address array.</td></tr>
+                <tr><td><code>getAccounts()</code></td><td>Return connected payment accounts after approval.</td></tr>
+                <tr><td><code>getPublicKey()</code></td><td>Return the payment public key as hex.</td></tr>
+                <tr><td><code>getNetwork()</code></td><td>Returns <code>livenet</code>.</td></tr>
+                <tr><td><code>getBalance()</code></td><td>Returns confirmed, unconfirmed, and total satoshi balances.</td></tr>
+                <tr><td><code>signMessage(message, type)</code></td><td>Sign a message after user approval. Default type is <code>ecdsa</code>.</td></tr>
+                <tr><td><code>signPsbt(psbtHex, options)</code></td><td>Sign one PSBT and return signed PSBT hex.</td></tr>
+                <tr><td><code>signPsbts(psbtHexArray, options)</code></td><td>Sign multiple PSBTs.</td></tr>
+                <tr><td><code>pushPsbt(psbtHex)</code></td><td>Broadcast an extracted raw transaction hex.</td></tr>
+                <tr><td><code>pushTx(rawtx)</code></td><td>Broadcast a raw transaction hex.</td></tr>
+                <tr><td><code>sendBitcoin(to, satoshis)</code></td><td>Build, sign, and broadcast a BTC transfer from the payment address.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="code-head">
+            <span>Bitcoin message signing</span>
+            <button class="copy-btn" type="button" data-copy="bitcoin-message">Copy</button>
+          </div>
+          <pre><code id="bitcoin-message">const provider = window.unisat;
+const [address] = await provider.requestAccounts();
+
+const signature = await provider.signMessage(
+  "Sign in to my Bitcoin dApp",
+  "ecdsa"
+);
+
+console.log({ address, signature });</code></pre>
+
+          <div class="code-head">
+            <span>Bitcoin PSBT signing</span>
+            <button class="copy-btn" type="button" data-copy="bitcoin-psbt">Copy</button>
+          </div>
+          <pre><code id="bitcoin-psbt">const signedPsbtHex = await window.unisat.signPsbt(psbtHex, {
+  autoFinalized: true,
+  broadcast: false
+});
+
+// If your app extracts a raw transaction from the signed PSBT:
+const txid = await window.unisat.pushTx({ rawtx: rawTxHex });</code></pre>
+
+          <div class="code-head">
+            <span>Send BTC</span>
+            <button class="copy-btn" type="button" data-copy="bitcoin-send">Copy</button>
+          </div>
+          <pre><code id="bitcoin-send">const sats = 25_000;
+const txid = await window.unisat.sendBitcoin(
+  "bc1qexamplepaymentaddress...",
+  sats
+);</code></pre>
+
+          <h3>sats-connect / WBIP provider</h3>
+          <p>
+            Apps that use WBIP-style providers can discover Magic Money through <code>window.btc_providers</code> and then call the matching provider from <code>window.MagicMoneyProviders.BitcoinProvider</code> or <code>window.BitcoinProvider</code>.
+          </p>
+
+          <div class="code-head">
+            <span>WBIP discovery</span>
+            <button class="copy-btn" type="button" data-copy="bitcoin-wbip">Copy</button>
+          </div>
+          <pre><code id="bitcoin-wbip">const entry = window.btc_providers?.find(
+  (provider) =&gt; provider.id === "MagicMoneyProviders.BitcoinProvider"
+);
+
+if (!entry) throw new Error("Magic Money Bitcoin provider not found");
+
+const provider = window.MagicMoneyProviders.BitcoinProvider;
+
+const addressesResult = await provider.request("getAddresses", {
+  purposes: ["payment", "ordinals"]
+});
+
+const psbtResult = await provider.request("signPsbt", {
+  psbt: psbtBase64,
+  signInputs: {},
+  broadcast: false,
+  finalize: true
+});</code></pre>
+
+          <div class="callout">
+            <strong>Developer note:</strong> Magic Money avoids spending Taproot ordinals outputs as ordinary payment change. Build PSBTs with explicit inputs and outputs, and show the user clear intent when requesting ordinal or rune transfers.
+          </div>
+        </section>
+
         <section id="walletconnect">
           <h2>WalletConnect</h2>
           <p>
@@ -895,6 +1029,9 @@ npm test</code></pre>
                 <tr><td>Magic Money is not in your wallet list.</td><td>Listen for EIP-6963 announcements and dispatch <code>eip6963:requestProvider</code> after your listener is registered.</td></tr>
                 <tr><td><code>eth_accounts</code> returns empty.</td><td>Call <code>eth_requestAccounts</code> and wait for user approval.</td></tr>
                 <tr><td>Cardano methods are missing.</td><td>Use <code>window.cardano.magicmoney.enable()</code>; the full CIP-30 API is returned after approval.</td></tr>
+                <tr><td>Bitcoin provider is not visible.</td><td>Check <code>window.unisat</code>, <code>window.btc_providers</code>, and <code>window.MagicMoneyProviders.BitcoinProvider</code>. Another wallet may own <code>window.unisat</code>.</td></tr>
+                <tr><td>Bitcoin signing fails with permission errors.</td><td>Call <code>requestAccounts()</code> or <code>getAddresses</code> first so the origin is approved before message or PSBT signing.</td></tr>
+                <tr><td>Ordinals app gets the payment address only.</td><td>Use the WBIP <code>getAddresses</code> path with <code>purposes: ["payment", "ordinals"]</code> to receive the Taproot ordinals address.</td></tr>
                 <tr><td>Signing request is rejected.</td><td>Treat user rejection as normal control flow and let the user retry from your dApp UI.</td></tr>
                 <tr><td>Wrong EVM chain.</td><td>Call <code>wallet_switchEthereumChain</code> before building chain-specific transactions.</td></tr>
               </tbody>
