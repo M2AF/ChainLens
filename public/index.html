@@ -2779,6 +2779,18 @@
           )}
           <div className="fixed bottom-6 right-6 z-[70] flex flex-col items-end gap-3">
 
+          {/* Docs link */}
+          <a
+            href="/docs"
+            className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-emerald-400 hover:text-emerald-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-500 backdrop-blur-md'}`}>
+            <svg width="13" height="13" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4.5 2.5H10.2L13.5 5.8V15.5H4.5C3.95 15.5 3.5 15.05 3.5 14.5V3.5C3.5 2.95 3.95 2.5 4.5 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+              <path d="M10 2.75V6H13.25" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+              <path d="M6.25 9H11.75M6.25 12H10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            Docs
+          </a>
+
           {/* Wallet pop-up panel */}
           {showWallet && (
             <div className={`rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-5 w-64 flex flex-col items-center gap-3 ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}

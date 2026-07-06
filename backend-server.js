@@ -2960,6 +2960,7 @@ console.log('✅ Transaction history routes configured');
 // Serve app-hub-data.js from root (editable app hub data, separate from public/)
 app.get('/app-hub-data.js', (req, res) => res.sendFile(path.join(__dirname, 'app-hub-data.js')));
 
+app.get('/docs', (req, res) => res.sendFile(path.join(__dirname, 'public', 'docs.html')));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 // Validate critical API keys at startup
 if (!API_KEYS.alchemy) {
