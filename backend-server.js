@@ -183,6 +183,7 @@ const API_KEYS = {
   zerion: process.env.ZERION_KEY,
   moralis: process.env.MORALIS_KEY,
   coingecko: process.env.COINGECKO_KEY,
+  coinmarketcap: process.env.COINMARKETCAP_API_KEY || process.env.CMC_API_KEY,
 };
 
 // Demo keys (CG- prefix) ONLY work on api.coingecko.com — pro keys use pro-api.coingecko.com.
@@ -195,6 +196,134 @@ const cgHeaders = () => {
   return _cgIsDemo ? { 'x-cg-demo-api-key': _cgKey } : { 'x-cg-pro-api-key': _cgKey };
 };
 console.log(_cgKey ? `✅ CoinGecko API key loaded (${_cgIsDemo ? 'demo' : 'pro'} tier)` : '⚠️  No COINGECKO_KEY — free tier only');
+
+const CMC_BASE = 'https://pro-api.coinmarketcap.com';
+const cmcHeaders = () => {
+  if (!API_KEYS.coinmarketcap) return null;
+  return { accept: 'application/json', 'X-CMC_PRO_API_KEY': API_KEYS.coinmarketcap };
+};
+const cmcUsdQuote = (coin) => {
+  if (Array.isArray(coin?.quote)) {
+    return coin.quote.find(q => q?.symbol === 'USD' || q?.id === 2781) || coin.quote[0] || {};
+  }
+  return coin?.quote?.USD || {};
+};
+const cmcLogoUrl = (id) => id ? `https://s2.coinmarketcap.com/static/img/coins/64x64/${id}.png` : '';
+const mapCmcCoinForChainLens = (coin, idx = 0) => {
+  const quote = cmcUsdQuote(coin);
+  const price = Number(quote.price) || 0;
+  return {
+    id: coin.slug || (coin.symbol || '').toLowerCase(),
+    symbol: (coin.symbol || '').toLowerCase(),
+    name: coin.name || coin.symbol || 'Unknown',
+    image: cmcLogoUrl(coin.id),
+    current_price: price,
+    market_cap: Number(quote.market_cap) || 0,
+    market_cap_rank: coin.cmc_rank || idx + 1,
+    fully_diluted_valuation: Number(quote.fully_diluted_market_cap) || 0,
+    total_volume: Number(quote.volume_24h) || 0,
+    high_24h: null,
+    low_24h: null,
+    price_change_24h: null,
+    price_change_percentage_24h: Number(quote.percent_change_24h) || 0,
+    market_cap_change_24h: null,
+    market_cap_change_percentage_24h: null,
+    circulating_supply: Number(coin.circulating_supply) || null,
+    total_supply: Number(coin.total_supply) || null,
+    max_supply: Number(coin.max_supply) || null,
+    ath: null,
+    ath_change_percentage: null,
+    ath_date: null,
+    atl: null,
+    atl_change_percentage: null,
+    atl_date: null,
+    roi: null,
+    last_updated: quote.last_updated || coin.last_updated || null,
+    sparkline_in_7d: null,
+    price_change_percentage_24h_in_currency: Number(quote.percent_change_24h) || 0,
+    source: 'CoinMarketCap',
+  };
+};
+const fetchCmcJson = async (path, params = {}, timeoutMs = 8000) => {
+  const headers = cmcHeaders();
+  if (!headers) throw new Error('COINMARKETCAP_API_KEY missing');
+  const url = new URL(`${CMC_BASE}${path}`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
+  });
+  const response = await fetch(url, { headers, signal: AbortSignal.timeout(timeoutMs) });
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(`CoinMarketCap ${response.status}: ${json.status?.error_message || 'request failed'}`);
+  return json;
+};
+const fetchCmcListings = async (limit = 100) => {
+  const json = await fetchCmcJson('/v3/cryptocurrency/listings/latest', {
+    start: 1,
+    limit,
+    convert: 'USD',
+    sort: 'market_cap',
+    sort_dir: 'desc',
+  }, 10000);
+  const rows = Array.isArray(json.data) ? json.data : [];
+  if (rows.length === 0) throw new Error('CoinMarketCap empty listings');
+  return rows.map(mapCmcCoinForChainLens);
+};
+const fetchCmcQuote = async (query) => {
+  const normalized = String(query || '').trim();
+  if (!normalized) throw new Error('CoinMarketCap empty query');
+  const attempts = [];
+  if (/^[a-z0-9$@]{1,15}$/i.test(normalized)) {
+    attempts.push({ symbol: normalized.toUpperCase(), convert: 'USD', skip_invalid: true });
+  }
+  attempts.push({ slug: normalized.toLowerCase().replace(/\s+/g, '-'), convert: 'USD', skip_invalid: true });
+
+  let lastErr = null;
+  for (const params of attempts) {
+    try {
+      const json = await fetchCmcJson('/v3/cryptocurrency/quotes/latest', params, 8000);
+      const rows = (Array.isArray(json.data) ? json.data : Object.values(json.data || {})).flat();
+      const coin = rows.find(Boolean);
+      if (coin) return mapCmcCoinForChainLens(coin);
+      lastErr = new Error('CoinMarketCap no quote');
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('CoinMarketCap no quote');
+};
+const fetchCmcChart = async (symbol, timeframeConfig) => {
+  const intervalByDays = {
+    1: '1h',
+    7: '4h',
+    30: '1d',
+    365: '7d',
+    max: '30d',
+  };
+  const countByDays = {
+    1: 24,
+    7: 42,
+    30: 30,
+    365: 53,
+    max: 120,
+  };
+  const daysKey = String(timeframeConfig.days);
+  const json = await fetchCmcJson('/v3/cryptocurrency/quotes/historical', {
+    symbol: String(symbol || '').toUpperCase(),
+    interval: intervalByDays[daysKey] || '4h',
+    count: countByDays[daysKey] || 42,
+    convert: 'USD',
+    skip_invalid: true,
+  }, 10000);
+  const container = json.data && (json.data[String(symbol).toUpperCase()] || Object.values(json.data)[0]);
+  const quotes = Array.isArray(container?.quotes) ? container.quotes : [];
+  const formattedPrices = quotes
+    .map(q => ({ time: Date.parse(q.timestamp), price: Number(q.quote?.USD?.price) }))
+    .filter(p => Number.isFinite(p.time) && p.price > 0)
+    .sort((a, b) => a.time - b.time);
+  if (formattedPrices.length < 2) throw new Error('CoinMarketCap empty chart');
+  return formattedPrices;
+};
+console.log(API_KEYS.coinmarketcap ? '✅ CoinMarketCap API key loaded' : '⚠️  No COINMARKETCAP_API_KEY — CMC fallback disabled');
 
 // Binance endpoint rotation — if one host is throttled or down, the next is tried
 const BINANCE_HOSTS = [
@@ -2016,12 +2145,22 @@ app.get('/api/market/top100', async (req, res) => {
         return res.json(data);
       }
     }
-    console.warn(`⚠️  CoinGecko top100 ${response.status} — trying Binance`);
+    console.warn(`⚠️  CoinGecko top100 ${response.status} — trying CoinMarketCap`);
   } catch (e) {
     console.warn('⚠️  CoinGecko top100 failed:', e.message);
   }
 
-  // ── Attempt 2: Binance 24hr ticker (no sparklines, volume-sorted) ─────
+  // ── Attempt 2: CoinMarketCap authenticated REST fallback ───────────────
+  try {
+    const data = await fetchCmcListings(100);
+    console.log(`✅ top100 CoinMarketCap fallback: ${data.length} coins`);
+    saveTop100(data);
+    return res.json(data);
+  } catch (e) {
+    console.warn('⚠️  CoinMarketCap top100 fallback failed:', e.message);
+  }
+
+  // ── Attempt 3: Binance 24hr ticker (no sparklines, volume-sorted) ─────
   try {
     const r = await fetchBinance('/api/v3/ticker/24hr', 6000);
     if (r && r.ok) {
@@ -2163,7 +2302,22 @@ app.get('/api/market/search/:query', async (req, res) => {
     } catch (e) { console.log(`  ❌ CoinGecko data fetch: ${e.message}`); }
   }
 
-  // Step 3: DefiLlama — covers DeFi tokens that CoinGecko rate-limits or misses
+  // Step 3: CoinMarketCap — authenticated REST fallback for broad market coverage
+  try {
+    const cmcCoin = await fetchCmcQuote(meta?.symbol || query);
+    const coin = {
+      ...cmcCoin,
+      id: meta?.id || cmcCoin.id,
+      symbol: (meta?.symbol || cmcCoin.symbol || query).toUpperCase(),
+      name: meta?.name || cmcCoin.name,
+      image: meta?.image || cmcCoin.image,
+      market_cap_rank: meta?.rank || cmcCoin.market_cap_rank,
+    };
+    console.log(`  ✅ CoinMarketCap: ${coin.name} #${coin.market_cap_rank} $${coin.current_price}`);
+    return res.json(save(coin));
+  } catch (e) { console.log(`  ❌ CoinMarketCap search: ${e.message}`); }
+
+  // Step 4: DefiLlama — covers DeFi tokens that CoinGecko rate-limits or misses
   // Uses coingecko:{id} prefix if we have meta, otherwise tries symbol search
   try {
     const llamaId = meta?.id ? `coingecko:${meta.id}` : null;
@@ -2190,7 +2344,7 @@ app.get('/api/market/search/:query', async (req, res) => {
     }
   } catch (e) { console.log(`  ❌ DefiLlama market search: ${e.message}`); }
 
-  // Step 4: Binance — real-time price for any symbol listed on Binance
+  // Step 5: Binance — real-time price for any symbol listed on Binance
   try {
     const bSymbol = (meta?.symbol || query.toUpperCase()) + 'USDT';
     const r = await fetchBinance(`/api/v3/ticker/24hr?symbol=${bSymbol}`);
@@ -2218,7 +2372,7 @@ app.get('/api/market/search/:query', async (req, res) => {
     }
   } catch (e) { console.log(`  ❌ Binance search: ${e.message}`); }
 
-  // Step 5: DexScreener — DEX-traded tokens (Monad memecoins, Base tokens, etc.)
+  // Step 6: DexScreener — DEX-traded tokens (Monad memecoins, Base tokens, etc.)
   try {
     const r = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(5000) });
     if (r.ok) {
@@ -2245,7 +2399,7 @@ app.get('/api/market/search/:query', async (req, res) => {
     }
   } catch (e) { console.log(`  ❌ DexScreener: ${e.message}`); }
 
-  // Step 6: Kraken (major coins, ticker only)
+  // Step 7: Kraken (major coins, ticker only)
   const ticker = meta?.symbol || query.toUpperCase();
   try {
     const r = await fetch(`https://api.kraken.com/0/public/Ticker?pair=${ticker}USD`);
@@ -2268,7 +2422,7 @@ app.get('/api/market/search/:query', async (req, res) => {
     }
   } catch (e) { console.log(`  ❌ Kraken: ${e.message}`); }
 
-  // Step 7: Gemini
+  // Step 8: Gemini
   try {
     const r = await fetch(`https://api.gemini.com/v1/pubticker/${ticker.toLowerCase()}usd`);
     if (r.ok) {
@@ -2497,6 +2651,28 @@ app.get('/api/market/chart/:coinIdOrSymbol', async (req, res) => {
       }
     } catch (e) {
       console.log(`  ❌ CoinGecko error: ${e.message}`);
+    }
+
+    // Step 5: Try CoinMarketCap authenticated historical quotes
+    console.log('  📈 Trying CoinMarketCap...');
+    try {
+      const formattedPrices = await fetchCmcChart(symbol, config);
+      const currentPrice = formattedPrices[formattedPrices.length - 1].price;
+      const startPrice = formattedPrices[0].price;
+      const change = ((currentPrice - startPrice) / startPrice) * 100;
+
+      console.log(`  ✅ CoinMarketCap: ${formattedPrices.length} data points`);
+      return res.json({
+        symbol: symbol,
+        name: input.toUpperCase(),
+        prices: formattedPrices,
+        current_price: currentPrice,
+        change_24h: change,
+        source: 'CoinMarketCap',
+        timeframe: timeframe
+      });
+    } catch (e) {
+      console.log(`  ❌ CoinMarketCap chart error: ${e.message}`);
     }
     
     // No data from any source
