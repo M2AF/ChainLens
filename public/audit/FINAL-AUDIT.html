@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MagicMoney Wallet — Comprehensive Audit (2026-07-06)</title>
+<style>
+  :root {
+    --bg: #060b18; --surface: #0b1220; --card: #101a2e; --border: #1c2a44;
+    --text: #dbe4f5; --muted: #7e8ba3; --accent: #38bdf8; --accent2: #a78bfa;
+    --ok: #22c55e; --warn: #f59e0b; --bad: #ef4444; --info: #64748b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 "Segoe UI", system-ui, sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 24px 80px; }
+  h1 { font-size: 28px; margin: 0 0 4px; background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  h2 { font-size: 21px; margin: 48px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); color: #fff; }
+  h3 { font-size: 16px; margin: 24px 0 8px; color: #fff; }
+  p, li { color: var(--text); }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+  code { background: #0d1730; border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 12.5px; font-family: Consolas, monospace; color: #9fd3ff; }
+  a { color: var(--accent); }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13.5px; }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--surface); color: #fff; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; padding: 2px 9px; border-radius: 99px; vertical-align: middle; }
+  .crit { background: rgba(239,68,68,.18); color: #f87171; border: 1px solid rgba(239,68,68,.4); }
+  .high { background: rgba(245,158,11,.15); color: #fbbf24; border: 1px solid rgba(245,158,11,.4); }
+  .med  { background: rgba(56,189,248,.13); color: #38bdf8; border: 1px solid rgba(56,189,248,.35); }
+  .low  { background: rgba(100,116,139,.18); color: #94a3b8; border: 1px solid rgba(100,116,139,.4); }
+  .pass { background: rgba(34,197,94,.14); color: #4ade80; border: 1px solid rgba(34,197,94,.35); }
+  .issue { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin: 14px 0; }
+  .issue h4 { margin: 0 0 8px; font-size: 15px; color: #fff; }
+  .issue dl { margin: 0; display: grid; grid-template-columns: 130px 1fr; gap: 4px 14px; font-size: 13.5px; }
+  .issue dt { color: var(--muted); font-weight: 600; }
+  .issue dd { margin: 0; }
+  .grade { font-size: 30px; font-weight: 800; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0; }
+  .cards .c { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; text-align: center; }
+  .cards .c .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; margin: 16px 0; }
+  .shots figure { margin: 0; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .shots img { width: 100%; display: block; }
+  .shots figcaption { font-size: 12px; color: var(--muted); padding: 8px 10px; }
+  .good li { margin: 4px 0; }
+  .toc { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 22px; columns: 2; font-size: 13.5px; }
+  .toc a { text-decoration: none; display: block; padding: 2px 0; }
+  .callout { border-left: 3px solid var(--accent); background: var(--surface); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 14px 0; font-size: 14px; }
+  @media (max-width: 700px) { .toc { columns: 1; } .issue dl { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>MagicMoney Wallet — Comprehensive Audit</h1>
+<div class="sub">Claude (Fable 5) · 2026-07-06 · v0.1.1 · Electron + Chrome-extension multi-chain self-custody wallet · Skills used: architecture-review, fullstack-iteration, visual-iteration, playwright-testing, debugging</div>
+
+<div class="toc">
+  <a href="#exec">1. Executive Summary</a>
+  <a href="#arch">2. Architecture Assessment</a>
+  <a href="#uiux">3. UI/UX Assessment</a>
+  <a href="#quality">4. Code Quality Assessment</a>
+  <a href="#perf">5. Performance Analysis</a>
+  <a href="#sec">6. Security Review</a>
+  <a href="#db">7. Database Review</a>
+  <a href="#state">8. State Management Review</a>
+  <a href="#deps">9. Dependency Review</a>
+  <a href="#pw">10. Playwright Testing Findings</a>
+  <a href="#bugs">11. Bugs &amp; Issues Found</a>
+  <a href="#debt">12. Technical Debt</a>
+  <a href="#refactor">13. Recommended Refactors</a>
+  <a href="#prio">14. Priority Rankings</a>
+  <a href="#plan">15. Action Plan</a>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="exec">1. Executive Summary</h2>
+<p>MagicMoney is in <strong>very good shape for a pre-1.0 wallet</strong>. The security architecture — the part of a wallet you cannot retrofit — is genuinely strong: keys never leave the Electron main process, every window is sandboxed with context isolation, secrets are double-wrapped (PBKDF2-600k → AES-256-GCM → OS keychain) with a KDF upgrade path, provider API keys live only as Cloudflare Worker secrets, the proxy host is pinned to a code-level allowlist, and Supabase writes require a fresh single-use EIP-191 ownership signature. Typecheck is clean, all 37 unit tests and all 3 Playwright e2e tests pass, and a full live walkthrough of the app produced <strong>zero JavaScript errors</strong>.</p>
+<p>The gaps are at the <em>product-hardening</em> layer, not the foundation: <strong>no automatic scam-token filtering</strong> (phishing airdrops render prominently in the Tokens tab — confirmed on screen), <strong>silent dApp chain-switching</strong> without a user prompt, <strong>thin send-form validation</strong> (any string &gt;10 chars is accepted as an address), a <strong>duplicated wallet API</strong> across the Electron and extension runtimes (~2,900 lines that must be kept in sync by hand), and <strong>minimal e2e coverage</strong> (3 tests, extension-only). Nothing found is critical; three issues are High.</p>
+<div class="cards">
+  <div class="c"><div class="grade" style="color:#4ade80">A−</div><div class="l">Security</div></div>
+  <div class="c"><div class="grade" style="color:#4ade80">A−</div><div class="l">Architecture</div></div>
+  <div class="c"><div class="grade" style="color:#38bdf8">B+</div><div class="l">Code Quality</div></div>
+  <div class="c"><div class="grade" style="color:#38bdf8">B+</div><div class="l">UI / UX</div></div>
+  <div class="c"><div class="grade" style="color:#fbbf24">C+</div><div class="l">Test Coverage</div></div>
+</div>
+<div class="callout"><strong>Verdict:</strong> production-viable core with a short, well-defined hardening list. Fix the three High items (scam filtering, chain-switch prompt, send validation) before promoting this beyond early adopters. The strategic debt item is the dual-runtime handler duplication — start chipping at it before the two implementations drift further.</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="arch">2. Architecture Assessment</h2>
+<h3>Structure</h3>
+<p>Clean four-layer split with explicit trust boundaries:</p>
+<table>
+  <tr><th>Layer</th><th>Role</th><th>Notes</th></tr>
+  <tr><td><code>src/main/</code> (Electron main)</td><td>All key material, signing, chain RPC, caches, browser windows</td><td>The only place mnemonics exist decrypted; well-enforced</td></tr>
+  <tr><td><code>src/preload/</code></td><td>Context-isolated IPC bridges (wallet UI, dApp inject, approval, popup)</td><td>Sandbox + contextIsolation everywhere</td></tr>
+  <tr><td><code>src/renderer/</code></td><td>React 18 UI, no Node access, strict CSP in packaged builds</td><td>Receives only addresses/balances/booleans</td></tr>
+  <tr><td><code>src/extension/</code> + <code>cloudflare-worker/</code></td><td>MV3 port of the same wallet; Worker = key-injecting proxy, KV cache, rate limiter, Supabase gateway</td><td>Worker is small (1,758 lines), readable, fail-open on cache, fail-closed on prod misconfig</td></tr>
+</table>
+<h3>Strengths</h3>
+<ul class="good">
+  <li>Proxy-first provider routing (<code>api-proxy.ts</code>) with capability gates and graceful self-hoster fallback — a textbook seam.</li>
+  <li>Multi-provider fallback ladders for every chain read; provider failure never renders as "you own zero" (last-known-good caches for token balances and NFT floors).</li>
+  <li>Chain support is data-driven (<code>chain-config.ts</code>) with testnet-mode selectors rather than forked code paths.</li>
+  <li>Deliberate, documented trade-offs — the code comments explain <em>why</em> (e.g. keyless providers stay client-side to preserve per-IP quotas).</li>
+</ul>
+<h3>Weaknesses</h3>
+<ul>
+  <li><strong>Dual-runtime duplication:</strong> <code>ipc-handlers.ts</code> (1,460 lines) and <code>extension/background.ts</code> (1,421 lines) implement the same wallet API twice against different stores. Comments already show mirror-fixes ("Mirrors the Electron handler"). This is the #1 structural risk — see <a href="#refactor">Refactors</a>.</li>
+  <li><strong>God modules:</strong> <code>token-fetcher.ts</code> (1,737 lines) mixes per-chain token fetching, NFT fetching, spam-adjacent logic, pricing, and caching in one file; <code>DashboardPage.tsx</code> (1,163 lines) mixes data orchestration, caching, filtering, and five sub-UIs.</li>
+  <li>EVM chain definitions exist in two shapes (<code>chain-config.ts</code> and the <code>EVM_CHAINS</code> map in <code>tx-sender.ts</code>) — the BSC "quoted but couldn't send" regression (fixed as M-1 in code comments) came exactly from this split.</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="uiux">3. UI/UX Assessment</h2>
+<p>Screenshots below are from a live scripted walkthrough of the built app (isolated profile, public test mnemonic). Overall: a distinctive, consistent dark identity; onboarding is genuinely good (masked seed with explicit reveal, strong warnings, password gate with no-recovery notice).</p>
+<div class="shots">
+  <figure><img src="shots-2026-07-06/01-welcome.png" alt="Welcome"><figcaption>Welcome — clear hierarchy, honest security copy</figcaption></figure>
+  <figure><img src="shots-2026-07-06/02-create-seed.png" alt="Seed"><figcaption>Seed phrase masked until explicit reveal ✔</figcaption></figure>
+  <figure><img src="shots-2026-07-06/05-dashboard-networks.png" alt="Dashboard"><figcaption>Dashboard — per-chain cards, sparklines, inline send</figcaption></figure>
+  <figure><img src="shots-2026-07-06/06-tokens.png" alt="Tokens"><figcaption>⚠ Tokens tab — scam airdrops render un-flagged; one breaks row layout</figcaption></figure>
+  <figure><img src="shots-2026-07-06/07-market.png" alt="Market"><figcaption>Market Watch — clean table, sparklines</figcaption></figure>
+  <figure><img src="shots-2026-07-06/08-swap.png" alt="Swap"><figcaption>Swap — DEX / Cross-Chain dual mode, MAX button present here</figcaption></figure>
+  <figure><img src="shots-2026-07-06/09-apps.png" alt="Apps"><figcaption>App Hub — 430 apps, filterable</figcaption></figure>
+  <figure><img src="shots-2026-07-06/10-settings.png" alt="Settings"><figcaption>Settings — themes, biometrics, connected sites, updates</figcaption></figure>
+</div>
+<h3>Findings</h3>
+<ul>
+  <li><span class="badge high">HIGH</span> <strong>Scam tokens displayed as legitimate holdings.</strong> The test wallet's Tokens tab shows "!Ads BTC Casino www.MaticSlot.io", "$ CLAiM : ethena-v2.com", and a 900,000,000-unit "halving-btc.net" token with phishing URLs fully readable. Manual hide/spam buttons exist, but the default presentation lends the wallet's credibility to phishing. (Issue H-1.)</li>
+  <li><span class="badge low">LOW</span> Long scam-token names break the row layout (vertical character wrap, overlapping the price column) — needs <code>text-overflow: ellipsis</code> + <code>min-width: 0</code> on the name column. (L-9.)</li>
+  <li><span class="badge high">HIGH</span> Send form accepts any &gt;10-char string as an address and any positive amount (no balance cap, no Max button); errors surface only at fee-estimation/broadcast as raw provider text. (H-3.)</li>
+  <li><span class="badge med">MED</span> Password policy is length ≥ 8 only — no strength meter or common-password check for the credential protecting funds. (M-5.)</li>
+  <li><span class="badge low">LOW</span> Send modal closes on Escape/overlay-click even during the <em>Broadcasting…</em> step — the tx still lands but the user loses the hash/success confirmation. (L-3.)</li>
+  <li><span class="badge low">LOW</span> Accessibility: icon-only controls (titlebar min/close, hide/spam buttons) rely on <code>title</code> only — add <code>aria-label</code>; audit focus-visible styles. Muted-on-dark contrast is mostly fine. (L-7.)</li>
+  <li><span class="badge pass">GOOD</span> Six-theme system via CSS custom-property token overrides; onboarding safety copy; approval dialogs use danger-tone for risky signatures; App Hub and Market are polished.</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="quality">4. Code Quality Assessment</h2>
+<ul>
+  <li><span class="badge pass">PASS</span> <code>npm run typecheck</code> clean across both tsconfig projects; strict typing throughout; only ~40 <code>any</code> escapes in 25k lines, mostly at WalletConnect/chrome-API boundaries.</li>
+  <li><span class="badge pass">PASS</span> Zero TODO/FIXME/HACK markers. Comment quality is exceptional — modules document their security contracts and the <em>why</em> of workarounds.</li>
+  <li><span class="badge pass">PASS</span> 37/37 unit tests pass (wallet-core derivation vectors, crypto-vault, secure-store, tx-describe, swap-executor, api-proxy).</li>
+  <li><span class="badge med">MED</span> Test coverage is concentrated: nothing on <code>balance-fetcher</code>, <code>token-fetcher</code>, <code>chain-config</code> invariants, or the swap/senders chain-parity (the BSC regression class). (M-8.)</li>
+  <li><span class="badge low">LOW</span> Inline-style-heavy JSX (hundreds of <code>style={{…}}</code> objects in DashboardPage/SendModal/modals) alongside a real CSS token system — inconsistent, bloats render trees, invites theme drift. (L-5.)</li>
+  <li><span class="badge low">LOW</span> Hardcoded hex colors (<code>#22c55e</code> App.tsx:273, <code>#1FCE92</code>, <code>#ef4444</code>) bypass the theme tokens the project's own convention mandates. (L-4.)</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="perf">5. Performance Analysis</h2>
+<ul>
+  <li><span class="badge pass">GOOD</span> Hot-path hygiene is unusually thoughtful: addresses/config are memory-cached because dApps poll many times per second (previously stalled window dragging); the CSP webRequest listener is URL-filtered to <code>file://</code> to keep dApp traffic off the main process; market data comes from a cron-refreshed Worker KV cache instead of per-user CoinGecko calls; GPU rasterization is force-enabled for canvas-heavy dApps.</li>
+  <li><span class="badge med">MED</span> <strong>Extension service worker is 3.76 MB</strong> (792 kB gzip). MV3 workers are torn down and re-parsed on every wake — this taxes every popup open and background event. The build log shows why: <code>@solana/web3.js</code>, WalletConnect, and blake2b are dynamically imported in <code>background.ts</code> but <em>also</em> statically imported by shared modules, so Rollup can't split them. (M-3.)</li>
+  <li><span class="badge med">MED</span> 189 image-404s in one short session — dead token-logo URLs are re-fetched on every refresh cycle with no negative cache. Wasted network + console noise that will mask real errors. (M-6.)</li>
+  <li><span class="badge low">LOW</span> Startup fans out to ~20 chains at once; acceptable now because failures degrade to cached values, but a staggered/priority fetch (visible chains first) would improve perceived cold-start.</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="sec">6. Security Review</h2>
+<h3>What's done right (a long list, deliberately)</h3>
+<ul class="good">
+  <li>Mnemonic exists decrypted only in main-process memory (<code>secure-store.ts</code>); renderer gets addresses/booleans only; every signing path goes through one accessor with a 15-min genuine-idle auto-lock.</li>
+  <li>At rest: PBKDF2-SHA256 600k → AES-256-GCM, wrapped again by OS <code>safeStorage</code>; per-blob KDF params with automatic upgrade-on-unlock; legacy migration path; <code>kdfIterations()</code> rejects downgraded params.</li>
+  <li>Biometric unlock is additive (separate <code>wallet.hello.enc</code>), TPM-signature-derived on Windows, self-heals when the platform key is evicted, and never weakens the password path.</li>
+  <li>All windows/views: <code>sandbox: true</code>, <code>contextIsolation: true</code>, <code>nodeIntegration: false</code>; strict response-header CSP for the packaged renderer; phishing guard on dApp navigation; popup allowlist; external URLs protocol-checked.</li>
+  <li>Provider keys are Worker secrets, not bundle contents; the proxy origin is pinned to a code-level host allowlist so a tampered <code>config.json</code> cannot redirect signing-adjacent traffic (H-3 fix in code).</li>
+  <li>Approval windows gate connect/sign/send; EIP-712 payloads are decoded with an explicit UNLIMITED-approval warning and danger tone; <code>eth_sign</code> gets a danger prompt; seed reveal is password-re-verified in both runtimes.</li>
+  <li>Worker: prod fail-closed config guard, per-IP rate limiting, single-use replay-guarded EIP-191 ownership proofs (±10 min window + KV single-use) for all Supabase writes.</li>
+</ul>
+<h3>Gaps</h3>
+<ul>
+  <li><span class="badge high">HIGH</span> <strong>H-2: silent chain switching.</strong> <code>wallet_switchEthereumChain</code> / <code>wallet_addEthereumChain</code> (<code>ipc-handlers.ts:887-920</code>) change the active network with no user prompt. A malicious dApp can steer context before a tx request; the tx approval does name the chain (good mitigation), but users don't read chain names reliably. MetaMask prompts here for a reason.</li>
+  <li><span class="badge med">MED</span> <strong>M-4: <code>eth_sign</code> is non-standard.</strong> It's implemented via <code>signMessage</code> (EIP-191 prefixed) — so dApps expecting raw-digest eth_sign receive signatures that won't verify. Since the prefixed behavior makes it redundant with <code>personal_sign</code>, reject <code>eth_sign</code> outright (industry norm) instead of returning a wrong-scheme signature.</li>
+  <li><span class="badge med">MED</span> <strong>M-9: signing without connection.</strong> <code>personal_sign</code>/<code>eth_signTypedData</code>/<code>eth_sendTransaction</code> don't check the origin is approved first — any page in the dApp browser can pop a signing window. The user prompt still gates it, but requiring connection first reduces prompt-fatigue attacks.</li>
+  <li><span class="badge low">LOW</span> <strong>L-2: mnemonic normalization inconsistency.</strong> <code>deriveAddresses</code> collapses inner whitespace; the signing helpers (<code>wallet-core.ts:232+</code>) only <code>trim().toLowerCase()</code>. A phrase persisted with irregular internal spacing would derive <em>different keys</em> at signing time than at address time. Currently unreachable via the UI (import joins words with single spaces), but it's a landmine — normalize once, in one shared helper.</li>
+  <li><span class="badge low">LOW</span> <strong>L-8:</strong> self-hoster API keys pasted in Settings persist in plaintext <code>config.json</code>. Consider routing them through <code>safeStorage</code> too.</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="db">7. Database Review</h2>
+<ul>
+  <li><strong>Local persistence</strong> is flat JSON in <code>userData</code> (addresses, config, approved origins, floor/token caches) with exact in-memory cache invalidation. Appropriate for the data volume; no SQLite needed. Secrets are never in plain files.</li>
+  <li><strong>Remote (Supabase)</strong> is exemplary for this threat model: the service-role key exists only as a Worker secret; the client proves address ownership with a canonical, byte-matched EIP-191 message binding <code>action + address + timestamp</code>; the Worker recovers the signer with <code>@noble/curves</code> (no heavyweight web3 lib), enforces a ±10-minute freshness window, and burns each signature in KV (single-use). Writes without a proxy degrade to a clean no-op rather than shipping a key.</li>
+  <li><span class="badge low">LOW</span> The cache files (<code>floor-cache.json</code>, <code>token-balance-cache.json</code>) grow unboundedly keyed per address/collection — add a simple LRU/size cap eventually.</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="state">8. State Management Review</h2>
+<ul>
+  <li>No Redux/Zustand — plain <code>useState</code> + prop drilling, with <code>App.tsx</code> as a simple page router. <strong>This is the right call at current scale</strong>; don't add a state library.</li>
+  <li>Smart mount strategy: Dashboard and Swap stay mounted (hidden) across tab switches so balances, scroll position, and in-flight swap pollers survive — deliberate and effective.</li>
+  <li>The dApp chain id lives in main (<code>dapp-chain.ts</code>) with an origin-change reset — correct ownership, prevents cross-dApp chain leakage.</li>
+  <li><span class="badge med">MED</span> <code>DashboardPage</code> is the de-facto state hub (balances, tokens, NFTs, history, spam sets, account switching, refresh timers in one 1,163-line component). Extract the data layer into hooks (<code>usePortfolio</code>, <code>useSpamFilter</code>) — same architecture, smaller blast radius. (Part of M-2.)</li>
+  <li><span class="badge low">LOW</span> The hidden-mount strategy means bare text selectors match invisible nodes (bit this audit's own driver; documented in project memory) — a testing footgun worth a code comment.</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="deps">9. Dependency Review</h2>
+<table>
+  <tr><th>Verdict</th><th>Detail</th></tr>
+  <tr><td><span class="badge pass">GOOD</span></td><td>Only 15 runtime deps; crypto is the audited <code>@noble</code>/<code>@scure</code> family; viem 2.37, Electron 43, React 18, Vite 7 all current. <code>overrides</code> pins <code>uuid</code>/<code>ws</code> transitives. No UI framework bloat.</td></tr>
+  <tr><td><span class="badge low">LOW</span></td><td><strong>L-6: <code>@supabase/supabase-js</code> is unused.</strong> No import anywhere in <code>src/</code> (sync goes through the Worker). Remove it — dead weight in installs and audit surface.</td></tr>
+  <tr><td><span class="badge low">LOW</span></td><td><code>@solana/web3.js</code> 1.x is legacy (2.x is out) but migration is high-effort/low-reward right now, and it's the main contributor to the 3.7 MB extension worker. Revisit only as part of M-3.</td></tr>
+  <tr><td><span class="badge low">LOW</span></td><td>Build warning: <code>vm-browserify</code> (via node-polyfills) uses <code>eval</code> — confirm it's tree-shaken from the shipped extension or exclude the polyfill.</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="pw">10. Playwright Testing Findings</h2>
+<ul>
+  <li><span class="badge pass">PASS</span> Existing suite (<code>e2e/extension-page-boundary.spec.ts</code>): 3/3 green — verifies pages can't reach internal wallet methods, provider RPC routes stay on the approved path, and the EIP-1193 provider doesn't leak internals. Well-chosen security assertions.</li>
+  <li><span class="badge pass">PASS</span> This audit additionally drove the <strong>built Electron app end-to-end</strong> (isolated profile): Welcome → Create (seed reveal) → Import (12-word fill) → password → Dashboard (Networks/Tokens/Collectibles) → Market → Swap → Apps → Settings. Every flow completed; zero page errors; real balances rendered for the test mnemonic across Tron/Solana/Abstract/etc.</li>
+  <li><span class="badge med">MED</span> <strong>M-7: coverage gap.</strong> Nothing exercises the Electron runtime, onboarding, send-flow validation, lock/unlock, settings, or regressions in tab navigation. The driver pattern used for this audit (wrapper-main + isolated <code>userData</code> + visible-filtered selectors) is proven and documented in project memory — commit it as <code>e2e/electron-smoke.spec.ts</code>.</li>
+  <li><span class="badge low">LOW</span> Onboarding driver gotchas that should become code comments/fixtures: DevTools window can be Playwright's <code>firstWindow()</code>; hidden-mounted Dashboard nodes shadow text selectors.</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="bugs">11. Bugs &amp; Issues Found</h2>
+
+<div class="issue"><h4><span class="badge high">HIGH</span> H-1 · Scam/phishing airdrop tokens render un-flagged</h4><dl>
+  <dt>Problem</dt><dd>Tokens with phishing URLs in their names ("$ CLAiM : ethena-v2.com", "halving-btc.net", "www.MaticSlot.io") display as ordinary holdings with huge balances. Confirmed live (screenshot §3).</dd>
+  <dt>Why it matters</dt><dd>The #1 real-world attack on wallet users. The wallet's UI lends credibility to the phishing URL; one visit + approval drains the account.</dd>
+  <dt>Files</dt><dd><code>src/main/token-fetcher.ts</code>, <code>src/renderer/pages/DashboardPage.tsx</code></dd>
+  <dt>Solution</dt><dd>Auto-classify at fetch time: URL/domain regex in name or symbol, "claim/airdrop/voucher" keywords, zero-price × enormous-balance heuristic, plus provider spam flags (Alchemy/Moralis both return them — currently unused). Default such tokens into the existing spam bucket with a "possible scam" badge and never render their names as tappable/copyable URLs.</dd>
+  <dt>Complexity</dt><dd>Medium (~1 day; heuristics + wire into existing hidden/spam sets)</dd>
+</dl></div>
+
+<div class="issue"><h4><span class="badge high">HIGH</span> H-2 · dApps can switch the active chain silently</h4><dl>
+  <dt>Problem</dt><dd><code>wallet_switchEthereumChain</code>/<code>wallet_addEthereumChain</code> update state and emit <code>chainChanged</code> with no user consent.</dd>
+  <dt>Why it matters</dt><dd>Lets a malicious dApp steer context before a transaction; standard wallets prompt on switch. The tx-approval dialog naming the chain is the only backstop.</dd>
+  <dt>Files</dt><dd><code>src/main/ipc-handlers.ts:887-920</code>, mirrored handler in <code>src/extension/background.ts</code></dd>
+  <dt>Solution</dt><dd>Reuse <code>showApprovalWindow</code> ("<em>site</em> wants to switch to <em>Monad</em>") — at minimum for origins not already connected, or once per origin+chain.</dd>
+  <dt>Complexity</dt><dd>Low (~2 h, both runtimes)</dd>
+</dl></div>
+
+<div class="issue"><h4><span class="badge high">HIGH</span> H-3 · Send form validation is superficial</h4><dl>
+  <dt>Problem</dt><dd><code>isValidAddress = to.trim().length &gt; 10</code>; no per-chain format/checksum validation, no amount ≤ balance check, no Max button. Errors arrive late as raw provider text.</dd>
+  <dt>Why it matters</dt><dd>Irreversible-money UX: a Solana address pasted into a Bitcoin send should fail at the field, not at broadcast. EIP-55 checksum catches real typos.</dd>
+  <dt>Files</dt><dd><code>src/renderer/components/SendModal.tsx:67-68</code>; validators belong in main (<code>wallet-core.ts</code>/per-chain modules) exposed via one <code>wallet:validate-address</code> IPC</dd>
+  <dt>Solution</dt><dd>Per-chain validators (viem <code>isAddress</code> w/ checksum, base58+ed25519 decode for Solana, bech32/base58check for BTC/ADA/TRX/DOGE — decoders already in the codebase), inline field feedback, amount cap with fee awareness, Max button (Swap already has one).</dd>
+  <dt>Complexity</dt><dd>Medium (~1 day)</dd>
+</dl></div>
+
+<div class="issue"><h4><span class="badge med">MED</span> M-4 · <code>eth_sign</code> returns a personal_sign-scheme signature</h4><dl>
+  <dt>Problem</dt><dd><code>ipc-handlers.ts:972</code> signs with the EIP-191 prefix, so callers expecting legacy raw-digest eth_sign get signatures that fail verification.</dd>
+  <dt>Why it matters</dt><dd>Silent interop failure; and supporting eth_sign at all invites blind-signing phishing.</dd>
+  <dt>Files</dt><dd><code>src/main/ipc-handlers.ts:972-990</code>, extension mirror</dd>
+  <dt>Solution</dt><dd>Reject <code>eth_sign</code> with a clear "unsupported for safety" error (MetaMask default since 2024).</dd>
+  <dt>Complexity</dt><dd>Trivial</dd>
+</dl></div>
+
+<div class="issue"><h4><span class="badge med">MED</span> M-9 · Sign/send methods skip the connection check</h4><dl>
+  <dt>Problem</dt><dd><code>personal_sign</code>, typed-data, and <code>eth_sendTransaction</code> prompt regardless of whether the origin ever connected.</dd>
+  <dt>Why it matters</dt><dd>Prompt-fatigue attacks from arbitrary pages in the dApp browser; EIP-1193 expectation is 4100 (unauthorized) before connection.</dd>
+  <dt>Files</dt><dd><code>src/main/ipc-handlers.ts:947+</code>, extension mirror</dd>
+  <dt>Solution</dt><dd>Gate signing methods on <code>getApprovedOrigins().includes(origin)</code>; throw code 4100 otherwise.</dd>
+  <dt>Complexity</dt><dd>Low</dd>
+</dl></div>
+
+<div class="issue"><h4><span class="badge med">MED</span> M-6 · 189 console 404s per session from dead logo URLs</h4><dl>
+  <dt>Problem</dt><dd>Broken token/coin logo URLs re-fetched every refresh; <code>TokenLogo</code> falls back per-mount but nothing remembers failures.</dd>
+  <dt>Why it matters</dt><dd>Network waste on a metered proxy, and the noise floor hides real errors during debugging.</dd>
+  <dt>Files</dt><dd><code>src/renderer/pages/DashboardPage.tsx</code> (TokenLogo), <code>src/main/token-fetcher.ts</code> (logo URL sourcing)</dd>
+  <dt>Solution</dt><dd>Session-scoped negative cache (Set of failed URLs) consulted before rendering an <code>&lt;img&gt;</code>; optionally validate/drop logo URLs at fetch time.</dd>
+  <dt>Complexity</dt><dd>Low</dd>
+</dl></div>
+
+<div class="issue"><h4><span class="badge low">LOW</span> L-1 · Bridge-missing crash in App.tsx effect</h4><dl>
+  <dt>Problem</dt><dd><code>App.tsx:66</code> calls <code>window.wallet.onBrowserClosed(...)</code> unguarded. Effects run even when the render bailed to the B-1 "bridge unavailable" screen — so the exact failure that screen exists for throws a TypeError first.</dd>
+  <dt>Why it matters</dt><dd>The graceful-degradation path self-destructs.</dd>
+  <dt>Files</dt><dd><code>src/renderer/App.tsx:64-68</code></dd>
+  <dt>Solution</dt><dd><code>window.wallet?.onBrowserClosed</code> (match the optional-chaining of the sibling effects).</dd>
+  <dt>Complexity</dt><dd>Trivial</dd>
+</dl></div>
+
+<div class="issue"><h4><span class="badge low">LOW</span> L-2 · Mnemonic whitespace normalization drift</h4><dl>
+  <dt>Problem</dt><dd><code>deriveAddresses</code> collapses inner whitespace; the eight signing helpers only trim+lowercase. Same stored phrase, potentially different seeds.</dd>
+  <dt>Why it matters</dt><dd>Latent funds-affecting divergence if any future path stores a non-normalized phrase.</dd>
+  <dt>Files</dt><dd><code>src/main/wallet-core.ts:232-287</code></dd>
+  <dt>Solution</dt><dd>One <code>normalizeMnemonic()</code> used by every entry point; normalize before persisting in <code>saveMnemonic</code>.</dd>
+  <dt>Complexity</dt><dd>Trivial</dd>
+</dl></div>
+
+<div class="issue"><h4><span class="badge low">LOW</span> L-3 · Send modal dismissible mid-broadcast</h4><dl>
+  <dt>Problem</dt><dd>Escape/overlay-click close during the <em>sending</em> step; the tx still broadcasts but the user never sees the hash.</dd>
+  <dt>Files</dt><dd><code>src/renderer/components/SendModal.tsx:57-65</code></dd>
+  <dt>Solution</dt><dd>Ignore close requests while <code>step === 'sending'</code>.</dd>
+  <dt>Complexity</dt><dd>Trivial</dd>
+</dl></div>
+
+<div class="issue"><h4><span class="badge low">LOW</span> L-9 · Long token names break row layout</h4><dl>
+  <dt>Problem</dt><dd>Scam token with a long name renders as a vertical character stack overlapping the price column (Tokens screenshot).</dd>
+  <dt>Files</dt><dd><code>src/renderer/pages/DashboardPage.tsx</code> token row</dd>
+  <dt>Solution</dt><dd><code>min-width: 0</code> on the flex text column + <code>white-space: nowrap; overflow: hidden; text-overflow: ellipsis</code>.</dd>
+  <dt>Complexity</dt><dd>Trivial</dd>
+</dl></div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="debt">12. Technical Debt</h2>
+<table>
+  <tr><th>Debt</th><th>Interest being paid</th><th>Severity</th></tr>
+  <tr><td>Dual wallet-API implementation (Electron <code>ipc-handlers.ts</code> + extension <code>background.ts</code>, ~2,900 lines)</td><td>Every handler fix must be written twice; comments already show mirror-patches; drift = divergent security behavior</td><td><span class="badge high">HIGH</span></td></tr>
+  <tr><td><code>token-fetcher.ts</code> (1,737) / <code>DashboardPage.tsx</code> (1,163) god modules</td><td>Any token/NFT change touches a monolith; hard to test in isolation</td><td><span class="badge med">MED</span></td></tr>
+  <tr><td>EVM chain metadata split between <code>chain-config.ts</code> and <code>tx-sender.ts</code> maps</td><td>Already caused one shipped regression (BSC quote-but-no-send)</td><td><span class="badge med">MED</span></td></tr>
+  <tr><td>Inline styles vs. CSS token system</td><td>Theme drift, verbose JSX, inconsistent spacing</td><td><span class="badge low">LOW</span></td></tr>
+  <tr><td>Unused <code>@supabase/supabase-js</code> dependency</td><td>Install weight + audit surface for nothing</td><td><span class="badge low">LOW</span></td></tr>
+  <tr><td>E2E driver knowledge lives in agent memory, not the repo</td><td>Bus-factor: the working Electron test recipe isn't committed</td><td><span class="badge med">MED</span></td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="refactor">13. Recommended Refactors</h2>
+<ol>
+  <li><strong>Shared wallet-API core (addresses M-1 debt).</strong> Extract handler bodies into <code>src/shared/wallet-api.ts</code>: pure functions taking a <code>Store</code> interface (already nearly identical between <code>secure-store</code> and <code>chrome-store</code>) + request context. Electron IPC and the extension message router become thin adapters. Do it incrementally — start with the web3 request switch, which is the highest-drift-risk surface. <em>Complexity: High (spread over releases); payoff: every future feature/security fix lands once.</em></li>
+  <li><strong>Split <code>token-fetcher.ts</code></strong> into <code>tokens/evm.ts</code>, <code>tokens/solana.ts</code>, <code>tokens/cardano.ts</code>, <code>tokens/bitcoin.ts</code>, <code>nft-floors.ts</code>, <code>spam-filter.ts</code> (new, hosts H-1 heuristics). <em>Complexity: Medium — mechanical, tests first.</em></li>
+  <li><strong>Extract Dashboard data hooks</strong> (<code>usePortfolio</code>, <code>useSpamSets</code>, <code>useAutoRefresh</code>) leaving the page as composition. <em>Complexity: Medium.</em></li>
+  <li><strong>Unify EVM chain metadata:</strong> generate <code>tx-sender</code>'s viem chain entries from <code>chain-config.ts</code> (single source of truth incl. explorers/symbols); add a unit test asserting swap-supported ⊆ send-supported. <em>Complexity: Low-Medium.</em></li>
+  <li><strong>Extension bundle diet:</strong> make the heavy libs consistently dynamic (or accept static and drop the pretense); target &lt; 1.5 MB worker. <em>Complexity: Medium.</em></li>
+</ol>
+<p><em>Not recommended:</em> a state-management library, a router, a CSS framework, or migrating to @solana/web3.js v2 — all cost with no current payoff.</p>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="prio">14. Priority Rankings</h2>
+<table>
+  <tr><th>Priority</th><th>Items</th></tr>
+  <tr><td><span class="badge crit">CRITICAL</span></td><td>None found.</td></tr>
+  <tr><td><span class="badge high">HIGH</span></td><td>H-1 scam-token filtering · H-2 chain-switch prompt · H-3 send validation · (debt) dual-runtime duplication direction set</td></tr>
+  <tr><td><span class="badge med">MED</span></td><td>M-4 reject eth_sign · M-9 connection-gate signing · M-2 god-module splits · M-3 extension bundle · M-5 password strength UX · M-6 logo negative-cache · M-7 Electron e2e suite · M-8 fetcher/chain-parity unit tests</td></tr>
+  <tr><td><span class="badge low">LOW</span></td><td>L-1 bridge-missing effect guard · L-2 mnemonic normalization · L-3 modal close mid-send · L-4 hardcoded colors · L-5 inline styles · L-6 remove supabase-js · L-7 aria-labels/focus · L-8 plaintext user keys · L-9 token-row ellipsis</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2 id="plan">15. Action Plan</h2>
+<table>
+  <tr><th>Phase</th><th>Scope</th><th>Effort</th></tr>
+  <tr><td><strong>1 · Quick wins</strong> (½ day)</td><td>L-1, L-2, L-3, L-9, L-6 (rm dep), M-4 (reject eth_sign), M-9 (connection gate) — all trivial/low, several are one-liners; re-run typecheck + tests</td><td>~4 h</td></tr>
+  <tr><td><strong>2 · User safety</strong> (2-3 days)</td><td>H-1 spam heuristics + badge; H-2 chain-switch approval (both runtimes); H-3 per-chain address validators + balance cap + Max; M-5 strength meter</td><td>~3 days</td></tr>
+  <tr><td><strong>3 · Test hardening</strong> (2 days)</td><td>M-7 commit <code>e2e/electron-smoke.spec.ts</code> from the proven wrapper-main recipe; M-8 unit tests for chain-parity invariants + spam heuristics + fetcher fallbacks; wire e2e into a pre-release script</td><td>~2 days</td></tr>
+  <tr><td><strong>4 · Structural</strong> (ongoing, next 3-4 releases)</td><td>Shared wallet-API core (start with web3 switch), token-fetcher split, Dashboard hooks, chain-metadata unification, extension bundle diet, M-6 negative cache, style/token cleanup (L-4/L-5/L-7)</td><td>1-2 days per release</td></tr>
+</table>
+
+<div class="callout" style="margin-top:32px">
+<strong>Validation performed for this audit:</strong> <code>npm run typecheck</code> ✔ (both projects) · <code>vitest</code> 37/37 ✔ · <code>npm run test:e2e</code> 3/3 ✔ · <code>npm run build</code> ✔ · <code>npm run build:extension</code> ✔ · live Playwright walkthrough of the built Electron app (isolated profile, 11 screenshots, 0 JS errors, 193 console messages — all resource 404s).
+</div>
+
+</div>
+</body>
+</html>
