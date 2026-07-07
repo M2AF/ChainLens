@@ -330,6 +330,8 @@
       const [showDonate, setShowDonate] = useState(false);
       const [copiedDonate, setCopiedDonate] = useState(null);
       const [showWallet, setShowWallet] = useState(false);
+      const [showSimpleSwap, setShowSimpleSwap] = useState(false);
+      const [simpleSwapLoaded, setSimpleSwapLoaded] = useState(false);
 
       const chainStyles = {
         ethereum: { color: 'bg-[#3c3c3d]', label: 'Ethereum', native: 'ETH' },
@@ -2773,10 +2775,63 @@
               </div>
             )}
 
-          {/* ── Wallet / Donate Widgets — fixed bottom-right, always visible ── */}
-          {(showDonate || showWallet) && (
-            <div className="fixed inset-0 z-[69]" onClick={() => { setShowDonate(false); setShowWallet(false); }} />
+          {/* ── Floating Widgets — fixed bottom corners, always visible ── */}
+          {(showDonate || showWallet || showSimpleSwap) && (
+            <div className="fixed inset-0 z-[69]" onClick={() => { setShowDonate(false); setShowWallet(false); setShowSimpleSwap(false); }} />
           )}
+
+          {/* SimpleSwap widget — fixed bottom-left, iframe remains mounted after first open */}
+          <div className="fixed bottom-6 left-6 z-[70] flex flex-col items-start gap-3 max-w-[calc(100vw-3rem)]">
+            {simpleSwapLoaded && (
+              <div
+                className={`w-[min(calc(100vw-3rem),560px)] rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-3 transition-all duration-200 ${showSimpleSwap ? 'opacity-100 translate-y-0 pointer-events-auto visible' : 'opacity-0 translate-y-3 pointer-events-none invisible'} ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
+                style={{ animation: showSimpleSwap ? 'slideUp 0.2s ease-out both' : 'none' }}
+                onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between gap-3 px-2 pb-3">
+                  <div>
+                    <p className={`text-[9px] font-black uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Exchange crypto</p>
+                    <p className={`text-sm font-heading font-extrabold tracking-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>SimpleSwap</p>
+                  </div>
+                  <button
+                    onClick={() => setShowSimpleSwap(false)}
+                    title="Close SimpleSwap"
+                    className={`flex h-9 w-9 items-center justify-center rounded-full transition-all ${darkMode ? 'bg-slate-800 text-slate-400 hover:bg-red-500 hover:text-white' : 'bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white'}`}>
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 3L10 10M10 3L3 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+                <iframe
+                  id="simpleswap-frame"
+                  name="SimpleSwap Widget"
+                  title="SimpleSwap Widget"
+                  width="528"
+                  height="392"
+                  src="https://simpleswap.io/widget/e16a9606-7260-4926-a33d-e6c700b3de3b"
+                  frameBorder="0"
+                  className="block w-full h-[392px] rounded-2xl bg-white"
+                />
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                setSimpleSwapLoaded(true);
+                setShowSimpleSwap(v => !v);
+                setShowDonate(false);
+                setShowWallet(false);
+              }}
+              className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showSimpleSwap
+                ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
+                : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-emerald-400 hover:text-emerald-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-500 backdrop-blur-md')}`}>
+              <svg width="13" height="13" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 5.5H13.5M13.5 5.5L10.5 2.5M13.5 5.5L10.5 8.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14 12.5H4.5M4.5 12.5L7.5 9.5M4.5 12.5L7.5 15.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              SimpleSwap
+            </button>
+          </div>
+
           <div className="fixed bottom-6 right-6 z-[70] flex flex-col items-end gap-3">
 
           {/* Docs link */}
@@ -2805,7 +2860,7 @@
 
           {/* Wallet trigger button */}
           <button
-            onClick={() => { setShowWallet(v => !v); setShowDonate(false); }}
+            onClick={() => { setShowWallet(v => !v); setShowDonate(false); setShowSimpleSwap(false); }}
             className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showWallet
               ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
               : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-500 backdrop-blur-md')}`}>
@@ -2879,7 +2934,7 @@
 
           {/* Donate Trigger button */}
           <button
-            onClick={() => { setShowDonate(v => !v); setShowWallet(false); }}
+            onClick={() => { setShowDonate(v => !v); setShowWallet(false); setShowSimpleSwap(false); }}
             className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showDonate
               ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
               : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-500 backdrop-blur-md')}`}>
