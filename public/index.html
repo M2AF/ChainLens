@@ -2848,7 +2848,7 @@
 
           {/* Wallet pop-up panel */}
           {showWallet && (
-            <div className={`rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-5 w-72 flex flex-col items-center gap-3 ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
+            <div className={`rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-5 w-72 max-h-[calc(100vh-3rem)] overflow-y-auto flex flex-col items-center gap-3 ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
               style={{ animation: 'slideUp 0.2s ease-out both' }}
               onClick={e => e.stopPropagation()}>
               <img src="/MagicMoney_icon.svg" alt="Magic Money Wallet" className="w-16 h-16 object-contain" />
@@ -2856,6 +2856,21 @@
               <p className={`text-lg font-heading font-bold tracking-tight text-center ${darkMode ? 'text-white' : 'text-slate-900'}`}>Download Beta</p>
               <div className="w-full flex flex-col gap-2">
                 {[
+                  {
+                    label: 'Browser Extension',
+                    meta: 'Chrome Web Store',
+                    href: 'https://chromewebstore.google.com/detail/magicmoney-wallet/dbofalaimbebcaiikgljjhfblajalkpp?authuser=0&hl=en',
+                    badges: [
+                      { name: 'Chrome', src: 'https://www.google.com/chrome/static/images/favicons/favicon-96x96.png' },
+                      { name: 'Brave', src: 'https://www.google.com/s2/favicons?domain=brave.com&sz=64' },
+                      { name: 'Edge', src: 'https://www.google.com/s2/favicons?domain=microsoftedge.microsoft.com&sz=64' },
+                    ],
+                    icon: (
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6.4 1.75A1.6 1.6 0 0 1 8 3.35v.4h1.85c.77 0 1.4.63 1.4 1.4V7h.4a1.6 1.6 0 1 1 0 3.2h-.4v1.65c0 .77-.63 1.4-1.4 1.4H8.2v-.4a1.6 1.6 0 1 0-3.2 0v.4H3.15c-.77 0-1.4-.63-1.4-1.4V10h.4a1.6 1.6 0 1 0 0-3.2h-.4V5.15c0-.77.63-1.4 1.4-1.4H4.8v-.4a1.6 1.6 0 0 1 1.6-1.6Z" fill="currentColor"/>
+                      </svg>
+                    ),
+                  },
                   {
                     label: 'Windows',
                     meta: 'Windows .exe',
@@ -2907,7 +2922,7 @@
                       </svg>
                     ),
                   },
-                ].map(({ label, meta, href, icon }) => (
+                ].map(({ label, meta, href, icon, badges }) => (
                   <a
                     key={label}
                     href={href}
@@ -2920,6 +2935,19 @@
                     <span className="flex-1 min-w-0">
                       <span className="block text-xs font-black uppercase tracking-widest">{label}</span>
                       <span className={`block text-[9px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{meta}</span>
+                      {badges && (
+                        <span className="mt-1 flex items-center gap-1.5">
+                          {badges.map(({ name, src }) => (
+                            <img
+                              key={name}
+                              src={src}
+                              alt={`${name} favicon`}
+                              title={name}
+                              className={`h-4 w-4 rounded-sm object-contain ${darkMode ? 'bg-white/95' : 'bg-white'}`}
+                            />
+                          ))}
+                        </span>
+                      )}
                     </span>
                     <svg className="opacity-40 group-hover:opacity-100 transition-opacity" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </a>
