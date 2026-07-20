@@ -326,6 +326,12 @@
       const [profileError, setProfileError] = useState(null);
       const [editingName, setEditingName] = useState(false);
       const [nameInput, setNameInput] = useState('');
+      const [showAvatarEditor, setShowAvatarEditor] = useState(false);
+      const [avatarMode, setAvatarMode] = useState('nft');
+      const [avatarSelection, setAvatarSelection] = useState('');
+      const [avatarSaving, setAvatarSaving] = useState(false);
+      const [avatarError, setAvatarError] = useState('');
+      const avatarFileInputRef = useRef(null);
 
       const [showDonate, setShowDonate] = useState(false);
       const [copiedDonate, setCopiedDonate] = useState(null);
@@ -780,6 +786,59 @@
           setUserProfile(p);
         } catch (e) { setProfileError('Failed to save name'); }
         setEditingName(false);
+      };
+
+      // ── Change profile picture ────────────────────────────────────────────
+      // ChainLens and Magic Money share cl_users.avatar_url, so edits made
+      // here are picked up by the wallet on its next profile refresh.
+      const openAvatarEditor = () => {
+        setAvatarSelection(userProfile?.avatar_url || '');
+        setAvatarMode('nft');
+        setAvatarError('');
+        setShowAvatarEditor(true);
+      };
+
+      const chooseAvatarFile = (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) return;
+        const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowed.includes(file.type)) {
+          setAvatarError('Choose a JPG, PNG, GIF, or WebP image.');
+          return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+          setAvatarError('Profile pictures must be 2 MB or smaller.');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            setAvatarSelection(reader.result);
+            setAvatarError('');
+          }
+        };
+        reader.onerror = () => setAvatarError('Could not read that image.');
+        reader.readAsDataURL(file);
+      };
+
+      const saveAvatar = async () => {
+        const avatarUrl = (avatarSelection || '').trim();
+        setAvatarSaving(true);
+        setAvatarError('');
+        try {
+          const res = await authFetch('/api/profile', {
+            method: 'PATCH', body: JSON.stringify({ avatar_url: avatarUrl })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to save profile picture');
+          setUserProfile(current => current ? { ...current, avatar_url: data.avatar_url ?? avatarUrl } : current);
+          setShowAvatarEditor(false);
+        } catch (e) {
+          setAvatarError(e.message || 'Failed to save profile picture');
+        } finally {
+          setAvatarSaving(false);
+        }
       };
 
       // ── Delete wallet ──────────────────────────────────────────────────────
@@ -2216,18 +2275,156 @@
                   ) : (
                     // ── LOGGED IN: Profile dashboard ───────────────────────
                     <div className="space-y-6">
+                      {showAvatarEditor && (
+                        <div
+                          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4"
+                          onClick={e => { if (e.target === e.currentTarget && !avatarSaving) setShowAvatarEditor(false); }}>
+                          <div className={`w-full max-w-md max-h-[88vh] overflow-hidden rounded-[2rem] border shadow-2xl ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                            <div className={`flex items-center justify-between px-6 py-5 border-b ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                              <div>
+                                <h3 className="font-heading font-extrabold text-lg">Change Profile Picture</h3>
+                                <p className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Synced with Magic Money</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setShowAvatarEditor(false)}
+                                disabled={avatarSaving}
+                                aria-label="Close profile picture editor"
+                                className={`w-9 h-9 rounded-full text-lg font-bold transition-colors disabled:opacity-40 ${darkMode ? 'bg-slate-800 text-slate-400 hover:text-white' : 'bg-slate-100 text-slate-500 hover:text-slate-900'}`}>
+                                ×
+                              </button>
+                            </div>
+
+                            <div className={`grid grid-cols-2 border-b ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                              <button
+                                type="button"
+                                onClick={() => { setAvatarMode('nft'); setAvatarError(''); }}
+                                className={`py-3 text-[10px] font-black uppercase tracking-widest border-b-2 transition-colors ${avatarMode === 'nft' ? 'text-amber-400 border-amber-400' : `border-transparent ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}`}>
+                                Use an NFT
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setAvatarMode('upload'); setAvatarError(''); }}
+                                className={`py-3 text-[10px] font-black uppercase tracking-widest border-b-2 transition-colors ${avatarMode === 'upload' ? 'text-amber-400 border-amber-400' : `border-transparent ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}`}>
+                                Upload Photo
+                              </button>
+                            </div>
+
+                            <div className="p-6 overflow-y-auto max-h-[52vh]">
+                              <div className="flex justify-center mb-6">
+                                {avatarSelection ? (
+                                  <img src={avatarSelection} alt="Selected profile picture" className="w-24 h-24 rounded-full object-cover ring-4 ring-amber-400/40" referrerPolicy="no-referrer" />
+                                ) : (
+                                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-4xl font-heading font-black text-slate-900 ring-4 ring-amber-400/40">
+                                    {(userProfile.display_name || '?').charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
+
+                              {avatarMode === 'nft' ? (
+                                (() => {
+                                  const avatarNfts = (nfts || []).filter(asset => !asset.isToken && asset.image).slice(0, 24);
+                                  return avatarNfts.length > 0 ? (
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                                      {avatarNfts.map(asset => {
+                                        const imageUrl = resolveImg(asset.image || '', asset.symbol);
+                                        const selected = avatarSelection === imageUrl;
+                                        return (
+                                          <button
+                                            type="button"
+                                            key={`${asset.chain}-${asset.address || asset.id || asset.name}`}
+                                            onClick={() => { setAvatarSelection(imageUrl); setAvatarError(''); }}
+                                            className={`relative aspect-square overflow-hidden rounded-2xl border-2 transition-all ${selected ? 'border-amber-400 ring-2 ring-amber-400/30' : darkMode ? 'border-slate-800 hover:border-slate-600' : 'border-slate-100 hover:border-slate-300'}`}
+                                            title={asset.name || 'NFT'}>
+                                            <img src={imageUrl} alt={asset.name || 'NFT'} className="w-full h-full object-cover" />
+                                            {selected && <span className="absolute inset-0 flex items-center justify-center bg-amber-400/25 text-white text-2xl font-black">✓</span>}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <div className={`rounded-2xl border border-dashed p-6 text-center ${darkMode ? 'border-slate-700 text-slate-500' : 'border-slate-200 text-slate-400'}`}>
+                                      <div className="text-3xl mb-2">🖼️</div>
+                                      <p className="text-xs font-bold">No scanned NFTs available</p>
+                                      <p className="text-[10px] mt-1">Scan your wallets first, or upload a photo.</p>
+                                    </div>
+                                  );
+                                })()
+                              ) : (
+                                <div className="flex flex-col items-center gap-3">
+                                  <input
+                                    ref={avatarFileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/gif,image/webp"
+                                    onChange={chooseAvatarFile}
+                                    className="hidden"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => avatarFileInputRef.current?.click()}
+                                    className="px-6 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-widest transition-colors">
+                                    Choose Image
+                                  </button>
+                                  <p className={`text-[10px] text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>JPG, PNG, GIF, or WebP · maximum 2 MB</p>
+                                </div>
+                              )}
+
+                              {avatarError && (
+                                <div className="mt-4 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold text-center">
+                                  {avatarError}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className={`flex items-center justify-between gap-3 px-6 py-4 border-t ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                              <button
+                                type="button"
+                                onClick={() => { setAvatarSelection(''); setAvatarError(''); }}
+                                disabled={!userProfile.avatar_url || avatarSaving}
+                                className={`text-[10px] font-black uppercase tracking-widest disabled:opacity-30 ${darkMode ? 'text-slate-500 hover:text-red-400' : 'text-slate-400 hover:text-red-500'}`}>
+                                Remove Photo
+                              </button>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAvatarEditor(false)}
+                                  disabled={avatarSaving}
+                                  className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border disabled:opacity-40 ${darkMode ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={saveAvatar}
+                                  disabled={avatarSaving || (avatarSelection || '') === (userProfile.avatar_url || '')}
+                                  className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                  {avatarSaving ? 'Saving…' : 'Save Photo'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Header card */}
                       <div className={`rounded-[3rem] border p-8 glass-card ${darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
                         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                           <div className="flex items-center gap-5">
                             {/* Avatar — circular like Twitter */}
                             <div className="relative flex-shrink-0">
-                              {userProfile.avatar_url
-                                ? <img src={userProfile.avatar_url} className="w-20 h-20 rounded-full object-cover ring-4 ring-amber-400/40" referrerPolicy="no-referrer" />
-                                : <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-3xl font-heading font-black text-slate-900 ring-4 ring-amber-400/40">
-                                    {(userProfile.display_name || '?').charAt(0).toUpperCase()}
-                                  </div>
-                              }
+                              <button
+                                type="button"
+                                onClick={openAvatarEditor}
+                                aria-label="Change profile picture"
+                                title="Change profile picture"
+                                className="relative block rounded-full group focus:outline-none focus:ring-4 focus:ring-amber-400/40">
+                                {userProfile.avatar_url
+                                  ? <img src={userProfile.avatar_url} alt={`${userProfile.display_name || 'User'} profile`} className="w-20 h-20 rounded-full object-cover ring-4 ring-amber-400/40" referrerPolicy="no-referrer" />
+                                  : <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-3xl font-heading font-black text-slate-900 ring-4 ring-amber-400/40">
+                                      {(userProfile.display_name || '?').charAt(0).toUpperCase()}
+                                    </div>
+                                }
+                                <span className="absolute inset-0 rounded-full bg-slate-950/60 flex items-center justify-center text-xl opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity">📷</span>
+                              </button>
                               <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-400 rounded-full border-2 border-slate-900 flex items-center justify-center">
                                 <span className="text-[9px] font-black">✓</span>
                               </div>
@@ -2863,7 +3060,7 @@
                     badges: [
                       { name: 'Chrome', src: 'https://www.google.com/chrome/static/images/favicons/favicon-96x96.png' },
                       { name: 'Brave', src: 'https://www.google.com/s2/favicons?domain=brave.com&sz=64' },
-                      { name: 'Edge', src: 'https://www.google.com/s2/favicons?domain=microsoftedge.microsoft.com&sz=64' },
+                      { name: 'Edge', src: '/edge-browser.svg' },
                     ],
                     icon: (
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2874,7 +3071,7 @@
                   {
                     label: 'Windows',
                     meta: 'Windows .exe',
-                    href: 'https://github.com/M2AF/Magic-Money-Wallet/releases/download/v0.2.0-beta.3/MagicMoney-Wallet-Setup-0.2.0-beta.3.exe',
+                    href: 'https://github.com/M2AF/Magic-Money-Wallet/releases/download/v0.2.0-beta.4/MagicMoney-Wallet-Setup-0.2.0-beta.4.exe',
                     icon: (
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M1.5 2.7L7.2 1.9V7.4H1.5V2.7ZM8.3 1.75L14.5 0.9V7.4H8.3V1.75ZM1.5 8.6H7.2V14.1L1.5 13.3V8.6ZM8.3 8.6H14.5V15.1L8.3 14.25V8.6Z" fill="currentColor"/>
@@ -2884,7 +3081,7 @@
                   {
                     label: 'Mac',
                     meta: 'Apple Silicon .dmg',
-                    href: 'https://github.com/M2AF/Magic-Money-Wallet/releases/download/v0.2.0-beta.3/MagicMoney-Wallet-0.2.0-beta.3-arm64.dmg',
+                    href: 'https://github.com/M2AF/Magic-Money-Wallet/releases/download/v0.2.0-beta.4/MagicMoney-Wallet-0.2.0-beta.4-arm64.dmg',
                     icon: (
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M11.25 8.15c-.02-1.52 1.23-2.25 1.29-2.29-.73-1.04-1.84-1.18-2.23-1.2-.94-.09-1.85.55-2.33.55-.49 0-1.23-.53-2.02-.52-1.04.02-2 .61-2.53 1.55-1.08 1.85-.28 4.58.77 6.08.51.74 1.12 1.56 1.92 1.53.77-.03 1.06-.49 1.99-.49.92 0 1.19.49 2 .47.83-.01 1.36-.75 1.87-1.49.59-.85.83-1.67.84-1.71-.02-.01-1.57-.59-1.59-2.49ZM9.7 3.68c.43-.51.72-1.22.64-1.93-.62.03-1.38.41-1.82.92-.4.46-.75 1.18-.66 1.88.7.05 1.41-.35 1.84-.87Z" fill="currentColor"/>
@@ -2894,7 +3091,7 @@
                   {
                     label: 'Linux AppImage',
                     meta: 'Portable app package',
-                    href: 'https://github.com/M2AF/Magic-Money-Wallet/releases/download/v0.2.0-beta.3/MagicMoney-Wallet-0.2.0-beta.3.AppImage',
+                    href: 'https://github.com/M2AF/Magic-Money-Wallet/releases/download/v0.2.0-beta.4/MagicMoney-Wallet-0.2.0-beta.4.AppImage',
                     icon: (
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8 1.5c2.1 0 3.55 1.66 3.55 4.03 0 .82-.17 1.57-.47 2.19l1.5 2.57c.28.48.12 1.09-.36 1.37-.48.28-1.09.12-1.37-.36l-.9-1.55c-.43.2-.92.31-1.45.31s-1.02-.11-1.45-.31l-.9 1.55c-.28.48-.89.64-1.37.36-.48-.28-.64-.89-.36-1.37l1.5-2.57c-.3-.62-.47-1.37-.47-2.19C4.45 3.16 5.9 1.5 8 1.5ZM6.7 5.1a.65.65 0 1 0 0-1.3.65.65 0 0 0 0 1.3Zm2.6 0a.65.65 0 1 0 0-1.3.65.65 0 0 0 0 1.3ZM6.25 7.3c.4.57 1 .9 1.75.9s1.35-.33 1.75-.9h-3.5Z" fill="currentColor"/>
@@ -2904,7 +3101,7 @@
                   {
                     label: 'Linux DEB',
                     meta: 'Debian / Ubuntu amd64 .deb',
-                    href: 'https://github.com/M2AF/Magic-Money-Wallet/releases/download/v0.2.0-beta.3/magicmoney-wallet_0.2.0-beta.3_amd64.deb',
+                    href: 'https://github.com/M2AF/Magic-Money-Wallet/releases/download/v0.2.0-beta.4/magicmoney-wallet_0.2.0-beta.4_amd64.deb',
                     icon: (
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8 1.5c2.1 0 3.55 1.66 3.55 4.03 0 .82-.17 1.57-.47 2.19l1.5 2.57c.28.48.12 1.09-.36 1.37-.48.28-1.09.12-1.37-.36l-.9-1.55c-.43.2-.92.31-1.45.31s-1.02-.11-1.45-.31l-.9 1.55c-.28.48-.89.64-1.37.36-.48-.28-.64-.89-.36-1.37l1.5-2.57c-.3-.62-.47-1.37-.47-2.19C4.45 3.16 5.9 1.5 8 1.5ZM6.7 5.1a.65.65 0 1 0 0-1.3.65.65 0 0 0 0 1.3Zm2.6 0a.65.65 0 1 0 0-1.3.65.65 0 0 0 0 1.3ZM6.25 7.3c.4.57 1 .9 1.75.9s1.35-.33 1.75-.9h-3.5Z" fill="currentColor"/>
@@ -2914,7 +3111,7 @@
                   {
                     label: 'Android',
                     meta: 'Sideload .apk',
-                    href: 'https://github.com/M2AF/Magic-Money-Wallet/releases/download/v0.2.0-beta.3/magicmoney-android-v0.2.0-beta.3.apk',
+                    href: 'https://github.com/M2AF/Magic-Money-Wallet/releases/download/v0.2.0-beta.4/magicmoney-android-v0.2.0-beta.4.apk',
                     icon: (
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <rect x="4.25" y="1.5" width="7.5" height="13" rx="1.4" stroke="currentColor" strokeWidth="1.4"/>
@@ -2954,11 +3151,11 @@
                 ))}
               </div>
               <a
-                href="https://github.com/M2AF/Magic-Money-Wallet/releases/tag/v0.2.0-beta.3"
+                href="https://github.com/M2AF/Magic-Money-Wallet/releases/tag/v0.2.0-beta.4"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`text-[9px] font-black uppercase tracking-widest transition-colors ${darkMode ? 'text-slate-500 hover:text-emerald-300' : 'text-slate-400 hover:text-emerald-500'}`}>
-                Release notes · v0.2.0 beta.3
+                Release notes · v0.2.0 beta.4
               </a>
             </div>
           )}
