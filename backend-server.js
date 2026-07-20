@@ -169,7 +169,10 @@ const app = express();
 const PORT = process.env.PORT || 10000; 
 
 app.use(cors());
-app.use(express.json());
+// Profile photos are stored in the shared avatar_url field as either HTTPS URLs
+// or compact image data URLs. Keep the cap narrow enough to prevent oversized
+// requests while allowing the 2 MB client-side avatar limit plus base64 overhead.
+app.use(express.json({ limit: '3mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const API_KEYS = {
@@ -936,9 +939,42 @@ app.get('/api/profile', requireAuth, async (req, res) => {
 
 app.patch('/api/profile', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
-  const { display_name } = req.body;
-  const { data } = await supabase
-    .from('cl_users').update({ display_name }).eq('id', req.user.sub).select().single();
+  const updates = {};
+
+  if (req.body.display_name !== undefined) {
+    if (typeof req.body.display_name !== 'string') {
+      return res.status(400).json({ error: 'Display name must be text' });
+    }
+    const displayName = req.body.display_name.trim();
+    if (!displayName || displayName.length > 32) {
+      return res.status(400).json({ error: 'Display name must be 1–32 characters' });
+    }
+    updates.display_name = displayName;
+  }
+
+  if (req.body.avatar_url !== undefined) {
+    if (typeof req.body.avatar_url !== 'string') {
+      return res.status(400).json({ error: 'Profile picture must be an image URL' });
+    }
+    const avatarUrl = req.body.avatar_url.trim();
+    const isRemoteImage = /^https:\/\//i.test(avatarUrl);
+    const isImageData = /^data:image\/(?:jpeg|png|gif|webp);base64,/i.test(avatarUrl);
+    if (avatarUrl && !isRemoteImage && !isImageData) {
+      return res.status(400).json({ error: 'Profile picture must use HTTPS or a supported image file' });
+    }
+    if (avatarUrl.length > 2.8 * 1024 * 1024) {
+      return res.status(413).json({ error: 'Profile picture is too large' });
+    }
+    updates.avatar_url = avatarUrl || null;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'No profile changes supplied' });
+  }
+
+  const { data, error } = await supabase
+    .from('cl_users').update(updates).eq('id', req.user.sub).select().single();
+  if (error) return res.status(500).json({ error: 'Failed to update profile' });
   res.json(data);
 });
 
