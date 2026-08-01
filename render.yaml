@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: chainlens-search-searxng
+    runtime: docker
+    plan: free
+    dockerfilePath: ./searxng/Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: SEARXNG_SECRET
+        generateValue: true

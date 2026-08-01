@@ -10,6 +10,7 @@ const path = require('path');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
+const { createSearchService } = require('./search-service');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -167,13 +168,42 @@ const dbLinkWallet = async (userId, { chain, address, watch_only = false }) => {
 
 const app = express();
 const PORT = process.env.PORT || 10000; 
+const webSearch = createSearchService();
+const searchRateLimits = new Map();
 
+app.set('trust proxy', 1);
 app.use(cors());
 // Profile photos are stored in the shared avatar_url field as either HTTPS URLs
 // or compact image data URLs. Keep the cap narrow enough to prevent oversized
 // requests while allowing the 2 MB client-side avatar limit plus base64 overhead.
 app.use(express.json({ limit: '3mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+const searchRateLimit = (req, res, next) => {
+  const now = Date.now();
+  const windowMs = 60 * 1000;
+  const limit = 30;
+  const key = req.ip || req.socket.remoteAddress || 'unknown';
+  const current = searchRateLimits.get(key);
+  if (!current || now >= current.resetAt) {
+    searchRateLimits.set(key, { count: 1, resetAt: now + windowMs });
+    return next();
+  }
+  if (current.count >= limit) {
+    res.set('Retry-After', String(Math.ceil((current.resetAt - now) / 1000)));
+    return res.status(429).json({ error: 'Too many searches. Please wait a moment and try again.' });
+  }
+  current.count += 1;
+  next();
+};
+
+const searchRateLimitCleanup = setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of searchRateLimits) {
+    if (value.resetAt <= now) searchRateLimits.delete(key);
+  }
+}, 5 * 60 * 1000);
+searchRateLimitCleanup.unref();
 
 const API_KEYS = {
   alchemy: process.env.ALCHEMY_KEY,
@@ -1093,6 +1123,24 @@ app.get('/api/resolve/handle/:handle', async (req, res) => {
 
 app.get('/api/app-hub', (req, res) => {
   res.json(getAppHubPayload());
+});
+
+// --- SEARCH (SearXNG-only web provider) ---
+
+app.get('/api/search/status', (req, res) => {
+  res.json({ provider: webSearch.provider, configured: webSearch.configured });
+});
+
+app.get('/api/search/web', searchRateLimit, async (req, res) => {
+  try {
+    const payload = await webSearch.searchWeb(req.query.q);
+    res.set('Cache-Control', 'private, max-age=60');
+    res.json(payload);
+  } catch (error) {
+    const status = error.statusCode || 503;
+    if (status >= 500) console.warn('⚠️  Web search failed:', error.message);
+    res.status(status).json({ error: error.message || 'Web search is temporarily unavailable.' });
+  }
 });
 
 // --- SWAP INTEGRATIONS ---
