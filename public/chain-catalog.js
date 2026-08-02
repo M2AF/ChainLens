@@ -40,14 +40,15 @@
 
   // Persistent profile wallet types. One EVM address intentionally represents
   // every EVM network, while non-EVM addresses are stored per chain.
+  const TRUST_WALLET_LOGO_BASE = 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains';
   const PROFILE_WALLET_TYPES = [
-    { id: 'evm',      label: 'EVM Chains', shortLabel: 'EVM',      family: 'evm',     icon: '⬡', color: '#F97316', description: '17 networks · one 0x address', chainIds: EVM_CHAINS.map(chain => chain.id) },
-    { id: 'solana',   label: 'Solana',     shortLabel: 'SOL',      family: 'account', icon: '◎', color: '#9945FF', description: 'Solana account',              chainIds: ['solana'] },
-    { id: 'polkadot', label: 'Polkadot',   shortLabel: 'DOT',      family: 'account', icon: '●', color: '#E6007A', description: 'Polkadot SS58 account',        chainIds: ['polkadot'] },
-    { id: 'tron',     label: 'Tron',       shortLabel: 'TRX',      family: 'account', icon: '△', color: '#EB0029', description: 'Tron account',                 chainIds: ['tron'] },
-    { id: 'cardano',  label: 'Cardano',    shortLabel: 'ADA',      family: 'utxo',    icon: '₳', color: '#0033AD', description: 'Cardano eUTXO address',        chainIds: ['cardano'] },
-    { id: 'bitcoin',  label: 'Bitcoin',    shortLabel: 'BTC',      family: 'utxo',    icon: '₿', color: '#F7931A', description: 'Bitcoin UTXO address',         chainIds: ['bitcoin'] },
-    { id: 'dogecoin', label: 'Dogecoin',   shortLabel: 'DOGE',     family: 'utxo',    icon: 'Ð', color: '#C2A633', description: 'Dogecoin UTXO address',        chainIds: ['dogecoin'] },
+    { id: 'evm',      label: 'EVM Chains', shortLabel: 'EVM',  family: 'evm',     logoUrl: `${TRUST_WALLET_LOGO_BASE}/ethereum/info/logo.png`, description: '17 networks · one 0x address', chainIds: EVM_CHAINS.map(chain => chain.id) },
+    { id: 'solana',   label: 'Solana',     shortLabel: 'SOL',  family: 'account', logoUrl: `${TRUST_WALLET_LOGO_BASE}/solana/info/logo.png`,   description: 'Solana account',              chainIds: ['solana'] },
+    { id: 'polkadot', label: 'Polkadot',   shortLabel: 'DOT',  family: 'account', logoUrl: `${TRUST_WALLET_LOGO_BASE}/polkadot/info/logo.png`, description: 'Polkadot SS58 account',        chainIds: ['polkadot'] },
+    { id: 'tron',     label: 'Tron',       shortLabel: 'TRX',  family: 'account', logoUrl: `${TRUST_WALLET_LOGO_BASE}/tron/info/logo.png`,     description: 'Tron account',                 chainIds: ['tron'] },
+    { id: 'cardano',  label: 'Cardano',    shortLabel: 'ADA',  family: 'utxo',    logoUrl: `${TRUST_WALLET_LOGO_BASE}/cardano/info/logo.png`,  description: 'Cardano eUTXO address',        chainIds: ['cardano'] },
+    { id: 'bitcoin',  label: 'Bitcoin',    shortLabel: 'BTC',  family: 'utxo',    logoUrl: `${TRUST_WALLET_LOGO_BASE}/bitcoin/info/logo.png`,  description: 'Bitcoin UTXO address',         chainIds: ['bitcoin'] },
+    { id: 'dogecoin', label: 'Dogecoin',   shortLabel: 'DOGE', family: 'utxo',    logoUrl: `${TRUST_WALLET_LOGO_BASE}/doge/info/logo.png`,     description: 'Dogecoin UTXO address',        chainIds: ['dogecoin'] },
   ];
   const PROFILE_WALLET_MAP = Object.fromEntries(PROFILE_WALLET_TYPES.map(type => [type.id, type]));
 

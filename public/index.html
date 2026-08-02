@@ -2646,11 +2646,14 @@
                               if (chainWallets.length === 0) return null;
                               return (
                                 <div key={chain} className="space-y-2">
-                                  <p className={`text-[10px] font-bold uppercase tracking-widest px-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{type.icon} {type.label}</p>
+                                  <p className={`text-[10px] font-bold uppercase tracking-widest px-1 flex items-center gap-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                    <img src={type.logoUrl} alt="" aria-hidden="true" className="w-3.5 h-3.5 object-contain flex-shrink-0" referrerPolicy="no-referrer" />
+                                    {type.label}
+                                  </p>
                                   {chainWallets.map(wallet => (
                                     <div key={wallet.id} className={`wallet-card group p-4 rounded-2xl border flex items-center gap-4 ${darkMode ? 'bg-slate-800/50 border-slate-700 hover:border-slate-600' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
-                                      <div style={{ background: type.color }} className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-base font-black flex-shrink-0">
-                                        {type.icon}
+                                      <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+                                        <img src={type.logoUrl} alt={`${type.label} logo`} className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         {editingWallet === wallet.id ? (
@@ -2712,7 +2715,9 @@
                               return (
                                 <button key={type.id} onClick={() => openWalletPicker(type.id)} disabled={!!walletConnecting}
                                   className={`flex items-center gap-3 p-3 rounded-2xl border text-left transition-all disabled:opacity-40 ${darkMode ? 'border-slate-700 bg-slate-800/30 hover:border-slate-500' : 'border-slate-200 bg-slate-50 hover:border-slate-400 hover:bg-white'}`}>
-                                  <span style={{ background: type.color }} className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black flex-shrink-0">{type.icon}</span>
+                                  <span className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+                                    <img src={type.logoUrl} alt="" aria-hidden="true" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
+                                  </span>
                                   <span className="min-w-0">
                                     <span className={`block text-[10px] font-black uppercase tracking-wider truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{type.label}</span>
                                     <span className={`block text-[9px] font-bold uppercase tracking-widest mt-0.5 ${count ? 'text-emerald-400' : darkMode ? 'text-slate-600' : 'text-slate-400'}`}>

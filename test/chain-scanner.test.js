@@ -37,6 +37,14 @@ test('profile wallet types cover every scanner chain exactly once', () => {
   assert.equal(new Set(covered).size, DEFAULT_CHAINS.length);
 });
 
+test('profile wallet types use transparent chain logo assets', () => {
+  for (const type of PROFILE_WALLET_TYPES) {
+    assert.match(type.logoUrl, /^https:\/\/raw\.githubusercontent\.com\/trustwallet\/assets\/master\/blockchains\/.+\/info\/logo\.png$/);
+    assert.equal(type.icon, undefined);
+    assert.equal(type.color, undefined);
+  }
+});
+
 test('detects and routes comma-separated addresses by scanner family', () => {
   const solana = '3noTuHnQdHkat2w5rBx18vAACMzFUvB5LodEe5vMN98d';
   const polkadot = '16TWXXseQJd9xhYrHTLNMUukVi4AVw1EgdHAJ28geCANrQ6';
