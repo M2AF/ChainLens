@@ -10,6 +10,7 @@ const {
   parseAddressInput,
   validateProfileWalletAddress,
   normalizeProfileWalletAddress,
+  detectScannerIntent,
 } = require('../public/chain-catalog');
 const { createNonEvmScanner, _internals } = require('../non-evm-scanner');
 
@@ -76,6 +77,26 @@ test('detects and routes comma-separated addresses by scanner family', () => {
     normalizeProfileWalletAddress('evm', '0x01faF6DFc230d755141D84d7cB980dd68f5Efe13'),
     '0x01faf6dfc230d755141d84d7cb980dd68f5efe13'
   );
+});
+
+test('search recognizes every scanner wallet family and supported domain', () => {
+  const cases = [
+    ['0x01faF6DFc230d755141D84d7cB980dd68f5Efe13', 'evm', 'EVM wallet or domain'],
+    ['vitalik.eth', 'evm', 'EVM wallet or domain'],
+    ['3noTuHnQdHkat2w5rBx18vAACMzFUvB5LodEe5vMN98d', 'solana', 'Solana wallet or domain'],
+    ['wallet.sol', 'solana', 'Solana wallet or domain'],
+    ['16TWXXseQJd9xhYrHTLNMUukVi4AVw1EgdHAJ28geCANrQ6', 'polkadot', 'Polkadot wallet address'],
+    ['TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', 'tron', 'Tron wallet address'],
+    ['addr1q950qv0ks9t29mavulaa5jr3sk2s50r5jfsddydjs0pazrfh32tdpt7zttt4mhl6t9purm4c9rv555z7r5mulq78aleqcg9c9h', 'cardano', 'Cardano wallet or handle'],
+    ['$handle', 'cardano', 'Cardano wallet or handle'],
+    ['bc1qt6cx7977r8xttn5rg42d2ulnlc7agspycd600w', 'bitcoin', 'Bitcoin wallet address'],
+    ['DEgDVFa2DoW1533dxeDVdTxQFhMzs1pMke', 'dogecoin', 'Dogecoin wallet address'],
+  ];
+
+  for (const [value, chain, label] of cases) {
+    assert.deepEqual(detectScannerIntent(value), { chain, value, label });
+  }
+  assert.equal(detectScannerIntent('Cardano wallets'), null);
 });
 
 test('normalizes Bitcoin balance and history into ChainLens assets', async () => {

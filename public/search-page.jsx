@@ -1,9 +1,9 @@
 (function () {
   const { useEffect, useMemo, useRef, useState } = React;
   const { getAppMatchTags, rankApps } = window.ChainLensSearchIntent;
+  const { detectScannerIntent } = window.ChainLensChains;
 
   const EXAMPLES = ['Uniswap', 'Cardano wallets', 'NFT marketplaces'];
-  const UNSTOPPABLE_SUFFIXES = ['.crypto', '.nft', '.wallet', '.x', '.dao', '.blockchain', '.bitcoin', '.zil', '.888'];
 
   const initials = (name) => String(name || '')
     .split(/\s+/)
@@ -12,21 +12,6 @@
     .replace(/[^A-Za-z0-9]/g, '')
     .slice(0, 2)
     .toUpperCase();
-
-  const detectScannerIntent = (rawValue) => {
-    const value = String(rawValue || '').trim();
-    const lower = value.toLowerCase();
-    if (/^0x[a-f0-9]{40}$/i.test(value) || lower.endsWith('.eth') || UNSTOPPABLE_SUFFIXES.some(suffix => lower.endsWith(suffix))) {
-      return { chain: 'evm', value, label: 'EVM wallet or domain' };
-    }
-    if (/^addr1[0-9a-z]{20,}$/i.test(value) || /^\$[a-z0-9._-]{1,64}$/i.test(value)) {
-      return { chain: 'cardano', value, label: 'Cardano wallet or handle' };
-    }
-    if (lower.endsWith('.sol') || (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value) && !/^addr/i.test(value))) {
-      return { chain: 'solana', value, label: 'Solana wallet or domain' };
-    }
-    return null;
-  };
 
   const SearchPage = ({ darkMode, apps = [], onOpenScanner, onOpenAppHub }) => {
     const [query, setQuery] = useState('');
