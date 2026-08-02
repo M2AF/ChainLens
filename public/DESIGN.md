@@ -1,13 +1,13 @@
 # ChainLens — Design Document
 
 > **Multi-Chain Portfolio Scanner & Explorer**
-> A single-page web application for scanning NFTs, tokens, and transactions across 18+ blockchains.
+> A single-page web application for scanning NFTs, tokens, and transactions across 23 blockchains.
 
 ---
 
 ## 1. Overview
 
-ChainLens lets users connect wallets (EVM, Solana, Cardano) or paste any address to instantly view their full cross-chain portfolio — NFTs, fungible tokens, transaction history — alongside live market data and integrated swaps.
+ChainLens lets users connect wallets (EVM, Solana, Cardano) or paste comma-separated addresses to instantly view their cross-chain portfolio — NFTs, fungible tokens, transaction history — alongside live market data and integrated swaps. Scanner inputs are grouped by address family: EVM, account-model (Solana/Polkadot/Tron), and UTXO/eUTXO (Cardano/Bitcoin/Dogecoin).
 
 The design language is bold, minimal, and web3-native: oversized rounded corners, glassmorphism cards, chain-specific gradient accents, and a clean dark/light dual theme.
 
@@ -191,9 +191,9 @@ Dark/light mode is controlled by a `darkMode` boolean in React state (persisted 
 
 | Category | Chains |
 |---|---|
-| EVM | Ethereum, Polygon, Base, Avalanche, Optimism, Arbitrum, Blast, Zora, ApeChain, Soneium, Ronin, World Chain, Gnosis, HyperEVM, Abstract, Monad |
-| Solana | Solana |
-| Cardano | Cardano |
+| EVM | Ethereum, Arbitrum One, Optimism, Base, Polygon, Avalanche, Blast, Gnosis, Monad, Abstract, ApeChain, Robinhood Chain, Ronin, Soneium, WorldChain, Zora, HyperEVM |
+| Account model | Solana, Polkadot, Tron |
+| UTXO / eUTXO | Cardano, Bitcoin, Dogecoin |
 
 ---
 
@@ -204,6 +204,10 @@ Dark/light mode is controlled by a `darkMode` boolean in React state (persisted 
 | **Alchemy** | EVM NFTs, tokens, transaction history |
 | **Helius** | Solana NFTs, tokens, transactions |
 | **Blockfrost** | Cardano balances and transactions |
+| **mempool.space / Blockstream** | Bitcoin balances and transactions |
+| **Polkadot RPC / Subscan** | DOT balances; transaction history when optional `SUBSCAN_API_KEY` is configured |
+| **TronGrid** | TRX balances and transactions |
+| **BlockCypher / Dogechain** | DOGE balances and transactions |
 | **Moralis** | Monad transaction history |
 | **CoinGecko** | Native token prices (90s cache) |
 | **DexScreener** | Token pair prices |
@@ -281,6 +285,7 @@ Tab navigation uses `.scrollbar-none` to hide the scrollbar on mobile.
 
 - **No page reloads** — all state managed in React; wallet connections and scans update the UI inline.
 - **Abort on re-scan** — an `AbortController` ref cancels in-flight fetch requests when the user triggers a new scan, preventing stale data races.
+- **Address-family routing** — comma-separated inputs are detected locally and sent only to the matching chain adapter; EVM addresses remain isolated from non-EVM lookups.
 - **Asset deduplication** — NFTs and tokens are keyed by `{chain}-{address/id}` to prevent duplicates across multi-wallet loads.
 - **Spam/hide management** — Users can hide or flag spam assets per-session (localStorage); a management modal lets them review and restore hidden items.
 - **Image fallback** — All asset images use an `onError` handler that falls back to an inline SVG placeholder generated from the asset symbol and chain color.

@@ -11,6 +11,8 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const { createSearchService, startSearchKeepAlive } = require('./search-service');
+const { EVM_CHAINS: SCANNER_EVM_CHAINS, DEFAULT_CHAINS: SCANNER_CHAINS } = require('./public/chain-catalog');
+const { createNonEvmScanner } = require('./non-evm-scanner');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -217,6 +219,7 @@ const API_KEYS = {
   moralis: process.env.MORALIS_KEY,
   coingecko: process.env.COINGECKO_KEY,
   coinmarketcap: process.env.COINMARKETCAP_API_KEY || process.env.CMC_API_KEY,
+  subscan: process.env.SUBSCAN_API_KEY,
 };
 
 // Demo keys (CG- prefix) ONLY work on api.coingecko.com — pro keys use pro-api.coingecko.com.
@@ -487,7 +490,8 @@ const NATIVE_CG_IDS = {
   ETH: 'ethereum', MATIC: 'matic-network', POL: 'matic-network',
   AVAX: 'avalanche-2', RON: 'ronin', APE: 'apecoin',
   MON: 'monad', SOL: 'solana', ADA: 'cardano', BNB: 'binancecoin',
-  xDAI: 'xdai', HYPE: 'hyperliquid'
+  XDAI: 'xdai', HYPE: 'hyperliquid', WLD: 'worldcoin-wld',
+  BTC: 'bitcoin', DOT: 'polkadot', TRX: 'tron', DOGE: 'dogecoin'
 };
 
 // Simple price cache — 90s TTL
@@ -1256,6 +1260,7 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
       apechain:   { symbol:'APE',  name:'ApeCoin',    logo:'https://cryptologos.cc/logos/apecoin-ape-ape-logo.png' },
       gnosis:     { symbol:'xDAI', name:'Gnosis',     logo:'https://cryptologos.cc/logos/gnosis-gno-logo.png' },
       hyperevm:   { symbol:'HYPE', name:'HyperEVM',   logo:'https://assets.coingecko.com/coins/images/53805/small/Hyperliquid.png' },
+      worldchain: { symbol:'WLD',  name:'Worldcoin',  logo:'https://cryptologos.cc/logos/worldcoin-org-wld-logo.png' },
     };
     const { symbol: nativeSymbol, name: nativeName, logo: nativeLogo } =
       _nc[chainId] || { symbol:'ETH', name:'Ether', logo:'https://cryptologos.cc/logos/ethereum-eth-logo.png' };
@@ -1352,24 +1357,9 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
 
 // --- Routes ---
 // Alchemy-supported chains confirmed from their API documentation
-const evmChains = [
-  { id: 'ethereum', net: 'eth-mainnet' },
-  { id: 'base', net: 'base-mainnet' },
-  { id: 'polygon', net: 'polygon-mainnet' },
-  { id: 'avalanche', net: 'avax-mainnet' },
-  { id: 'optimism', net: 'opt-mainnet' },
-  { id: 'arbitrum', net: 'arb-mainnet' },
-  { id: 'blast', net: 'blast-mainnet' },
-  { id: 'zora', net: 'zora-mainnet' },
-  { id: 'abstract', net: 'abstract-mainnet' },
-  { id: 'apechain', net: 'apechain-mainnet' },
-  { id: 'soneium', net: 'soneium-mainnet' },
-  { id: 'ronin', net: 'ronin-mainnet' },
-  { id: 'worldchain', net: 'worldchain-mainnet' },
-  { id: 'gnosis', net: 'gnosis-mainnet' },
-  { id: 'hyperevm', net: 'hyperevm-mainnet' }, // Hyperliquid EVM
-  { id: 'hype', net: 'hyperevm-mainnet' },     // alias used by frontend
-];
+const evmChains = SCANNER_EVM_CHAINS
+  .filter(chain => chain.alchemyNetwork)
+  .map(chain => ({ id: chain.id, net: chain.alchemyNetwork }));
 
 evmChains.forEach(chain => {
   app.get(`/api/nfts/${chain.id}/:address`, (req, res) => {
@@ -1388,6 +1378,37 @@ evmChains.forEach(chain => {
         console.error(`❌ Route error for ${chain.id} tokens:`, err.message);
         res.json({ nfts: [] });
       });
+  });
+});
+
+// --- Bitcoin / Polkadot / Tron / Dogecoin ---
+// These are address scanners only: native balances and recent native transfers.
+// NFTs are intentionally empty because these chains do not share an NFT indexer
+// contract with ChainLens's EVM/Solana/Cardano adapters.
+const nonEvmScanner = createNonEvmScanner({
+  fetchImpl: fetch,
+  getNativePrice: fetchNativePrice,
+  getTokenImage: fetchTokenImage,
+  subscanApiKey: API_KEYS.subscan,
+});
+
+['bitcoin', 'polkadot', 'tron', 'dogecoin'].forEach(chainId => {
+  app.get(`/api/nfts/${chainId}/:address`, (_req, res) => res.json({ nfts: [] }));
+  app.get(`/api/tokens/${chainId}/:address`, async (req, res) => {
+    try {
+      res.json({ nfts: await nonEvmScanner.scanTokens(chainId, req.params.address) });
+    } catch (error) {
+      console.error(`❌ ${chainId} balance error:`, error.message);
+      res.json({ nfts: [] });
+    }
+  });
+  app.get(`/api/transactions/${chainId}/:address`, async (req, res) => {
+    try {
+      res.json({ transactions: await nonEvmScanner.scanTransactions(chainId, req.params.address) });
+    } catch (error) {
+      console.error(`❌ ${chainId} transaction error:`, error.message);
+      res.json({ transactions: [] });
+    }
   });
 });
 
@@ -2773,14 +2794,9 @@ app.get('/api/market/chart/:coinIdOrSymbol', async (req, res) => {
 console.log('🔧 Setting up transaction history routes...');
 
 // Native currency mapping
-const nativeCurrencies = {
-  'ethereum': 'ETH', 'base': 'ETH', 'optimism': 'ETH', 'arbitrum': 'ETH',
-  'zora': 'ETH', 'blast': 'ETH', 'abstract': 'ETH', 'worldchain': 'ETH',
-  'soneium': 'ETH', 'polygon': 'MATIC', 'avalanche': 'AVAX',
-  'apechain': 'APE', 'ronin': 'RON', 'monad': 'MON',
-  'gnosis': 'xDAI', 'hyperevm': 'HYPE', 'hype': 'HYPE',
-  'solana': 'SOL', 'cardano': 'ADA'
-};
+const nativeCurrencies = Object.fromEntries(
+  SCANNER_CHAINS.map(chain => [chain.id, chain.native])
+);
 
 // EVM chains transaction history using Alchemy - OPTIMIZED BLOCK TIMESTAMPS
 console.log(`🔗 Setting up transaction routes for ${evmChains.length} EVM chains:`, evmChains.map(c => c.id).join(', '));

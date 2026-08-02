@@ -20,6 +20,7 @@
   <script src="https://unpkg.com/@babel/standalone@7.27.6/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/chain-catalog.js"></script>
   <script src="app-hub-data.js"></script>
 
   <script>
@@ -161,6 +162,10 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef, useCallback } = React;
     const ChainLensSearchPage = window.ChainLensSearchPage;
+    const {
+      DEFAULT_CHAINS, EVM_CHAINS, ACCOUNT_CHAINS, UTXO_CHAINS,
+      CHAIN_MAP, ADDRESS_PATTERNS, detectAddressChain, parseAddressInput
+    } = window.ChainLensChains;
 
     class ErrorBoundary extends React.Component {
       constructor(props) { super(props); this.state = { error: null }; }
@@ -201,8 +206,10 @@
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     onError={(e) => handleImgError(e, nft)}
                   />
-                  <div className={`absolute ${isListView ? 'top-1 left-1 px-1.5 py-0.5 text-[6px]' : 'top-4 left-4 px-3 py-1 text-[9px]'} rounded-full text-white font-bold tracking-widest uppercase backdrop-blur-md border border-white/20 shadow-lg z-10 ${chainStyles[nft.chain]?.color}`}>
-                    {nft.chain}
+                  <div
+                    style={{ background: chainStyles[nft.chain]?.background || '#64748b', color: chainStyles[nft.chain]?.foreground || '#fff' }}
+                    className={`absolute ${isListView ? 'top-1 left-1 px-1.5 py-0.5 text-[6px]' : 'top-4 left-4 px-3 py-1 text-[9px]'} rounded-full font-bold tracking-widest uppercase backdrop-blur-md border border-white/20 shadow-lg z-10`}>
+                    {chainStyles[nft.chain]?.label || nft.chain}
                   </div>
                 </div>
                 <div className={isListView ? "flex-1 flex items-center justify-between overflow-hidden min-w-0" : "p-5 text-center"}>
@@ -254,7 +261,7 @@
       const [evmAddr, setEvmAddr] = useState('');
       const [solAddr, setSolAddr] = useState('');
       const [adaAddr, setAdaAddr] = useState('');
-      const [activeChains, setActiveChains] = useState(['ethereum', 'polygon', 'base', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'hype', 'solana', 'cardano', 'abstract', 'monad']);
+      const [activeChains, setActiveChains] = useState(() => DEFAULT_CHAINS.map(chain => chain.id));
       
       const [nfts, setNfts] = useState([]);
       const [loading, setLoading] = useState(false);
@@ -270,6 +277,7 @@
 
       const [resolvedEvm, setResolvedEvm] = useState(null);
       const [isResolving, setIsResolving] = useState(false);
+      const [scanIssues, setScanIssues] = useState([]);
 
       const [hiddenIds, setHiddenIds] = useState(() => JSON.parse(localStorage.getItem('hiddenAssets') || '[]'));
       const [spamIds, setSpamIds] = useState(() => JSON.parse(localStorage.getItem('spamAssets') || '[]'));
@@ -341,47 +349,12 @@
       const [showSimpleSwap, setShowSimpleSwap] = useState(false);
       const [simpleSwapLoaded, setSimpleSwapLoaded] = useState(false);
 
-      const chainStyles = {
-        ethereum: { color: 'bg-[#3c3c3d]', label: 'Ethereum', native: 'ETH' },
-        polygon: { color: 'bg-[#7B3FE4]', label: 'Polygon', native: 'POL' },
-        base: { color: 'bg-[#0052FF]', label: 'Base', native: 'ETH' },
-        avalanche: { color: 'bg-[#E84142]', label: 'Avalanche', native: 'AVAX' },
-        optimism: { color: 'bg-[#FF0420]', label: 'Optimism', native: 'ETH' },
-        arbitrum: { color: 'bg-[#28A0F0]', label: 'Arbitrum', native: 'ETH' },
-        blast: { color: 'bg-[#FCFC03] text-black', label: 'Blast', native: 'ETH' },
-        zora: { color: 'bg-gradient-to-r from-purple-500 to-pink-500', label: 'Zora', native: 'ETH' },
-        apechain: { color: 'bg-[#0144d0]', label: 'Ape Chain', native: 'APE' },
-        soneium: { color: 'bg-[#0070D1]', label: 'Soneium', native: 'ETH' },
-        ronin: { color: 'bg-[#1273EA]', label: 'Ronin', native: 'RON' },
-        worldchain: { color: 'bg-gradient-to-r from-blue-500 to-green-500', label: 'World Chain', native: 'ETH' },
-        gnosis: { color: 'bg-[#04795B]', label: 'Gnosis', native: 'xDAI' },
-        hype: { color: 'bg-[#6366f1]', label: 'HyperLiquid', native: 'HYPE' },
-        solana: { color: 'bg-solana-gradient-soft', label: 'Solana', native: 'SOL' },
-        cardano: { color: 'bg-[#0033AD]', label: 'Cardano', native: 'ADA' },
-        monad: { color: 'bg-[#836EF9]', label: 'Monad', native: 'MON' },
-        abstract: { color: 'bg-[#00FF85] text-black', label: 'Abstract', native: 'ETH' }
-      };
+      const chainStyles = Object.fromEntries(DEFAULT_CHAINS.map(chain => [chain.id, chain]));
+      // Static App Hub records used this alias before the scanner standardized it.
+      chainStyles.hype = chainStyles.hyperevm;
 
-      const chainPriority = {
-        'cardano': 1,
-        'solana': 2,
-        'ethereum': 3,
-        'abstract': 4,
-        'monad': 5,
-        'base': 6,
-        'polygon': 7,
-        'avalanche': 8,
-        'optimism': 9,
-        'arbitrum': 10,
-        'blast': 11,
-        'zora': 12,
-        'apechain': 13,
-        'soneium': 14,
-        'ronin': 15,
-        'worldchain': 16,
-        'gnosis': 17,
-        'hype': 18
-      };
+      const chainPriority = Object.fromEntries(DEFAULT_CHAINS.map((chain, index) => [chain.id, index + 1]));
+      chainPriority.hype = chainPriority.hyperevm;
 
       const appHubCategoryStyles = {
         'Bridge / Interoperability': {
@@ -886,15 +859,7 @@
 
       // ── SVG fallback — colored circle with token initials, no external CDN ──
       const imgFallbackSvg = function(symbol, chain) {
-        var colors = {
-          solana:'14F195', cardano:'0033AD', ethereum:'627EEA', polygon:'8247E5',
-          base:'0052FF', avalanche:'E84142', optimism:'FF0420', arbitrum:'28A0F0',
-          blast:'FCFC03', ronin:'1273EA', gnosis:'04795B',
-          abstract:'00D4FF', monad:'836EF9', apechain:'1B4DFF',
-          zora:'2B5DF0', soneium:'6C63FF', worldchain:'3D4EFF',
-          hype:'6366F1'
-        };
-        var bg = colors[chain] || '334155';
+        var bg = chainStyles[chain]?.hex || '334155';
         var text = encodeURIComponent(((symbol || '?').substring(0,3)).toUpperCase());
         var tc = bg === 'FCFC03' ? '000000' : 'ffffff';
         return 'data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%2280%22 height%3D%2280%22%3E%3Crect width%3D%2280%22 height%3D%2280%22 rx%3D%2240%22 fill%3D%22%23' + bg + '%22%2F%3E%3Ctext x%3D%2250%25%22 y%3D%2250%25%22 dominant-baseline%3D%22middle%22 text-anchor%3D%22middle%22 font-family%3D%22Arial%2Csans-serif%22 font-weight%3D%22bold%22 font-size%3D%2226%22 fill%3D%22%23' + tc + '%22%3E' + text + '%3C%2Ftext%3E%3C%2Fsvg%3E';
@@ -908,7 +873,7 @@
       const dsChain = {ethereum:'ethereum',base:'base',polygon:'polygon',abstract:'abstract',
                        monad:'monad',avalanche:'avalanche',optimism:'optimism',arbitrum:'arbitrum',
                        blast:'blast',zora:'zora',apechain:'ape',soneium:'soneium',
-                       ronin:'ronin',worldchain:'worldchain',hype:'hyperliquid'};
+                       ronin:'ronin',worldchain:'worldchain',hyperevm:'hyperliquid',hype:'hyperliquid'};
 
       // Keep a ref to coinImageMap so the stable onError callback can always read
       // the latest version without being re-created (avoids closure-per-render leaks)
@@ -977,11 +942,9 @@
         return () => clearInterval(interval);
       }, []);
 
-      const NATIVE_CG_MAP = {
-        ETH: 'ethereum', SOL: 'solana', ADA: 'cardano', MON: 'monad',
-        AVAX: 'avalanche-2', POL: 'matic-network', RON: 'ronin',
-        APE: 'apecoin', HYPE: 'hyperliquid', xDAI: 'xdai', BNB: 'binancecoin',
-      };
+      const NATIVE_CG_MAP = Object.fromEntries(
+        DEFAULT_CHAINS.map(chain => [chain.native, chain.coingeckoId])
+      );
 
       useEffect(() => {
         const prices = {};
@@ -1289,6 +1252,7 @@
       const clearAll = () => {
         setEvmAddr(''); setSolAddr(''); setAdaAddr('');
         setNfts([]); setTransactions([]); setResolvedEvm(null);
+        setScanIssues([]);
         setSelectedAsset(null);
         setSearchQuery('');
       };
@@ -1444,94 +1408,87 @@
 
         setLoading(true); setNfts([]); setTransactions([]); setResolvedEvm(null);
 
-        // Parse comma-separated addresses per chain
-        const parseAddrs = (raw) => raw.split(',').map(a => a.trim()).filter(Boolean);
-        const rawEvmAddrs = parseAddrs(evmAddr);
-        const rawSolAddrs = parseAddrs(solAddr);
-        const rawAdaAddrs = parseAddrs(adaAddr);
-
-        // Resolve EVM domains per address
-        const resolvedEvmAddrs = [];
-        for (const addr of rawEvmAddrs) {
-          let target = addr;
-          if (target.includes('.') && !target.startsWith('0x')) {
-            setIsResolving(true);
-            try {
-              const res = await fetch(`/api/resolve/unstoppable/${target}`);
-              const data = await res.json();
-              if (data.address) { target = data.address; setResolvedEvm(data.address); }
-            } catch (e) { console.error('EVM resolution error:', e); }
-            setIsResolving(false);
+        const issues = [];
+        const resolvedByChain = Object.fromEntries(DEFAULT_CHAINS.map(chain => [chain.id, []]));
+        resolvedByChain.evm = [];
+        const addResolved = (chainId, address) => {
+          if (!resolvedByChain[chainId].includes(address)) resolvedByChain[chainId].push(address);
+        };
+        const resolveAddress = async (url) => {
+          setIsResolving(true);
+          try {
+            const response = await fetch(url, { signal });
+            const data = await response.json();
+            return response.ok ? data.address || null : null;
+          } catch (error) {
+            if (error.name !== 'AbortError') console.error('Address resolution error:', error);
+            return null;
           }
-          if (target) resolvedEvmAddrs.push(target);
+        };
+
+        // EVM address/domain bar — one address is reused across every active EVM chain.
+        for (const entry of parseAddressInput(evmAddr, 'evm')) {
+          if (!entry.chainId) { issues.push(`Skipped unrecognized EVM input ${truncAddr(entry.input)}`); continue; }
+          let target = entry.input;
+          if (entry.resolution === 'evm-domain') {
+            const endpoint = target.toLowerCase().endsWith('.eth') ? 'ens' : 'unstoppable';
+            target = await resolveAddress(`/api/resolve/${endpoint}/${encodeURIComponent(target)}`);
+            if (target) setResolvedEvm(target);
+          }
+          if (target && ADDRESS_PATTERNS.evm.test(target)) addResolved('evm', target);
+          else issues.push(`Could not resolve EVM input ${truncAddr(entry.input)}`);
         }
 
-        // Resolve ADA handles per address
-        const resolvedAdaAddrs = [];
-        for (const addr of rawAdaAddrs) {
-          let target = addr;
-          if (target && (target.startsWith('$') || !target.startsWith('addr1'))) {
-            setIsResolving(true);
-            try {
-              const res = await fetch(`/api/resolve/handle/${encodeURIComponent(target)}`);
-              const data = await res.json();
-              if (data.address) target = data.address;
-            } catch (e) { console.error('ADA resolution error:', e); }
-            setIsResolving(false);
+        // Account-model bar — Solana, Polkadot, and Tron are distinguishable by format.
+        for (const entry of parseAddressInput(solAddr, 'account')) {
+          if (!entry.chainId) { issues.push(`Skipped unrecognized account address ${truncAddr(entry.input)}`); continue; }
+          let target = entry.input;
+          if (entry.resolution === 'sol-domain') {
+            target = await resolveAddress(`/api/resolve/sns/${encodeURIComponent(target.replace(/\.sol$/i, ''))}`);
           }
-          if (target) resolvedAdaAddrs.push(target);
+          if (target && detectAddressChain(target) === entry.chainId) addResolved(entry.chainId, target);
+          else issues.push(`Could not resolve ${CHAIN_MAP[entry.chainId].label} input ${truncAddr(entry.input)}`);
         }
 
-        // Resolve Solana SNS names per address
-        const resolvedSolAddrs = [];
-        for (const addr of rawSolAddrs) {
-          let target = addr;
-          if (target.toLowerCase().endsWith('.sol') || (!target.startsWith('0x') && target.length < 44 && !target.match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/))) {
-            setIsResolving(true);
-            try {
-              const res = await fetch(`/api/resolve/sns/${encodeURIComponent(target.replace(/\.sol$/i,''))}`);
-              const data = await res.json();
-              if (data.address) target = data.address;
-            } catch (e) { console.error('SNS resolution error:', e); }
-            setIsResolving(false);
+        // UTXO/eUTXO bar — Cardano handles and ADA, BTC, or DOGE addresses can be mixed.
+        for (const entry of parseAddressInput(adaAddr, 'utxo')) {
+          if (!entry.chainId) { issues.push(`Skipped unrecognized UTXO address ${truncAddr(entry.input)}`); continue; }
+          let target = entry.input;
+          if (entry.resolution === 'ada-handle') {
+            target = await resolveAddress(`/api/resolve/handle/${encodeURIComponent(target)}`);
           }
-          if (target) resolvedSolAddrs.push(target);
+          if (target && detectAddressChain(target) === entry.chainId) addResolved(entry.chainId, target);
+          else issues.push(`Could not resolve ${CHAIN_MAP[entry.chainId].label} input ${truncAddr(entry.input)}`);
         }
+        setIsResolving(false);
+        setScanIssues(issues);
 
-        const evmChains = ['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'blast', 'zora', 'abstract', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'hype'];
         const nftTasks = [], tokenTasks = [], txTasks = [];
-        const sf = (url) => fetch(url, { signal }).then(r => r.json());
+        const sf = (url) => fetch(url, { signal }).then(response => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        });
 
         // EVM — every address × every active chain
-        for (const addr of resolvedEvmAddrs) {
-          if (!addr.startsWith('0x')) continue;
-          evmChains.forEach(chain => {
-            if (!activeChains.includes(chain)) return;
-            nftTasks.push(sf(`/api/nfts/${chain}/${addr}`));
-            tokenTasks.push(sf(`/api/tokens/${chain}/${addr}`));
-            txTasks.push(sf(`/api/transactions/${chain}/${addr}`));
+        for (const addr of resolvedByChain.evm) {
+          EVM_CHAINS.forEach(chain => {
+            if (!activeChains.includes(chain.id)) return;
+            const encoded = encodeURIComponent(addr);
+            nftTasks.push(sf(`/api/nfts/${chain.id}/${encoded}`));
+            tokenTasks.push(sf(`/api/tokens/${chain.id}/${encoded}`));
+            txTasks.push(sf(`/api/transactions/${chain.id}/${encoded}`));
           });
-          if (activeChains.includes('monad')) {
-            nftTasks.push(sf(`/api/nfts/monad/${addr}`));
-            tokenTasks.push(sf(`/api/tokens/monad/${addr}`));
-            txTasks.push(sf(`/api/transactions/monad/${addr}`));
+        }
+
+        // Every non-EVM address is sent only to its detected chain adapter.
+        for (const chain of [...ACCOUNT_CHAINS, ...UTXO_CHAINS]) {
+          if (!activeChains.includes(chain.id)) continue;
+          for (const addr of resolvedByChain[chain.id]) {
+            const encoded = encodeURIComponent(addr);
+            nftTasks.push(sf(`/api/nfts/${chain.id}/${encoded}`));
+            tokenTasks.push(sf(`/api/tokens/${chain.id}/${encoded}`));
+            txTasks.push(sf(`/api/transactions/${chain.id}/${encoded}`));
           }
-        }
-
-        // Solana — every address
-        for (const addr of resolvedSolAddrs) {
-          if (!addr || !activeChains.includes('solana')) continue;
-          nftTasks.push(sf(`/api/nfts/solana/${addr}`));
-          tokenTasks.push(sf(`/api/tokens/solana/${addr}`));
-          txTasks.push(sf(`/api/transactions/solana/${addr}`));
-        }
-
-        // Cardano — every address
-        for (const addr of resolvedAdaAddrs) {
-          if (!addr || !activeChains.includes('cardano')) continue;
-          nftTasks.push(sf(`/api/nfts/cardano/${addr}`));
-          tokenTasks.push(sf(`/api/tokens/cardano/${addr}`));
-          txTasks.push(sf(`/api/transactions/cardano/${addr}`));
         }
 
         try {
@@ -1579,7 +1536,7 @@
           txCombined.forEach(tx => { const k = `${tx.chain}-${tx.hash||tx.id||tx.timestamp}`; if (!txMap.has(k)) txMap.set(k, tx); });
           setTransactions(Array.from(txMap.values()).sort((a,b) => b.timestamp - a.timestamp));
 
-          const total = resolvedEvmAddrs.length + resolvedSolAddrs.length + resolvedAdaAddrs.length;
+          const total = Object.values(resolvedByChain).reduce((count, addresses) => count + addresses.length, 0);
           console.log(`✅ Scanned ${total} address${total !== 1 ? 'es' : ''}: ${filtered.length} assets`);
         } catch (e) {
           if (e.name === 'AbortError') return; // scan was superseded — discard
@@ -1596,12 +1553,13 @@
       const ChainButton = ({ id }) => {
         const style = chainStyles[id];
         const isActive = activeChains.includes(id);
-        const activeBgClass = id === 'solana' ? 'bg-solana-gradient' : style.color;
         
         return (
-          <button onClick={() => setActiveChains(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])} 
+          <button
+            onClick={() => setActiveChains(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
+            style={isActive ? { background: style.background, color: style.foreground || '#fff' } : undefined}
             className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border-2 
-            ${isActive ? `${activeBgClass} text-white border-transparent shadow-lg scale-105` 
+            ${isActive ? 'border-transparent shadow-lg scale-105'
             : darkMode ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-white text-slate-300 border-slate-100'}`}>
             {style.label}
           </button>
@@ -1852,7 +1810,8 @@
                                                   key={chain}
                                                   onClick={(e) => { e.preventDefault(); setAppHubChain(chain); }}
                                                   title={chainStyles[chain]?.label || chain}
-                                                  className={`px-2.5 py-1 rounded-lg text-[8px] font-bold uppercase tracking-widest text-white ${chainStyles[chain]?.color || 'bg-slate-500'}`}>
+                                                  style={{ background: chainStyles[chain]?.background || '#64748b', color: chainStyles[chain]?.foreground || '#fff' }}
+                                                  className="px-2.5 py-1 rounded-lg text-[8px] font-bold uppercase tracking-widest">
                                                   {chainStyles[chain]?.label || chain}
                                                 </button>
                                               ))}
@@ -1907,7 +1866,7 @@
                       {/* Input row with inline toggle button */}
                       <div className="flex items-center gap-2">
                         <div className="relative flex-1">
-                          <input type="text" value={evmAddr} onChange={e => { setEvmAddr(e.target.value); setResolvedEvm(null); }} placeholder="0x... or domain" className={`w-full p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200 focus:border-blue-400'}`} />
+                          <input type="text" value={evmAddr} onChange={e => { setEvmAddr(e.target.value); setResolvedEvm(null); }} placeholder="0x... or domain, comma-separated" className={`w-full p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-blue-500' : 'bg-slate-50 border-slate-200 focus:border-blue-400'}`} />
                           {isResolving && <div className="absolute right-4 top-4 animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>}
                         </div>
                         <button
@@ -1919,14 +1878,14 @@
                       {/* Active chain count badge when collapsed */}
                       {!showEvmChains && (
                         <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-blue-500' : 'text-slate-400'}`}>
-                          {['ethereum','base','polygon','avalanche','optimism','arbitrum','abstract','blast','zora','apechain','soneium','ronin','worldchain','gnosis','hype','monad'].filter(c => activeChains.includes(c)).length} / 16 active
+                          {EVM_CHAINS.filter(chain => activeChains.includes(chain.id)).length} / {EVM_CHAINS.length} active
                         </p>
                       )}
                       {/* Collapsible chain buttons */}
                       {showEvmChains && (
                         <div className="flex flex-wrap gap-2 pt-1">
-                          {['ethereum', 'base', 'polygon', 'avalanche', 'optimism', 'arbitrum', 'abstract', 'blast', 'zora', 'apechain', 'soneium', 'ronin', 'worldchain', 'gnosis', 'hype', 'monad'].map(id => (
-                            <ChainButton key={id} id={id} />
+                          {EVM_CHAINS.map(chain => (
+                            <ChainButton key={chain.id} id={chain.id} />
                           ))}
                         </div>
                       )}
@@ -1934,11 +1893,11 @@
 
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Solana Network</label>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Account Chains</label>
                         <button onClick={() => setSolAddr('3noTuHnQdHkat2w5rBx18vAACMzFUvB5LodEe5vMN98d')} className="text-[10px] font-bold text-emerald-500 hover:underline uppercase tracking-tighter">LOAD TEST</button>
                       </div>
                       <div className="flex items-center gap-2">
-                        <input type="text" value={solAddr} onChange={e => setSolAddr(e.target.value)} placeholder="Address..." className={`flex-1 p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-emerald-500' : 'bg-slate-50 border-slate-200 focus:border-emerald-400'}`} />
+                        <input type="text" value={solAddr} onChange={e => setSolAddr(e.target.value)} placeholder="SOL, DOT or TRX, comma-separated" className={`flex-1 p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-emerald-500' : 'bg-slate-50 border-slate-200 focus:border-emerald-400'}`} />
                         <button
                           onClick={() => setShowSolChains(v => !v)}
                           title={showSolChains ? 'Hide chains' : 'Show chains'}
@@ -1946,24 +1905,24 @@
                         >{showSolChains ? '▲' : '▼'}</button>
                       </div>
                       {!showSolChains && (
-                        <p className={`text-[10px] font-bold uppercase tracking-widest ${activeChains.includes('solana') ? 'text-emerald-500' : (darkMode ? 'text-slate-600' : 'text-slate-400')}`}>
-                          {activeChains.includes('solana') ? 'active' : 'inactive'}
+                        <p className={`text-[10px] font-bold uppercase tracking-widest ${ACCOUNT_CHAINS.some(chain => activeChains.includes(chain.id)) ? 'text-emerald-500' : (darkMode ? 'text-slate-600' : 'text-slate-400')}`}>
+                          {ACCOUNT_CHAINS.filter(chain => activeChains.includes(chain.id)).length} / {ACCOUNT_CHAINS.length} active
                         </p>
                       )}
                       {showSolChains && (
                         <div className="flex flex-wrap gap-2 pt-1">
-                          <ChainButton id="solana" />
+                          {ACCOUNT_CHAINS.map(chain => <ChainButton key={chain.id} id={chain.id} />)}
                         </div>
                       )}
                     </div>
 
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-cyan-500">Cardano Ledger</label>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-cyan-500">UTXO / eUTXO Chains</label>
                         <button onClick={() => setAdaAddr('addr1q950qv0ks9t29mavulaa5jr3sk2s50r5jfsddydjs0pazrfh32tdpt7zttt4mhl6t9purm4c9rv555z7r5mulq78aleqcg9c9h')} className="text-[10px] font-bold text-cyan-500 hover:underline uppercase tracking-tighter">LOAD TEST</button>
                       </div>
                       <div className="flex items-center gap-2">
-                        <input type="text" value={adaAddr} onChange={e => setAdaAddr(e.target.value)} placeholder="$handle..." className={`flex-1 p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-cyan-500' : 'bg-slate-50 border-slate-200 focus:border-cyan-400'}`} />
+                        <input type="text" value={adaAddr} onChange={e => setAdaAddr(e.target.value)} placeholder="$handle, addr1, bc1 or DOGE" className={`flex-1 p-4 rounded-xl border outline-none text-sm transition-all ${darkMode ? 'bg-slate-950 border-slate-800 focus:border-cyan-500' : 'bg-slate-50 border-slate-200 focus:border-cyan-400'}`} />
                         <button
                           onClick={() => setShowAdaChains(v => !v)}
                           title={showAdaChains ? 'Hide chains' : 'Show chains'}
@@ -1971,18 +1930,24 @@
                         >{showAdaChains ? '▲' : '▼'}</button>
                       </div>
                       {!showAdaChains && (
-                        <p className={`text-[10px] font-bold uppercase tracking-widest ${activeChains.includes('cardano') ? 'text-cyan-500' : (darkMode ? 'text-slate-600' : 'text-slate-400')}`}>
-                          {activeChains.includes('cardano') ? 'active' : 'Cardano inactive'}
+                        <p className={`text-[10px] font-bold uppercase tracking-widest ${UTXO_CHAINS.some(chain => activeChains.includes(chain.id)) ? 'text-cyan-500' : (darkMode ? 'text-slate-600' : 'text-slate-400')}`}>
+                          {UTXO_CHAINS.filter(chain => activeChains.includes(chain.id)).length} / {UTXO_CHAINS.length} active
                         </p>
                       )}
                       {showAdaChains && (
                         <div className="flex flex-wrap gap-2 pt-1">
-                          <ChainButton id="cardano" />
+                          {UTXO_CHAINS.map(chain => <ChainButton key={chain.id} id={chain.id} />)}
                         </div>
                       )}
                     </div>
                   </div>
                   
+                  {scanIssues.length > 0 && (
+                    <div className={`mb-6 rounded-2xl border px-4 py-3 text-xs ${darkMode ? 'border-amber-400/20 bg-amber-400/10 text-amber-300' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+                      {scanIssues.map(issue => <p key={issue}>{issue}</p>)}
+                    </div>
+                  )}
+
                   <div className="flex flex-col md:flex-row items-center gap-6">
                     <button onClick={handleSearch} disabled={loading} className={`flex-1 py-6 md:py-7 rounded-2xl font-sans font-bold text-2xl md:text-4xl uppercase tracking-widest transition-all active:scale-[0.98] ${loading ? 'opacity-50 cursor-not-allowed scanning-glow' : ''} ${darkMode ? 'bg-white text-slate-950 hover:bg-slate-200' : 'bg-slate-950 text-white hover:bg-slate-800 shadow-xl'}`}>
                       {loading ? 'ANALYZING...' : 'SCAN ASSETS'}
@@ -2070,7 +2035,9 @@
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
                                     <p className={`font-bold uppercase text-sm ${typeColor}`}>{tx.type}</p>
-                                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-bold uppercase ${chainStyles[tx.chain]?.color} text-white`}>
+                                    <span
+                                      style={{ background: chainStyles[tx.chain]?.background || '#64748b', color: chainStyles[tx.chain]?.foreground || '#fff' }}
+                                      className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase">
                                       {chainStyles[tx.chain]?.label || tx.chain}
                                     </span>
                                   </div>
@@ -2963,7 +2930,11 @@
                               <img src={resolveImg(selectedAsset.image, selectedAsset.symbol)} className="w-full h-auto rounded-2xl" onError={(e)=>{e.currentTarget.onerror=null;e.currentTarget.src=imgFallbackSvg(selectedAsset.symbol,selectedAsset.chain);}} />
                     </div>
                     <div>
-                       <div className={`inline-block px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4 ${chainStyles[selectedAsset.chain]?.color} text-white`}>{selectedAsset.chain}</div>
+                       <div
+                         style={{ background: chainStyles[selectedAsset.chain]?.background || '#64748b', color: chainStyles[selectedAsset.chain]?.foreground || '#fff' }}
+                         className="inline-block px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4">
+                         {chainStyles[selectedAsset.chain]?.label || selectedAsset.chain}
+                       </div>
                        <h1 className="text-4xl font-heading font-black uppercase mb-2 leading-none">{selectedAsset.name}</h1>
                        <p className="text-sm font-bold opacity-40 uppercase tracking-widest mb-8">{selectedAsset.symbol || 'ASSET'}</p>
                        {selectedAsset.isToken && (
@@ -3009,7 +2980,7 @@
           )}
 
           {/* SimpleSwap widget — fixed bottom-left, iframe remains mounted after first open */}
-          <div className={`fixed bottom-6 left-6 z-[70] flex-col items-start gap-3 max-w-[calc(100vw-3rem)] ${activeTab === 'search' ? 'hidden md:flex' : 'flex'}`}>
+          <div className={`relative z-[60] mx-4 mt-6 max-w-none flex-col items-stretch gap-3 md:fixed md:bottom-6 md:left-6 md:z-[70] md:mx-0 md:mt-0 md:max-w-[calc(100vw-3rem)] md:items-start ${activeTab === 'search' ? 'hidden md:flex' : 'flex'}`}>
             {simpleSwapLoaded && (
               <div
                 className={`w-[min(calc(100vw-3rem),560px)] rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-3 transition-all duration-200 ${showSimpleSwap ? 'opacity-100 translate-y-0 pointer-events-auto visible' : 'opacity-0 translate-y-3 pointer-events-none invisible'} ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
@@ -3049,7 +3020,7 @@
                 setShowDonate(false);
                 setShowWallet(false);
               }}
-              className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showSimpleSwap
+              className={`flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showSimpleSwap
                 ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
                 : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-emerald-400 hover:text-emerald-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-500 backdrop-blur-md')}`}>
               <svg width="13" height="13" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -3060,12 +3031,12 @@
             </button>
           </div>
 
-          <div className={`fixed bottom-6 right-6 z-[70] flex-col items-end gap-3 ${activeTab === 'search' ? 'hidden md:flex' : 'flex'}`}>
+          <div className={`relative z-[60] mx-4 mb-8 mt-3 flex-row flex-wrap justify-end gap-2 md:fixed md:bottom-6 md:right-6 md:z-[70] md:mx-0 md:mb-0 md:mt-0 md:flex-col md:items-end md:gap-3 ${activeTab === 'search' ? 'hidden md:flex' : 'flex'}`}>
 
           {/* Docs link */}
           <a
             href="/docs"
-            className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-emerald-400 hover:text-emerald-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-500 backdrop-blur-md'}`}>
+            className={`flex flex-1 items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 md:flex-none md:px-5 ${darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-emerald-400 hover:text-emerald-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-500 backdrop-blur-md'}`}>
             <svg width="13" height="13" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M4.5 2.5H10.2L13.5 5.8V15.5H4.5C3.95 15.5 3.5 15.05 3.5 14.5V3.5C3.5 2.95 3.95 2.5 4.5 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
               <path d="M10 2.75V6H13.25" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
@@ -3076,7 +3047,7 @@
 
           {/* Wallet pop-up panel */}
           {showWallet && (
-            <div className={`rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-5 w-72 max-h-[calc(100vh-3rem)] overflow-y-auto flex flex-col items-center gap-3 ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
+            <div className={`basis-full rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-5 w-full max-h-[calc(100vh-3rem)] overflow-y-auto flex flex-col items-center gap-3 md:basis-auto md:w-72 ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
               style={{ animation: 'slideUp 0.2s ease-out both' }}
               onClick={e => e.stopPropagation()}>
               <img src="/MagicMoney_icon.svg" alt="Magic Money Wallet" className="w-16 h-16 object-contain" />
@@ -3194,7 +3165,7 @@
           {/* Wallet trigger button */}
           <button
             onClick={() => { setShowWallet(v => !v); setShowDonate(false); setShowSimpleSwap(false); }}
-            className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showWallet
+            className={`flex flex-1 items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 md:flex-none md:px-5 ${showWallet
               ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
               : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-500 backdrop-blur-md')}`}>
             <svg width="13" height="13" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -3207,7 +3178,7 @@
 
           {/* Donate Pop-up panel */}
           {showDonate && (
-            <div className={`rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-4 w-72 flex flex-col gap-2 ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
+            <div className={`basis-full rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-4 w-full flex flex-col gap-2 md:basis-auto md:w-72 ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
               style={{ animation: 'slideUp 0.2s ease-out both' }}>
               <p className={`text-[9px] font-black uppercase tracking-widest mb-1 px-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Support ChainLens</p>
 
@@ -3268,7 +3239,7 @@
           {/* Donate Trigger button */}
           <button
             onClick={() => { setShowDonate(v => !v); setShowWallet(false); setShowSimpleSwap(false); }}
-            className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showDonate
+            className={`flex flex-1 items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 md:flex-none md:px-5 ${showDonate
               ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
               : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-500 backdrop-blur-md')}`}>
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
