@@ -38,6 +38,19 @@
   const ACCOUNT_CHAINS = DEFAULT_CHAINS.filter(chain => chain.family === 'account');
   const UTXO_CHAINS = DEFAULT_CHAINS.filter(chain => chain.family === 'utxo');
 
+  // Persistent profile wallet types. One EVM address intentionally represents
+  // every EVM network, while non-EVM addresses are stored per chain.
+  const PROFILE_WALLET_TYPES = [
+    { id: 'evm',      label: 'EVM Chains', shortLabel: 'EVM',      family: 'evm',     icon: '⬡', color: '#F97316', description: '17 networks · one 0x address', chainIds: EVM_CHAINS.map(chain => chain.id) },
+    { id: 'solana',   label: 'Solana',     shortLabel: 'SOL',      family: 'account', icon: '◎', color: '#9945FF', description: 'Solana account',              chainIds: ['solana'] },
+    { id: 'polkadot', label: 'Polkadot',   shortLabel: 'DOT',      family: 'account', icon: '●', color: '#E6007A', description: 'Polkadot SS58 account',        chainIds: ['polkadot'] },
+    { id: 'tron',     label: 'Tron',       shortLabel: 'TRX',      family: 'account', icon: '△', color: '#EB0029', description: 'Tron account',                 chainIds: ['tron'] },
+    { id: 'cardano',  label: 'Cardano',    shortLabel: 'ADA',      family: 'utxo',    icon: '₳', color: '#0033AD', description: 'Cardano eUTXO address',        chainIds: ['cardano'] },
+    { id: 'bitcoin',  label: 'Bitcoin',    shortLabel: 'BTC',      family: 'utxo',    icon: '₿', color: '#F7931A', description: 'Bitcoin UTXO address',         chainIds: ['bitcoin'] },
+    { id: 'dogecoin', label: 'Dogecoin',   shortLabel: 'DOGE',     family: 'utxo',    icon: 'Ð', color: '#C2A633', description: 'Dogecoin UTXO address',        chainIds: ['dogecoin'] },
+  ];
+  const PROFILE_WALLET_MAP = Object.fromEntries(PROFILE_WALLET_TYPES.map(type => [type.id, type]));
+
   const BASE58 = '[1-9A-HJ-NP-Za-km-z]';
   const ADDRESS_PATTERNS = {
     evm: new RegExp('^0x[0-9a-fA-F]{40}$'),
@@ -92,14 +105,29 @@
       });
   };
 
+  const validateProfileWalletAddress = (walletType, rawAddress) => {
+    const address = String(rawAddress || '').trim();
+    if (!PROFILE_WALLET_MAP[walletType] || !address) return false;
+    return detectAddressChain(address) === walletType;
+  };
+
+  const normalizeProfileWalletAddress = (walletType, rawAddress) => {
+    const address = String(rawAddress || '').trim();
+    return walletType === 'evm' ? address.toLowerCase() : address;
+  };
+
   return {
     DEFAULT_CHAINS,
     CHAIN_MAP,
     EVM_CHAINS,
     ACCOUNT_CHAINS,
     UTXO_CHAINS,
+    PROFILE_WALLET_TYPES,
+    PROFILE_WALLET_MAP,
     ADDRESS_PATTERNS,
     detectAddressChain,
     parseAddressInput,
+    validateProfileWalletAddress,
+    normalizeProfileWalletAddress,
   };
 }));

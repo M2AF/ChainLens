@@ -7,7 +7,7 @@
 
 ## 1. Overview
 
-ChainLens lets users connect wallets (EVM, Solana, Cardano) or paste comma-separated addresses to instantly view their cross-chain portfolio — NFTs, fungible tokens, transaction history — alongside live market data and integrated swaps. Scanner inputs are grouped by address family: EVM, account-model (Solana/Polkadot/Tron), and UTXO/eUTXO (Cardano/Bitcoin/Dogecoin).
+ChainLens lets users connect a detected browser wallet or manually link a public address for seven wallet families covering 23 chains: EVM, Solana, Polkadot, Tron, Cardano, Bitcoin, and Dogecoin. Magic Money Wallet participates through the same provider standards as other extensions, so its addresses attach to the user's existing ChainLens profile. Scanner inputs remain grouped by address family: EVM, account-model (Solana/Polkadot/Tron), and UTXO/eUTXO (Cardano/Bitcoin/Dogecoin).
 
 The design language is bold, minimal, and web3-native: oversized rounded corners, glassmorphism cards, chain-specific gradient accents, and a clean dark/light dual theme.
 
@@ -135,9 +135,7 @@ Full-screen backdrop (`bg-slate-950/95 backdrop-blur-xl`) with `fadeIn` animatio
 
 ### Wallet Picker
 
-Sheet-style modal with sections:
-1. **Featured** — Abstract Global Wallet (paste-address flow).
-2. **Detected** — Auto-discovered EIP-6963 browser extensions.
+One shared sheet-style modal is configured by wallet family. It always offers manual public-address linking and lists every compatible provider discovered from the browser instead of maintaining a handpicked wallet list. Discovery uses EIP-6963/`window.ethereum` for EVM, Wallet Standard/legacy providers for Solana, CIP-30 `window.cardano` for Cardano, WBIP-compatible Bitcoin providers, `window.injectedWeb3` for Polkadot, and available injected Tron/Dogecoin providers. Magic Money is identified in the list when its provider is present.
 
 Rows use `border` + `hover:border-{color}` + `hover:bg-{color}/5` for a subtle highlight without background flash.
 
@@ -222,13 +220,13 @@ Dark/light mode is controlled by a `darkMode` boolean in React state (persisted 
 
 ## 12. Authentication Flow
 
-1. User initiates connection (EVM extension, Solana, Cardano, Google, Discord, or paste-address).
+1. User initiates connection (detected EVM, Solana, or Cardano signer; Google/Discord; or a manual public address).
 2. Frontend requests a nonce from `/api/auth/nonce`.
 3. User signs the message `ChainLens login\nAddress: {addr}\nNonce: {nonce}` in their wallet.
 4. Backend verifies the signature (ethers.js for EVM, tweetnacl for Solana, CBOR for Cardano) and returns a JWT.
 5. JWT stored in `localStorage` as `cl_token`; passed as `Authorization: Bearer` header on all protected routes.
 
-**Watch-only wallets:** EVM addresses can be added without signing (paste flow). Abstract Global Wallet addresses are supported this way since AGW smart accounts require no EOA signing.
+**Watch-only wallets:** Any of the seven wallet families can be linked by typing a valid public address. Bitcoin, Polkadot, Tron, and Dogecoin extension connections also link the returned public address as watch-only because they are not login authorities. Server-side family validation rejects malformed addresses; no private keys or seed phrases are requested or stored.
 
 **Social OAuth:** Google and Discord OAuth redirect flows, backed by `cl_linked_accounts` in Supabase. Accounts are merged by `provider + provider_id`.
 

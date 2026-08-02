@@ -11,7 +11,13 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const { createSearchService, startSearchKeepAlive } = require('./search-service');
-const { EVM_CHAINS: SCANNER_EVM_CHAINS, DEFAULT_CHAINS: SCANNER_CHAINS } = require('./public/chain-catalog');
+const {
+  EVM_CHAINS: SCANNER_EVM_CHAINS,
+  DEFAULT_CHAINS: SCANNER_CHAINS,
+  PROFILE_WALLET_MAP,
+  validateProfileWalletAddress,
+  normalizeProfileWalletAddress,
+} = require('./public/chain-catalog');
 const { createNonEvmScanner } = require('./non-evm-scanner');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
@@ -737,14 +743,17 @@ app.post('/api/auth/wallet-login', async (req, res) => {
 // ── Watch-only wallet (no signature required) ────────────────────────────────
 app.post('/api/auth/add-watch-wallet', requireAuth, async (req, res) => {
   const { chain, address } = req.body;
-  if (!chain || !address)
+  if (!chain || typeof address !== 'string')
     return res.status(400).json({ error: 'chain and address required' });
-  if (chain === 'evm' && !/^0x[0-9a-fA-F]{40}$/.test(address))
-    return res.status(400).json({ error: 'Invalid EVM address' });
+  if (!PROFILE_WALLET_MAP[chain])
+    return res.status(400).json({ error: 'Unsupported wallet type' });
+  if (!validateProfileWalletAddress(chain, address))
+    return res.status(400).json({ error: `Invalid ${PROFILE_WALLET_MAP[chain].label} address` });
+  const normalizedAddress = normalizeProfileWalletAddress(chain, address);
   const userId = req.user.sub;
   try {
     if (supabase) {
-      await dbLinkWallet(userId, { chain, address, watch_only: true });
+      await dbLinkWallet(userId, { chain, address: normalizedAddress, watch_only: true });
     }
     const profile = await dbGetUserById(userId);
     res.json({ success: true, profile });

@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChainLens | Search the Web and Onchain</title>
   
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon/favicon-96x96.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
   <link rel="shortcut icon" href="/favicon/favicon.ico">
   <link rel="manifest" href="/favicon/site.webmanifest">
@@ -21,6 +20,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/chain-catalog.js"></script>
+  <script src="/wallet-providers.js"></script>
   <script src="app-hub-data.js"></script>
 
   <script>
@@ -165,8 +165,11 @@
     const ChainLensSearchPage = window.ChainLensSearchPage;
     const {
       DEFAULT_CHAINS, EVM_CHAINS, ACCOUNT_CHAINS, UTXO_CHAINS,
-      CHAIN_MAP, ADDRESS_PATTERNS, detectAddressChain, parseAddressInput
+      CHAIN_MAP, PROFILE_WALLET_TYPES, PROFILE_WALLET_MAP,
+      ADDRESS_PATTERNS, detectAddressChain, parseAddressInput,
+      validateProfileWalletAddress, normalizeProfileWalletAddress
     } = window.ChainLensChains;
+    const { discoverWalletProviders, requestLinkedAddress } = window.ChainLensWalletProviders;
 
     class ErrorBoundary extends React.Component {
       constructor(props) { super(props); this.state = { error: null }; }
@@ -323,8 +326,9 @@
       const [userProfile, setUserProfile] = useState(null);
       const [authLoading, setAuthLoading] = useState(false);
       const [walletConnecting, setWalletConnecting] = useState(null); // 'evm'|'solana'|'cardano'|'google'|'discord'
-      const [showEvmPicker, setShowEvmPicker] = useState(false);
-      const [evmProviders, setEvmProviders] = useState([]);
+      const [walletPickerType, setWalletPickerType] = useState(null);
+      const [walletProviders, setWalletProviders] = useState([]);
+      const [walletDiscovering, setWalletDiscovering] = useState(false);
       const [pasteMode, setPasteMode] = useState(false);
       const [pasteAddr, setPasteAddr] = useState('');
       const [pasteError, setPasteError] = useState('');
@@ -587,42 +591,48 @@
         setWalletConnecting(null);
       };
 
-      // ── EVM: EIP-6963 multi-wallet picker ─────────────────────────────────
-      const NON_EVM_WALLETS = ['keplr','leap','cosmostation','station','ninji','compass','ctrl'];
-
-      const discoverEvmWallets = () => new Promise((resolve) => {
-        const found = []; const seen = new Set();
-        const handler = (event) => {
-          const { info, provider } = event.detail;
-          if (NON_EVM_WALLETS.some(w => (info.name||'').toLowerCase().includes(w))) return;
-          if (!seen.has(info.uuid)) { seen.add(info.uuid); found.push({ info, provider }); }
-        };
-        window.addEventListener('eip6963:announceProvider', handler);
-        window.dispatchEvent(new Event('eip6963:requestProvider'));
-        setTimeout(() => {
-          window.removeEventListener('eip6963:announceProvider', handler);
-          if (found.length === 0 && window.ethereum) {
-            found.push({ info: { uuid:'legacy', name: window.ethereum.isMetaMask ? 'MetaMask' : 'Injected Wallet', icon:'' }, provider: window.ethereum });
-          }
-          resolve(found);
-        }, 350);
-      });
-
-      const closePicker = () => { setShowEvmPicker(false); setPasteMode(false); setPasteAddr(''); setPasteError(''); };
-
-      const connectEVM = async () => {
-        const wallets = await discoverEvmWallets();
-        if (wallets.length === 1) { connectEVMWithProvider(wallets[0].provider); return; }
-        setEvmProviders(wallets);
-        setPasteMode(false); setPasteAddr(''); setPasteError('');
-        setShowEvmPicker(true);
+      // ── Multi-family wallet discovery and profile linking ────────────────
+      const closePicker = () => {
+        setWalletPickerType(null);
+        setWalletProviders([]);
+        setWalletDiscovering(false);
+        setPasteMode(false);
+        setPasteAddr('');
+        setPasteError('');
       };
 
-      const connectEVMWithProvider = (provider) => {
+      const openWalletPicker = async (walletType) => {
+        setProfileError(null);
+        setWalletPickerType(walletType);
+        setWalletProviders([]);
+        setPasteMode(false);
+        setPasteAddr('');
+        setPasteError('');
+        setWalletDiscovering(true);
+        try {
+          setWalletProviders(await discoverWalletProviders(walletType, window));
+        } catch (error) {
+          console.error(`${walletType} provider discovery error:`, error);
+          setPasteError('Wallet discovery failed. You can still add an address manually.');
+        } finally {
+          setWalletDiscovering(false);
+        }
+      };
+
+      const connectEVM = () => openWalletPicker('evm');
+      const connectSolana = () => openWalletPicker('solana');
+      const connectCardano = () => openWalletPicker('cardano');
+
+      const connectEVMWithProvider = (record) => {
+        const provider = record.provider || record;
+        let address = null;
         closePicker();
         connectWallet('evm', async (nonce) => {
-          const accounts = await provider.request({ method: 'eth_requestAccounts' });
-          const address = accounts[0];
+          if (!address) {
+            const accounts = await provider.request({ method: 'eth_requestAccounts' });
+            address = accounts?.[0];
+          }
+          if (!address) throw new Error('The wallet did not return an EVM account');
           if (!nonce) return { address };
           const message = `ChainLens login\nAddress: ${address}\nNonce: ${nonce}`;
           const signedSig = await provider.request({ method: 'personal_sign', params: [message, address] });
@@ -630,39 +640,38 @@
         });
       };
 
-      const submitWatchWallet = async () => {
-        setPasteError('');
-        const addr = pasteAddr.trim();
-        if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) { setPasteError('Enter a valid 0x EVM address (42 chars)'); return; }
-        if (!authToken) { setPasteError('You must be signed in first'); return; }
-        setWalletConnecting('evm');
-        try {
-          const res = await fetch('/api/auth/add-watch-wallet', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-            body: JSON.stringify({ chain: 'evm', address: addr })
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Failed to add wallet');
-          if (data.profile) setUserProfile(data.profile);
-          closePicker();
-        } catch (e) { setPasteError(e.message); }
-        setWalletConnecting(null);
+      const connectSolanaWithProvider = (record) => {
+        let account = null;
+        closePicker();
+        connectWallet('solana', async (nonce) => {
+          if (!account) {
+            if (record.kind === 'solana-standard') {
+              const result = await record.provider.features['standard:connect'].connect();
+              account = result?.accounts?.[0];
+            } else {
+              const result = await record.provider.connect();
+              const publicKey = result?.publicKey || record.provider.publicKey;
+              account = publicKey ? { address: publicKey.toString() } : null;
+            }
+          }
+          const address = account?.address;
+          if (!address) throw new Error('The wallet did not return a Solana account');
+          if (!nonce) return { address };
+          const message = `ChainLens login\nAddress: ${address}\nNonce: ${nonce}`;
+          const encoded = new TextEncoder().encode(message);
+          let signature;
+          if (record.kind === 'solana-standard') {
+            const result = await record.provider.features['solana:signMessage'].signMessage({ account, message: encoded });
+            signature = (Array.isArray(result) ? result[0] : result)?.signature;
+          } else {
+            const result = await record.provider.signMessage(encoded, 'utf8');
+            signature = result?.signature || result;
+          }
+          if (!signature) throw new Error('The wallet did not return a Solana signature');
+          const signedSig = btoa(String.fromCharCode(...new Uint8Array(signature)));
+          return { address, signedSig };
+        });
       };
-
-      // ── Solana (Phantom / Backpack) ───────────────────────────────────────
-      const connectSolana = () => connectWallet('solana', async (nonce) => {
-        const wallet = window.solana || window.backpack;
-        if (!wallet) throw new Error('Phantom not found. Please install it.');
-        await wallet.connect();
-        const address = wallet.publicKey.toString();
-        if (!nonce) return { address };
-        const message = `ChainLens login\nAddress: ${address}\nNonce: ${nonce}`;
-        const encoded = new TextEncoder().encode(message);
-        const { signature } = await wallet.signMessage(encoded, 'utf8');
-        const signedSig = btoa(String.fromCharCode(...new Uint8Array(signature)));
-        return { address, signedSig };
-      });
 
       // ── Cardano hex → bech32 address converter (no extra npm lib needed) ──
       const cardanoBech32 = (hexAddr) => {
@@ -699,26 +708,79 @@
         } catch(e) { return hexAddr; } // fallback: return raw hex if conversion fails
       };
 
-      // ── Cardano (Vespr / Eternl / Nami / Lace) — Vespr listed first ──────
-      const connectCardano = () => connectWallet('cardano', async (nonce) => {
-        const wName = ['vespr','eternl','nami','lace','flint'].find(w => window.cardano?.[w]);
-        if (!wName) throw new Error('No Cardano wallet found. Install Vespr or Eternl.');
-        const api = await window.cardano[wName].enable();
-        // getUsedAddresses() returns hex-encoded bytes — must convert to bech32 addr1q...
-        const rawAddrs = await api.getUsedAddresses();
-        const rawHex = rawAddrs.length > 0 ? rawAddrs[0] : await api.getChangeAddress();
-        // If already bech32 (starts with 'addr'), use as-is; otherwise convert
-        const address = (typeof rawHex === 'string' && rawHex.startsWith('addr'))
-          ? rawHex
-          : cardanoBech32(rawHex);
-        if (!nonce) return { address };
-        const message = `ChainLens login\nAddress: ${address}\nNonce: ${nonce}`;
-        const hexMsg = Array.from(new TextEncoder().encode(message))
-          .map(b => b.toString(16).padStart(2,'0')).join('');
-        // signData needs the raw wallet format (rawHex), not our converted bech32
-        const { signature: signedSig, key } = await api.signData(rawHex, hexMsg);
-        return { address, signedSig, key };
-      });
+      const connectCardanoWithProvider = (record) => {
+        let api = null, rawAddress = null, address = null;
+        closePicker();
+        connectWallet('cardano', async (nonce) => {
+          if (!api) api = await record.provider.enable();
+          if (!rawAddress) {
+            const used = await api.getUsedAddresses();
+            const unused = used?.length ? [] : await api.getUnusedAddresses?.() || [];
+            rawAddress = used?.[0] || unused?.[0] || await api.getChangeAddress();
+            address = (typeof rawAddress === 'string' && rawAddress.startsWith('addr'))
+              ? rawAddress
+              : cardanoBech32(rawAddress);
+          }
+          if (!validateProfileWalletAddress('cardano', address)) throw new Error('The wallet did not return a Cardano mainnet address');
+          if (!nonce) return { address };
+          const message = `ChainLens login\nAddress: ${address}\nNonce: ${nonce}`;
+          const hexMsg = Array.from(new TextEncoder().encode(message))
+            .map(b => b.toString(16).padStart(2,'0')).join('');
+          const { signature: signedSig, key } = await api.signData(rawAddress, hexMsg);
+          return { address, signedSig, key };
+        });
+      };
+
+      const addWatchWallet = async (walletType, address) => {
+        if (!authToken) throw new Error('Sign in before adding a watch-only address');
+        const normalizedAddress = normalizeProfileWalletAddress(walletType, address);
+        const response = await fetch('/api/auth/add-watch-wallet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+          body: JSON.stringify({ chain: walletType, address: normalizedAddress })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to add wallet');
+        if (data.profile) setUserProfile(data.profile);
+        return normalizedAddress;
+      };
+
+      const submitWatchWallet = async () => {
+        setPasteError('');
+        const walletType = walletPickerType;
+        const address = pasteAddr.trim();
+        if (!validateProfileWalletAddress(walletType, address)) {
+          setPasteError(`Enter a valid ${PROFILE_WALLET_MAP[walletType]?.label || 'wallet'} address`);
+          return;
+        }
+        setWalletConnecting(walletType);
+        try {
+          await addWatchWallet(walletType, address);
+          closePicker();
+        } catch (error) {
+          setPasteError(error.message || 'Failed to add wallet');
+        } finally {
+          setWalletConnecting(null);
+        }
+      };
+
+      const connectDetectedWallet = async (record) => {
+        const walletType = walletPickerType;
+        if (walletType === 'evm') return connectEVMWithProvider(record);
+        if (walletType === 'solana') return connectSolanaWithProvider(record);
+        if (walletType === 'cardano') return connectCardanoWithProvider(record);
+        setPasteError('');
+        setWalletConnecting(walletType);
+        try {
+          const address = await requestLinkedAddress(walletType, record, window);
+          await addWatchWallet(walletType, address);
+          closePicker();
+        } catch (error) {
+          setPasteError(error.message || 'Wallet connection failed');
+        } finally {
+          setWalletConnecting(null);
+        }
+      };
 
       // ── Load portfolio from linked wallets ────────────────────────────────
       // ── Load portfolio from ALL linked wallets (comma-separated per chain) ──
@@ -730,10 +792,13 @@
           const rest    = wallets.filter(w => w.chain === chain && !w.is_primary).map(w => w.address);
           return [...primary, ...rest].join(', ');
         };
-        const evmAll = byChain('evm'), solAll = byChain('solana'), adaAll = byChain('cardano');
-        if (evmAll) setEvmAddr(evmAll);
-        if (solAll) setSolAddr(solAll);
-        if (adaAll) setAdaAddr(adaAll);
+        const joinTypes = (types) => types.map(byChain).filter(Boolean).join(', ');
+        const evmAll = byChain('evm');
+        const accountAll = joinTypes(['solana', 'polkadot', 'tron']);
+        const utxoAll = joinTypes(['cardano', 'bitcoin', 'dogecoin']);
+        setEvmAddr(evmAll);
+        setSolAddr(accountAll);
+        setAdaAddr(utxoAll);
         setAutoScan(true);
         setActiveTab('portfolio');
       };
@@ -2247,23 +2312,23 @@
                           <span className="text-xs font-bold uppercase tracking-widest text-orange-500">
                             {walletConnecting === 'evm' ? 'Connecting…' : 'EVM Wallet'}
                           </span>
-                          <span className={`text-[9px] opacity-50 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>MetaMask, Abstract, Brave +more</span>
+                          <span className={`text-[9px] opacity-50 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Magic Money, MetaMask + detected wallets</span>
                         </button>
                         <button onClick={connectSolana} disabled={!!walletConnecting}
                           className="social-btn flex flex-col items-center gap-2 py-5 px-4 rounded-2xl border-2 font-bold text-sm disabled:opacity-50 border-purple-500/30 hover:border-purple-500 hover:bg-purple-500/5">
                           <span className="text-3xl">👻</span>
                           <span className="text-xs font-bold uppercase tracking-widest text-purple-400">
-                            {walletConnecting === 'solana' ? 'Connecting…' : 'Phantom / Solana'}
+                            {walletConnecting === 'solana' ? 'Connecting…' : 'Solana Wallet'}
                           </span>
-                          <span className={`text-[9px] opacity-50 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Solana network</span>
+                          <span className={`text-[9px] opacity-50 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Magic Money, Phantom + detected wallets</span>
                         </button>
                         <button onClick={connectCardano} disabled={!!walletConnecting}
                           className="social-btn flex flex-col items-center gap-2 py-5 px-4 rounded-2xl border-2 font-bold text-sm disabled:opacity-50 border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/5">
                           <span className="text-3xl">₳</span>
                           <span className="text-xs font-bold uppercase tracking-widest text-blue-400">
-                            {walletConnecting === 'cardano' ? 'Connecting…' : 'Vespr / Eternl / Cardano'}
+                            {walletConnecting === 'cardano' ? 'Connecting…' : 'Cardano Wallet'}
                           </span>
-                          <span className={`text-[9px] opacity-50 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Vespr, Eternl, Nami, Lace</span>
+                          <span className={`text-[9px] opacity-50 text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Magic Money + every CIP-30 wallet</span>
                         </button>
                       </div>
 
@@ -2545,18 +2610,17 @@
                           </p>
                         ) : (
                           <div className="space-y-3 mb-6">
-                            {['evm','solana','cardano'].map(chain => {
+                            {PROFILE_WALLET_TYPES.map(type => {
+                              const chain = type.id;
                               const chainWallets = (userProfile.cl_wallets || []).filter(w => w.chain === chain);
                               if (chainWallets.length === 0) return null;
-                              const pillClass = chain === 'evm' ? 'chain-pill-evm' : chain === 'solana' ? 'chain-pill-solana' : 'chain-pill-cardano';
-                              const chainLabel = chain === 'evm' ? '⬡ EVM Chains' : chain === 'solana' ? '◎ Solana' : '₳ Cardano';
                               return (
                                 <div key={chain} className="space-y-2">
-                                  <p className={`text-[10px] font-bold uppercase tracking-widest px-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{chainLabel}</p>
+                                  <p className={`text-[10px] font-bold uppercase tracking-widest px-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{type.icon} {type.label}</p>
                                   {chainWallets.map(wallet => (
                                     <div key={wallet.id} className={`wallet-card group p-4 rounded-2xl border flex items-center gap-4 ${darkMode ? 'bg-slate-800/50 border-slate-700 hover:border-slate-600' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
-                                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-xs font-black ${pillClass}`}>
-                                        {chain === 'evm' ? '⬡' : chain === 'solana' ? '◎' : '₳'}
+                                      <div style={{ background: type.color }} className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-base font-black flex-shrink-0">
+                                        {type.icon}
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         {editingWallet === wallet.id ? (
@@ -2574,16 +2638,17 @@
                                           </div>
                                         ) : (
                                           <>
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 flex-wrap">
                                               <p className={`text-sm font-bold font-mono ${darkMode ? 'text-white' : 'text-slate-800'}`}>{truncAddr(wallet.address)}</p>
                                               {wallet.is_primary && <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-400">Primary</span>}
+                                              {wallet.watch_only && <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-cyan-400/10 text-cyan-400">Watch only</span>}
                                             </div>
                                             {wallet.label && <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{wallet.label}</p>}
                                           </>
                                         )}
                                       </div>
                                       {editingWallet !== wallet.id && (
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                           {!wallet.is_primary && (
                                             <button onClick={() => setPrimary(wallet.id)} title="Set as primary"
                                               className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] transition-all ${darkMode ? 'hover:bg-amber-400/20 text-slate-500 hover:text-amber-400' : 'hover:bg-amber-100 text-slate-400 hover:text-amber-600'}`}>★</button>
@@ -2602,56 +2667,46 @@
                           </div>
                         )}
 
-                        {/* Connect additional wallets */}
+                        {/* Connect or add additional wallets */}
                         <div className={`pt-6 border-t ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
-                          <p className={`text-[10px] font-bold uppercase tracking-widest mb-4 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Connect Another Wallet</p>
-                          <div className="flex flex-wrap gap-3">
-                            {(() => {
-                              const hasEVM = (userProfile?.cl_wallets||[]).some(w => w.chain === 'evm');
-                              const hasSol = (userProfile?.cl_wallets||[]).some(w => w.chain === 'solana');
-                              const hasAda = (userProfile?.cl_wallets||[]).some(w => w.chain === 'cardano');
-                              return (<>
-                                <button onClick={connectEVM} disabled={!!walletConnecting}
-                                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-40 ${
-                                    hasEVM
-                                      ? 'border-emerald-500/50 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10'
-                                      : darkMode ? 'border-orange-500/30 text-orange-400 hover:bg-orange-500/10' : 'border-orange-300 text-orange-500 hover:bg-orange-50'
-                                  }`}>
-                                  🔗 {walletConnecting === 'evm' ? 'Connecting…' : hasEVM ? '✓ EVM Connected · Add Another' : 'Add EVM Wallet'}
+                          <div className="flex items-end justify-between gap-4 mb-4">
+                            <div>
+                              <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Connect or add an address</p>
+                              <p className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Detected extensions and watch-only addresses use the same profile.</p>
+                            </div>
+                            <span className={`hidden sm:block text-[9px] font-black uppercase tracking-widest ${darkMode ? 'text-slate-600' : 'text-slate-300'}`}>23 chains covered</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {PROFILE_WALLET_TYPES.map(type => {
+                              const count = (userProfile?.cl_wallets || []).filter(wallet => wallet.chain === type.id).length;
+                              return (
+                                <button key={type.id} onClick={() => openWalletPicker(type.id)} disabled={!!walletConnecting}
+                                  className={`flex items-center gap-3 p-3 rounded-2xl border text-left transition-all disabled:opacity-40 ${darkMode ? 'border-slate-700 bg-slate-800/30 hover:border-slate-500' : 'border-slate-200 bg-slate-50 hover:border-slate-400 hover:bg-white'}`}>
+                                  <span style={{ background: type.color }} className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black flex-shrink-0">{type.icon}</span>
+                                  <span className="min-w-0">
+                                    <span className={`block text-[10px] font-black uppercase tracking-wider truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{type.label}</span>
+                                    <span className={`block text-[9px] font-bold uppercase tracking-widest mt-0.5 ${count ? 'text-emerald-400' : darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                                      {walletConnecting === type.id ? 'Connecting…' : count ? `${count} linked · add` : 'Connect or add'}
+                                    </span>
+                                  </span>
                                 </button>
-                                <button onClick={connectSolana} disabled={!!walletConnecting}
-                                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-40 ${
-                                    hasSol
-                                      ? 'border-emerald-500/50 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10'
-                                      : darkMode ? 'border-purple-500/30 text-purple-400 hover:bg-purple-500/10' : 'border-purple-300 text-purple-500 hover:bg-purple-50'
-                                  }`}>
-                                  👻 {walletConnecting === 'solana' ? 'Connecting…' : hasSol ? '✓ Solana Connected · Add Another' : 'Add Solana Wallet'}
-                                </button>
-                                <button onClick={connectCardano} disabled={!!walletConnecting}
-                                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-40 ${
-                                    hasAda
-                                      ? 'border-emerald-500/50 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10'
-                                      : darkMode ? 'border-blue-500/30 text-blue-400 hover:bg-blue-500/10' : 'border-blue-300 text-blue-500 hover:bg-blue-50'
-                                  }`}>
-                                  ₳ {walletConnecting === 'cardano' ? 'Connecting…' : hasAda ? '✓ Cardano Connected · Add Another' : 'Add Cardano Wallet (Vespr / Eternl)'}
-                                </button>
-                              </>);
-                            })()}
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
 
                       {/* Quick-scan banner — shows on portfolio tab too */}
                       {(userProfile.cl_wallets || []).length > 0 && (
-                        <div className={`rounded-3xl border p-6 flex items-center justify-between gap-4 ${darkMode ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'}`}>
-                          <div>
+                        <div className={`rounded-3xl border p-5 sm:p-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 ${darkMode ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'}`}>
+                          <div className="text-center sm:text-left">
                             <p className="text-sm font-bold text-emerald-500">Ready to scan</p>
                             <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                               {(userProfile.cl_wallets || []).length} wallet{(userProfile.cl_wallets || []).length !== 1 ? 's' : ''} across {[...new Set((userProfile.cl_wallets || []).map(w => w.chain))].length} chain{[...new Set((userProfile.cl_wallets || []).map(w => w.chain))].length !== 1 ? ' families' : ' family'}
                             </p>
                           </div>
                           <button onClick={loadMyPortfolio}
-                            className="px-8 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-heading font-extrabold uppercase tracking-widest text-lg transition-all shadow-xl shadow-emerald-500/20">
+                            className="w-full sm:w-auto px-5 sm:px-8 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-heading font-extrabold uppercase tracking-widest text-base sm:text-lg transition-all shadow-xl shadow-emerald-500/20">
                             ⚡ Load Portfolio
                           </button>
                         </div>
@@ -2825,102 +2880,115 @@
               </div>
             )}
 
-            {/* ── EVM Wallet Picker Modal ─────────────────────────────────── */}
-            {showEvmPicker && (
-              <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl"
-                   onClick={closePicker}>
-                <div onClick={e => e.stopPropagation()}
-                     className={`relative w-full max-w-sm rounded-[2.5rem] border shadow-2xl overflow-hidden ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                  <div className="p-8 pb-5 text-center">
-                    <button onClick={closePicker} className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center rounded-full bg-slate-800/60 hover:bg-red-500 text-white text-sm font-bold transition-all">✕</button>
-                    {pasteMode
-                      ? <><div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-4 mx-auto bg-emerald-500/20">⚡</div>
-                          <h2 className="text-xl font-heading font-black uppercase tracking-tight mb-1">Paste Address</h2>
-                          <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Watch-only · No signing required</p></>
-                      : <><div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-4 mx-auto ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>🔗</div>
-                          <h2 className="text-xl font-heading font-black uppercase tracking-tight mb-1">Select Wallet</h2>
-                          <p className={`text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                            {evmProviders.length > 0 ? `${evmProviders.length} wallet${evmProviders.length !== 1 ? 's' : ''} detected` : 'No extension wallets detected'}
-                          </p></>
-                    }
-                  </div>
+            {/* ── Multi-family Wallet Picker Modal ───────────────────────── */}
+            {walletPickerType && (() => {
+              const type = PROFILE_WALLET_MAP[walletPickerType];
+              const canAddManually = Boolean(userProfile && authToken);
+              return (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-slate-950/90 backdrop-blur-xl"
+                     role="dialog" aria-modal="true" aria-label={`Add ${type.label} wallet`} onClick={closePicker}>
+                  <div onClick={event => event.stopPropagation()}
+                       className={`relative w-full max-w-md max-h-[92vh] rounded-[2rem] sm:rounded-[2.5rem] border shadow-2xl overflow-hidden flex flex-col ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className="p-6 sm:p-8 pb-5 text-center flex-shrink-0">
+                      <button onClick={closePicker} aria-label="Close wallet picker" className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center rounded-full bg-slate-800/70 hover:bg-red-500 text-white text-sm font-bold transition-all">✕</button>
+                      <div style={{ background: type.color }} className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-4 mx-auto text-white font-black">{pasteMode ? '⌨' : type.icon}</div>
+                      <h2 className="text-xl font-heading font-black uppercase tracking-tight mb-1">{pasteMode ? `Add ${type.shortLabel} Address` : `Select ${type.label} Wallet`}</h2>
+                      <p className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {pasteMode
+                          ? 'Watch-only · No signing required'
+                          : walletDiscovering
+                            ? 'Looking for compatible wallets…'
+                            : `${walletProviders.length} compatible wallet${walletProviders.length === 1 ? '' : 's'} detected`}
+                      </p>
+                    </div>
 
-                  <div className="px-4 pb-2 space-y-2 max-h-[30rem] overflow-y-auto">
-                    {pasteMode ? (
-                      <div className="space-y-3 pb-2">
-                        <div className={`rounded-2xl border p-4 text-xs ${darkMode ? 'bg-slate-800/60 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                          <p className="font-bold mb-1">How to find your AGW address:</p>
-                          <p>1. Go to <strong>portal.abs.xyz</strong> and sign in</p>
-                          <p>2. Copy your wallet address (starts with <code className="text-emerald-400">0x</code>)</p>
-                          <p>3. Paste it below — no gas, no signing needed</p>
-                        </div>
-                        <input autoFocus value={pasteAddr} onChange={e => { setPasteAddr(e.target.value); setPasteError(''); }}
-                          onKeyDown={e => e.key === 'Enter' && submitWatchWallet()}
-                          placeholder="0x..."
-                          className={`w-full px-4 py-3 rounded-2xl border text-sm font-mono outline-none transition-all ${darkMode ? 'bg-slate-800 border-slate-600 text-white placeholder-slate-600 focus:border-emerald-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-300 focus:border-emerald-400'}`} />
-                        {pasteError && <p className="text-red-400 text-xs font-bold px-1">{pasteError}</p>}
-                        <button onClick={submitWatchWallet} disabled={!!walletConnecting || !pasteAddr.trim()}
-                          className="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-white text-xs font-black uppercase tracking-widest transition-all">
-                          {walletConnecting === 'evm' ? 'Adding…' : 'Add Watch-Only Wallet'}
-                        </button>
-                        <button onClick={() => setPasteMode(false)} className={`w-full py-2.5 rounded-2xl text-xs font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
-                          ← Back to wallet list
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        {/* AGW — always pinned at top */}
-                        <div className="mb-1">
-                          <p className={`text-[9px] font-black uppercase tracking-widest px-1 mb-2 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Featured</p>
-                          <button onClick={() => setPasteMode(true)}
-                            className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all group ${darkMode ? 'border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/5 bg-slate-800/40' : 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 bg-slate-50'}`}>
-                            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0">⚡</div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className={`font-bold text-sm ${darkMode ? 'text-white' : 'text-slate-900'}`}>Abstract Global Wallet</p>
-                                <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 tracking-widest uppercase">Paste Address</span>
-                              </div>
-                              <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Smart Wallet · No signing needed</p>
-                            </div>
-                            <span className="text-lg opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400">→</span>
+                    <div className="px-4 pb-3 space-y-3 overflow-y-auto dark-scroll">
+                      {pasteMode ? (
+                        <div className="space-y-3 pb-2">
+                          <div className={`rounded-2xl border p-4 text-xs leading-relaxed ${darkMode ? 'bg-slate-800/60 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                            <p className="font-bold mb-1">Add any public {type.label} address.</p>
+                            <p>ChainLens can scan it, but cannot sign transactions or move funds. You can remove it from your profile at any time.</p>
+                          </div>
+                          <input autoFocus value={pasteAddr} onChange={event => { setPasteAddr(event.target.value); setPasteError(''); }}
+                            onKeyDown={event => event.key === 'Enter' && submitWatchWallet()}
+                            placeholder={`${type.shortLabel} address`}
+                            aria-label={`${type.label} watch-only address`}
+                            className={`w-full px-4 py-3.5 rounded-2xl border text-sm font-mono outline-none transition-all ${darkMode ? 'bg-slate-800 border-slate-600 text-white placeholder-slate-600 focus:border-emerald-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-300 focus:border-emerald-400'}`} />
+                          {pasteError && <p className="text-red-400 text-xs font-bold px-1" role="alert">{pasteError}</p>}
+                          <button onClick={submitWatchWallet} disabled={!!walletConnecting || !pasteAddr.trim()}
+                            className="w-full min-h-12 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-white text-xs font-black uppercase tracking-widest transition-all">
+                            {walletConnecting === walletPickerType ? 'Adding…' : 'Add Watch-Only Wallet'}
+                          </button>
+                          <button onClick={() => { setPasteMode(false); setPasteError(''); }} className={`w-full min-h-11 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>
+                            ← Back to detected wallets
                           </button>
                         </div>
-                        {/* Detected wallets */}
-                        {evmProviders.length > 0 && (
-                          <div>
-                            <p className={`text-[9px] font-black uppercase tracking-widest px-1 mb-2 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Detected</p>
-                            {evmProviders.map(w => (
-                              <button key={w.info.uuid} onClick={() => connectEVMWithProvider(w.provider)}
-                                className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all group mb-2 ${darkMode ? 'border-slate-700 hover:border-orange-500/60 hover:bg-orange-500/5 bg-slate-800/40' : 'border-slate-200 hover:border-orange-400 hover:bg-orange-50 bg-slate-50'}`}>
-                                {w.info.icon
-                                  ? <img src={w.info.icon} className="w-10 h-10 rounded-xl flex-shrink-0 object-contain bg-white p-0.5" alt={w.info.name} />
-                                  : <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">{w.info.name.charAt(0)}</div>
-                                }
-                                <div className="flex-1 min-w-0">
-                                  <p className={`font-bold text-sm truncate ${darkMode ? 'text-white' : 'text-slate-900'}`}>{w.info.name}</p>
-                                  <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>EVM · Click to connect</p>
+                      ) : (
+                        <>
+                          {canAddManually && (
+                            <button onClick={() => { setPasteMode(true); setPasteError(''); }}
+                              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all group ${darkMode ? 'border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/5 bg-slate-800/40' : 'border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 bg-slate-50'}`}>
+                              <div className="w-11 h-11 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0">⌨</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className={`font-bold text-sm ${darkMode ? 'text-white' : 'text-slate-900'}`}>Add address manually</p>
+                                  <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 tracking-widest uppercase">Watch only</span>
                                 </div>
-                                <span className={`text-lg opacity-0 group-hover:opacity-100 transition-opacity ${darkMode ? 'text-orange-400' : 'text-orange-500'}`}>→</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        {evmProviders.length === 0 && (
-                          <p className={`text-center text-xs py-3 italic ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
-                            No browser wallets detected. Install MetaMask or another EVM extension.
-                          </p>
-                        )}
-                      </>
+                                <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>No extension or signature needed</p>
+                              </div>
+                              <span className="text-lg text-emerald-400">→</span>
+                            </button>
+                          )}
+
+                          {walletDiscovering && (
+                            <div className={`rounded-2xl border p-5 text-center ${darkMode ? 'border-slate-800 bg-slate-800/30 text-slate-500' : 'border-slate-100 bg-slate-50 text-slate-400'}`}>
+                              <div className="w-5 h-5 mx-auto mb-2 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+                              <p className="text-[10px] font-bold uppercase tracking-widest">Discovering wallets</p>
+                            </div>
+                          )}
+
+                          {!walletDiscovering && walletProviders.length > 0 && (
+                            <div>
+                              <p className={`text-[9px] font-black uppercase tracking-widest px-1 mb-2 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Detected extensions</p>
+                              {walletProviders.map(wallet => (
+                                <button key={wallet.id} onClick={() => connectDetectedWallet(wallet)} disabled={!!walletConnecting}
+                                  className={`w-full min-h-16 flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all group mb-2 disabled:opacity-40 ${darkMode ? 'border-slate-700 hover:border-orange-500/60 hover:bg-orange-500/5 bg-slate-800/40' : 'border-slate-200 hover:border-orange-400 hover:bg-orange-50 bg-slate-50'}`}>
+                                  {wallet.icon
+                                    ? <img src={wallet.icon} className="w-11 h-11 rounded-xl flex-shrink-0 object-contain bg-white p-0.5" alt="" />
+                                    : <div style={{ background: type.color }} className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0">{wallet.name.charAt(0).toUpperCase()}</div>}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <p className={`font-bold text-sm truncate ${darkMode ? 'text-white' : 'text-slate-900'}`}>{wallet.name}</p>
+                                      {wallet.isMagicMoney && <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-cyan-400/10 text-cyan-400 tracking-widest uppercase">Magic Money</span>}
+                                    </div>
+                                    <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{type.shortLabel} · Connect public account</p>
+                                  </div>
+                                  <span className={`text-lg ${darkMode ? 'text-orange-400' : 'text-orange-500'}`}>→</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {!walletDiscovering && walletProviders.length === 0 && (
+                            <div className={`rounded-2xl border border-dashed px-5 py-6 text-center ${darkMode ? 'border-slate-700 text-slate-500' : 'border-slate-200 text-slate-400'}`}>
+                              <p className="text-2xl mb-2">◌</p>
+                              <p className="text-xs font-bold">No compatible extension detected</p>
+                              <p className="text-[10px] mt-1">Open ChainLens inside Magic Money or install a compatible browser wallet.</p>
+                            </div>
+                          )}
+                          {pasteError && <p className="text-red-400 text-xs font-bold px-2 pb-1" role="alert">{pasteError}</p>}
+                        </>
+                      )}
+                    </div>
+                    {!pasteMode && (
+                      <div className={`px-6 sm:px-8 py-4 mt-1 border-t text-center flex-shrink-0 ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                        <p className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Only your public address is shared · ChainLens never receives private keys</p>
+                      </div>
                     )}
                   </div>
-                  {!pasteMode && (
-                    <div className={`px-8 py-4 mt-2 border-t text-center ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
-                      <p className={`text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>Signing is gasless · No transaction sent</p>
-                    </div>
-                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {selectedAsset && (
               <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-xl modal-enter">

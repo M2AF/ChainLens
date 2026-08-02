@@ -5,8 +5,11 @@ const {
   EVM_CHAINS,
   ACCOUNT_CHAINS,
   UTXO_CHAINS,
+  PROFILE_WALLET_TYPES,
   detectAddressChain,
   parseAddressInput,
+  validateProfileWalletAddress,
+  normalizeProfileWalletAddress,
 } = require('../public/chain-catalog');
 const { createNonEvmScanner, _internals } = require('../non-evm-scanner');
 
@@ -22,6 +25,16 @@ test('matches Magic Money default-mainnet chain parity', () => {
   assert.deepEqual(ACCOUNT_CHAINS.map(chain => chain.id), ['solana', 'polkadot', 'tron']);
   assert.deepEqual(UTXO_CHAINS.map(chain => chain.id), ['cardano', 'bitcoin', 'dogecoin']);
   assert.ok(EVM_CHAINS.some(chain => chain.id === 'robinhood' && chain.alchemyNetwork === 'robinhood-mainnet'));
+});
+
+test('profile wallet types cover every scanner chain exactly once', () => {
+  assert.deepEqual(PROFILE_WALLET_TYPES.map(type => type.id), [
+    'evm', 'solana', 'polkadot', 'tron', 'cardano', 'bitcoin', 'dogecoin',
+  ]);
+  const covered = PROFILE_WALLET_TYPES.flatMap(type => type.chainIds);
+  assert.equal(covered.length, DEFAULT_CHAINS.length);
+  assert.deepEqual([...covered].sort(), DEFAULT_CHAINS.map(chain => chain.id).sort());
+  assert.equal(new Set(covered).size, DEFAULT_CHAINS.length);
 });
 
 test('detects and routes comma-separated addresses by scanner family', () => {
@@ -48,6 +61,13 @@ test('detects and routes comma-separated addresses by scanner family', () => {
     ['cardano', 'cardano', 'bitcoin', 'dogecoin']
   );
   assert.equal(parseAddressInput(bitcoin, 'account')[0].chainId, null);
+  assert.equal(validateProfileWalletAddress('bitcoin', bitcoin), true);
+  assert.equal(validateProfileWalletAddress('cardano', bitcoin), false);
+  assert.equal(validateProfileWalletAddress('unknown', bitcoin), false);
+  assert.equal(
+    normalizeProfileWalletAddress('evm', '0x01faF6DFc230d755141D84d7cB980dd68f5Efe13'),
+    '0x01faf6dfc230d755141d84d7cb980dd68f5efe13'
+  );
 });
 
 test('normalizes Bitcoin balance and history into ChainLens assets', async () => {
