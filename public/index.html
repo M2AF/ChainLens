@@ -1715,16 +1715,32 @@
 
             {/* Tabs */}
             <div className="flex justify-center mb-6 md:mb-10 px-2">
-                <div className={`flex p-1 rounded-2xl border transition-all overflow-x-auto max-w-full scrollbar-none ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-md'}`}>
-                    <button onClick={() => setActiveTab('search')} className={`flex-shrink-0 px-4 md:px-8 py-2.5 md:py-3 rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'search' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}>Search</button>
-                    <button onClick={() => setActiveTab('portfolio')} className={`flex-shrink-0 px-4 md:px-8 py-2.5 md:py-3 rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'portfolio' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}>Scanner</button>
-                    <button onClick={() => setActiveTab('swap')} className={`flex-shrink-0 px-4 md:px-8 py-2.5 md:py-3 rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'swap' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}>App Hub</button>
-                    <button onClick={() => setActiveTab('market')} className={`flex-shrink-0 px-4 md:px-8 py-2.5 md:py-3 rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'market' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}>Market</button>
-                    <button onClick={() => setActiveTab('profile')} className={`flex-shrink-0 px-4 md:px-8 py-2.5 md:py-3 rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all relative ${activeTab === 'profile' ? (darkMode ? 'bg-amber-400 text-slate-950 shadow-lg' : 'bg-amber-400 text-slate-950 shadow-xl') : 'text-slate-400 hover:text-amber-400'}`}>
+                <nav aria-label="Main navigation" data-testid="primary-nav-scroll" className={`flex p-1 rounded-2xl border transition-all overflow-x-auto max-w-full scrollbar-none ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-md'}`}>
+                    <button onClick={() => setActiveTab('search')} className={`min-h-11 flex-shrink-0 px-4 md:px-8 py-2.5 md:py-3 rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'search' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}>Search</button>
+                    <button onClick={() => setActiveTab('portfolio')} className={`min-h-11 flex-shrink-0 px-4 md:px-8 py-2.5 md:py-3 rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'portfolio' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}>Scanner</button>
+                    <button onClick={() => setActiveTab('swap')} className={`min-h-11 flex-shrink-0 px-4 md:px-8 py-2.5 md:py-3 rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'swap' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}>App Hub</button>
+                    <button onClick={() => setActiveTab('market')} className={`min-h-11 flex-shrink-0 px-4 md:px-8 py-2.5 md:py-3 rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'market' ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-slate-500'}`}>Market</button>
+                    <button onClick={() => setActiveTab('profile')} className={`min-h-11 flex-shrink-0 px-4 md:px-8 py-2.5 md:py-3 rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all relative ${activeTab === 'profile' ? (darkMode ? 'bg-amber-400 text-slate-950 shadow-lg' : 'bg-amber-400 text-slate-950 shadow-xl') : 'text-slate-400 hover:text-amber-400'}`}>
                       Profile
                       {userProfile && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-900"></span>}
                     </button>
-                </div>
+                    <button
+                      onClick={() => { setShowDonate(v => !v); setShowWallet(false); setShowSimpleSwap(false); }}
+                      className={`md:hidden min-h-11 flex-shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${showDonate ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-cyan-400'}`}>
+                      Donate
+                    </button>
+                    <button
+                      onClick={() => { setShowWallet(v => !v); setShowDonate(false); setShowSimpleSwap(false); }}
+                      className={`md:hidden min-h-11 flex-shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${showWallet ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-cyan-400'}`}>
+                      Wallet
+                    </button>
+                    <button
+                      onClick={() => { setSimpleSwapLoaded(true); setShowSimpleSwap(v => !v); setShowDonate(false); setShowWallet(false); }}
+                      className={`md:hidden min-h-11 flex-shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${showSimpleSwap ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-emerald-400'}`}>
+                      Simple Swap
+                    </button>
+                    <a href="/docs" className="md:hidden min-h-11 flex-shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all text-slate-400 hover:text-emerald-400 flex items-center">Docs</a>
+                </nav>
             </div>
 
             {/* ── APP HUB TAB ──────────────────────────────────────────────── */}
@@ -3085,7 +3101,7 @@
           )}
 
           {/* SimpleSwap widget — fixed bottom-left, iframe remains mounted after first open */}
-          <div className={`relative z-[60] mx-4 mt-6 max-w-none flex-col items-stretch gap-3 md:fixed md:bottom-6 md:left-6 md:z-[70] md:mx-0 md:mt-0 md:max-w-[calc(100vw-3rem)] md:items-start ${activeTab === 'search' ? 'hidden md:flex' : 'flex'}`}>
+          <div className={`fixed inset-x-4 bottom-4 z-[70] flex-col items-stretch gap-3 md:inset-x-auto md:bottom-6 md:left-6 md:max-w-[calc(100vw-3rem)] md:items-start ${showSimpleSwap ? 'flex' : 'hidden'} md:flex`}>
             {simpleSwapLoaded && (
               <div
                 className={`w-[min(calc(100vw-3rem),560px)] rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-3 transition-all duration-200 ${showSimpleSwap ? 'opacity-100 translate-y-0 pointer-events-auto visible' : 'opacity-0 translate-y-3 pointer-events-none invisible'} ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
@@ -3125,7 +3141,7 @@
                 setShowDonate(false);
                 setShowWallet(false);
               }}
-              className={`flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showSimpleSwap
+              className={`hidden md:flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showSimpleSwap
                 ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
                 : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-emerald-400 hover:text-emerald-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-500 backdrop-blur-md')}`}>
               <svg width="13" height="13" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -3136,12 +3152,12 @@
             </button>
           </div>
 
-          <div className={`relative z-[60] mx-4 mb-8 mt-3 flex-row flex-wrap justify-end gap-2 md:fixed md:bottom-6 md:right-6 md:z-[70] md:mx-0 md:mb-0 md:mt-0 md:flex-col md:items-end md:gap-3 ${activeTab === 'search' ? 'hidden md:flex' : 'flex'}`}>
+          <div className={`fixed inset-x-4 top-24 z-[70] flex-col items-stretch gap-3 md:inset-x-auto md:top-auto md:bottom-6 md:right-6 md:items-end ${showWallet || showDonate ? 'flex' : 'hidden'} md:flex`}>
 
           {/* Docs link */}
           <a
             href="/docs"
-            className={`flex flex-1 items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 md:flex-none md:px-5 ${darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-emerald-400 hover:text-emerald-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-500 backdrop-blur-md'}`}>
+            className={`hidden md:flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-emerald-400 hover:text-emerald-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-500 backdrop-blur-md'}`}>
             <svg width="13" height="13" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M4.5 2.5H10.2L13.5 5.8V15.5H4.5C3.95 15.5 3.5 15.05 3.5 14.5V3.5C3.5 2.95 3.95 2.5 4.5 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
               <path d="M10 2.75V6H13.25" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
@@ -3152,7 +3168,7 @@
 
           {/* Wallet pop-up panel */}
           {showWallet && (
-            <div className={`basis-full rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-5 w-full max-h-[calc(100vh-3rem)] overflow-y-auto flex flex-col items-center gap-3 md:basis-auto md:w-72 ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
+            <div className={`basis-full rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-5 w-full max-h-[calc(100vh-8rem)] overflow-y-auto flex flex-col items-center gap-3 md:basis-auto md:w-72 md:max-h-[calc(100vh-3rem)] ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
               style={{ animation: 'slideUp 0.2s ease-out both' }}
               onClick={e => e.stopPropagation()}>
               <img src="/MagicMoney_icon.svg" alt="Magic Money Wallet" className="w-16 h-16 object-contain" />
@@ -3270,7 +3286,7 @@
           {/* Wallet trigger button */}
           <button
             onClick={() => { setShowWallet(v => !v); setShowDonate(false); setShowSimpleSwap(false); }}
-            className={`flex flex-1 items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 md:flex-none md:px-5 ${showWallet
+            className={`hidden md:flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showWallet
               ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
               : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-500 backdrop-blur-md')}`}>
             <svg width="13" height="13" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -3344,7 +3360,7 @@
           {/* Donate Trigger button */}
           <button
             onClick={() => { setShowDonate(v => !v); setShowWallet(false); setShowSimpleSwap(false); }}
-            className={`flex flex-1 items-center justify-center gap-2 px-3 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 md:flex-none md:px-5 ${showDonate
+            className={`hidden md:flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showDonate
               ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
               : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-500 backdrop-blur-md')}`}>
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
