@@ -90,17 +90,21 @@
     return score;
   };
 
-  var rankApps = function (apps, rawQuery) {
+  var matchApps = function (apps, rawQuery) {
     var list = apps || [];
     var intent = parseSearchIntent(rawQuery, list);
     if (!intent.normalized) {
       return list.filter(function (app) { return app.featured; })
-        .concat(list.filter(function (app) { return !app.featured; })).slice(0, 6);
+        .concat(list.filter(function (app) { return !app.featured; }));
     }
     return list.map(function (app) { return { app: app, score: scoreApp(app, intent) }; })
       .filter(function (entry) { return entry.score > 0; })
       .sort(function (a, b) { return b.score - a.score || a.app.name.localeCompare(b.app.name); })
-      .slice(0, 6).map(function (entry) { return entry.app; });
+      .map(function (entry) { return entry.app; });
+  };
+
+  var rankApps = function (apps, rawQuery) {
+    return matchApps(apps, rawQuery).slice(0, 6);
   };
 
   var getAppMatchTags = function (app, rawQuery, apps) {
@@ -113,5 +117,5 @@
     return tags.slice(0, 2);
   };
 
-  return { getAppMatchTags: getAppMatchTags, parseSearchIntent: parseSearchIntent, rankApps: rankApps, scoreApp: scoreApp };
+  return { getAppMatchTags: getAppMatchTags, matchApps: matchApps, parseSearchIntent: parseSearchIntent, rankApps: rankApps, scoreApp: scoreApp };
 }));

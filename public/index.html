@@ -162,6 +162,7 @@
   <script type="text/babel" src="/search-page.jsx"></script>
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef, useCallback } = React;
+    const { matchApps: matchAppHubSearch } = window.ChainLensSearchIntent;
     const ChainLensSearchPage = window.ChainLensSearchPage;
     const {
       DEFAULT_CHAINS, EVM_CHAINS, ACCOUNT_CHAINS, UTXO_CHAINS,
@@ -1407,15 +1408,11 @@
 
       const appHubApps = useMemo(() => {
         const apps = appHubData?.apps || [];
-        const query = appHubSearch.trim().toLowerCase();
-        return [...apps].filter(appRecord => {
-          const matchesQuery = !query ||
-            appRecord.name.toLowerCase().includes(query) ||
-            appRecord.category.toLowerCase().includes(query) ||
-            appRecord.chains.some(chain => (chainStyles[chain]?.label || chain).toLowerCase().includes(query));
+        const intentMatches = matchAppHubSearch(apps, appHubSearch);
+        return intentMatches.filter(appRecord => {
           const matchesCategory = appHubCategory === 'all' || appRecord.category === appHubCategory;
           const matchesChain = appHubChain === 'all' || appRecord.chains.includes(appHubChain);
-          return matchesQuery && matchesCategory && matchesChain;
+          return matchesCategory && matchesChain;
         }).sort((a, b) => {
           if (appHubSort === 'name') return a.name.localeCompare(b.name);
           if (appHubSort === 'category') return a.category.localeCompare(b.category) || b.chainCount - a.chainCount;
