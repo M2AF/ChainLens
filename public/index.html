@@ -1660,12 +1660,13 @@
       };
 
       const openScannerFromSearch = ({ chain, value }) => {
-        if (chain === 'evm') {
+        const family = PROFILE_WALLET_MAP[chain]?.family;
+        if (family === 'evm') {
           setEvmAddr(value);
           setResolvedEvm(null);
-        } else if (chain === 'solana') {
+        } else if (family === 'account') {
           setSolAddr(value);
-        } else if (chain === 'cardano') {
+        } else if (family === 'utxo') {
           setAdaAddr(value);
         }
         setActiveTab('portfolio');

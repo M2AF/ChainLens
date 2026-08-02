@@ -117,6 +117,30 @@
     return walletType === 'evm' ? address.toLowerCase() : address;
   };
 
+  const UNSTOPPABLE_SUFFIXES = ['.crypto', '.nft', '.wallet', '.x', '.dao', '.blockchain', '.bitcoin', '.zil', '.888'];
+  const SCANNER_INTENT_LABELS = {
+    evm: 'EVM wallet or domain',
+    solana: 'Solana wallet or domain',
+    polkadot: 'Polkadot wallet address',
+    tron: 'Tron wallet address',
+    cardano: 'Cardano wallet or handle',
+    bitcoin: 'Bitcoin wallet address',
+    dogecoin: 'Dogecoin wallet address',
+  };
+
+  const detectScannerIntent = (rawValue) => {
+    const value = String(rawValue || '').trim();
+    const lower = value.toLowerCase();
+    if (!value) return null;
+
+    let chain = detectAddressChain(value);
+    if (lower.endsWith('.eth') || UNSTOPPABLE_SUFFIXES.some(suffix => lower.endsWith(suffix))) chain = 'evm';
+    else if (lower.endsWith('.sol')) chain = 'solana';
+    else if (/^\$[a-z0-9._-]{1,64}$/i.test(value)) chain = 'cardano';
+
+    return chain ? { chain, value, label: SCANNER_INTENT_LABELS[chain] } : null;
+  };
+
   return {
     DEFAULT_CHAINS,
     CHAIN_MAP,
@@ -130,5 +154,6 @@
     parseAddressInput,
     validateProfileWalletAddress,
     normalizeProfileWalletAddress,
+    detectScannerIntent,
   };
 }));
