@@ -107,12 +107,8 @@
           <div className="absolute -top-24 -right-20 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" aria-hidden="true"></div>
           <div className="absolute -bottom-32 -left-20 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl" aria-hidden="true"></div>
           <div className="relative z-10 max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.24em] text-cyan-300 mb-6">
-              <span className="h-2 w-2 rounded-full bg-cyan-300"></span>
-              ChainLens Search
-            </div>
             <h1 className="font-heading text-4xl md:text-7xl font-extrabold uppercase leading-[0.95] tracking-tight">
-              Find the web.<br/><span className="text-cyan-300">Explore onchain.</span>
+              Search<br/><span className="text-cyan-300">Web 3</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-sm md:text-lg leading-7 text-slate-300">
               Search the open web, discover trusted crypto apps, or send a wallet straight to the ChainLens scanner.
@@ -200,7 +196,7 @@
 
               {loading && (
                 <div className={`rounded-2xl border p-6 ${darkMode ? 'border-slate-800 bg-slate-950/50' : 'border-slate-100 bg-slate-50'}`}>
-                  <div className="flex items-center gap-3 font-bold"><span className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent"></span>Searching with SearXNG…</div>
+                  <div className="flex items-center gap-3 font-bold"><span className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent"></span>Searching with ChainLens Search…</div>
                   <p className={`mt-2 text-sm ${muted}`}>On the free tier, the first search after inactivity can take up to a minute while the service wakes up.</p>
                 </div>
               )}
