@@ -1,5 +1,6 @@
 (function () {
   const { useEffect, useMemo, useRef, useState } = React;
+  const { getAppMatchTags, rankApps } = window.ChainLensSearchIntent;
 
   const EXAMPLES = ['Uniswap', 'Cardano wallets', 'NFT marketplaces'];
   const UNSTOPPABLE_SUFFIXES = ['.crypto', '.nft', '.wallet', '.x', '.dao', '.blockchain', '.bitcoin', '.zil', '.888'];
@@ -25,34 +26,6 @@
       return { chain: 'solana', value, label: 'Solana wallet or domain' };
     }
     return null;
-  };
-
-  const rankApps = (apps, rawQuery) => {
-    const query = String(rawQuery || '').trim().toLowerCase();
-    if (!query) {
-      const featured = (apps || []).filter(app => app.featured);
-      const remaining = (apps || []).filter(app => !app.featured);
-      return [...featured, ...remaining].slice(0, 6);
-    }
-    return (apps || [])
-      .map(app => {
-        const name = String(app.name || '').toLowerCase();
-        const category = String(app.category || '').toLowerCase();
-        const description = String(app.description || app.categoryMeta?.description || '').toLowerCase();
-        const chains = Array.isArray(app.chains) ? app.chains.join(' ').toLowerCase() : '';
-        let score = 0;
-        if (name === query) score = 100;
-        else if (name.startsWith(query)) score = 75;
-        else if (name.includes(query)) score = 55;
-        else if (category.includes(query)) score = 35;
-        else if (chains.includes(query)) score = 25;
-        else if (description.includes(query)) score = 15;
-        return { app, score };
-      })
-      .filter(entry => entry.score > 0)
-      .sort((a, b) => b.score - a.score || a.app.name.localeCompare(b.app.name))
-      .slice(0, 6)
-      .map(entry => entry.app);
   };
 
   const SearchPage = ({ darkMode, apps = [], onOpenScanner, onOpenAppHub }) => {
@@ -155,7 +128,7 @@
                 </div>
                 <button onClick={() => onOpenAppHub('')} className="text-xs font-bold uppercase tracking-widest text-cyan-500 hover:text-cyan-400">Browse App Hub →</button>
               </div>
-              <AppGrid apps={appResults} darkMode={darkMode} />
+              <AppGrid apps={appResults} darkMode={darkMode} allApps={apps} />
             </section>
           )}
 
@@ -183,7 +156,7 @@
                 </div>
                 <button onClick={() => onOpenAppHub(submittedQuery)} className="text-xs font-bold uppercase tracking-widest text-cyan-500 hover:text-cyan-400">View in App Hub →</button>
               </div>
-              <AppGrid apps={appResults} darkMode={darkMode} />
+              <AppGrid apps={appResults} darkMode={darkMode} query={submittedQuery} allApps={apps} />
             </section>
           )}
 
@@ -235,7 +208,7 @@
     );
   };
 
-  const AppGrid = ({ apps, darkMode }) => (
+  const AppGrid = ({ apps, darkMode, query = '', allApps = apps }) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {apps.map(app => (
         <a key={app.id} href={app.website} target="_blank" rel="noopener noreferrer" className={`group flex items-center gap-4 rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:border-cyan-400 ${darkMode ? 'border-slate-800 bg-slate-950/45' : 'border-slate-100 bg-slate-50'}`}>
@@ -244,7 +217,9 @@
           </div>
           <div className="min-w-0">
             <h3 className="truncate font-bold group-hover:text-cyan-500">{app.name}</h3>
-            <p className="mt-1 truncate text-[10px] font-bold uppercase tracking-wider text-slate-500">{app.category}</p>
+            <p className="mt-1 truncate text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              {getAppMatchTags(app, query, allApps).join(' • ') || app.category}
+            </p>
           </div>
           <span className="ml-auto text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-cyan-500">↗</span>
         </a>
