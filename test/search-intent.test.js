@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { getAppMatchTags, parseSearchIntent, rankApps } = require('../public/search-intent');
+const { getAppMatchTags, matchApps, parseSearchIntent, rankApps } = require('../public/search-intent');
 
 const apps = [
   { id: 'yoroi', name: 'Yoroi Wallet', category: 'Wallet', chains: ['cardano'], featured: false, description: 'A light wallet for ADA.' },
@@ -26,4 +26,16 @@ test('understands plurals, synonyms, and filler words', () => {
 test('supports optional search tags without weakening chain filters', () => {
   assert.deepEqual(rankApps(apps, 'hardware wallet').map(app => app.id), ['vault']);
   assert.deepEqual(rankApps(apps, 'Cardano hardware wallet'), []);
+});
+
+test('returns the complete intent-matched set for App Hub filtering', () => {
+  const manyWallets = Array.from({ length: 9 }, (_, index) => ({
+    id: `cardano-wallet-${index}`,
+    name: `Cardano Wallet ${index}`,
+    category: 'Wallet',
+    chains: ['cardano'],
+    featured: false,
+  }));
+  assert.equal(matchApps(manyWallets, 'Cardano wallets').length, 9);
+  assert.equal(rankApps(manyWallets, 'Cardano wallets').length, 6);
 });
