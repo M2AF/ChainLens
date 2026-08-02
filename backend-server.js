@@ -10,7 +10,7 @@ const path = require('path');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
-const { createSearchService } = require('./search-service');
+const { createSearchService, startSearchKeepAlive } = require('./search-service');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -3238,6 +3238,8 @@ if (!API_KEYS.blockfrost) {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  const searchKeepAlive = startSearchKeepAlive();
+  if (searchKeepAlive.enabled) console.log('✅ Search keep-alive started (10 minute interval)');
   // Pre-warm the market cache so the first page load is instant
   fetch(`http://localhost:${PORT}/api/market/top100`)
     .then(() => console.log('✅ Market cache pre-warmed'))
