@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createSearchService, normalizeBaseUrl, startSearchKeepAlive, validateQuery } = require('../search-service');
+const { createSearchService, normalizeBaseUrl, validateQuery } = require('../search-service');
 
 test('normalizes provider base URLs and validates queries', () => {
   assert.equal(normalizeBaseUrl('https://search.example.com///'), 'https://search.example.com');
@@ -62,39 +62,4 @@ test('reports missing configuration and upstream failures safely', async () => {
     fetchImpl: async () => ({ ok: false, status: 500 }),
   });
   await assert.rejects(() => failing.searchWeb('test'), /temporarily unavailable/);
-});
-
-test('keeps SearXNG awake while the main server is running', async () => {
-  const requests = [];
-  let scheduledPing;
-  let clearedInterval = false;
-  const timerApi = {
-    setInterval: callback => {
-      scheduledPing = callback;
-      return { unref: () => {} };
-    },
-    clearInterval: () => { clearedInterval = true; },
-    setTimeout: () => 'timeout',
-    clearTimeout: () => {},
-  };
-  const keepAlive = startSearchKeepAlive({
-    baseUrl: 'https://search.example.com/',
-    fetchImpl: async (url, options) => {
-      requests.push({ url, options });
-      return { ok: true, status: 200 };
-    },
-    timerApi,
-  });
-
-  assert.equal(keepAlive.enabled, true);
-  assert.equal(await keepAlive.initialPing, true);
-  assert.equal(requests[0].url, 'https://search.example.com/');
-  assert.equal(requests[0].options.method, 'GET');
-
-  scheduledPing();
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(requests.length, 2);
-
-  keepAlive.stop();
-  assert.equal(clearedInterval, true);
 });

@@ -10,7 +10,6 @@ const path = require('path');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
-const { createSearchService, startSearchKeepAlive } = require('./search-service');
 const {
   EVM_CHAINS: SCANNER_EVM_CHAINS,
   DEFAULT_CHAINS: SCANNER_CHAINS,
@@ -176,7 +175,7 @@ const dbLinkWallet = async (userId, { chain, address, watch_only = false }) => {
 
 const app = express();
 const PORT = process.env.PORT || 10000; 
-const webSearch = createSearchService();
+const SEARCH_WORKER_BASE_URL = process.env.SEARCH_WORKER_BASE_URL || 'https://chainlens-search.guildfordking.workers.dev';
 const searchRateLimits = new Map();
 
 app.set('trust proxy', 1);
@@ -1138,15 +1137,26 @@ app.get('/api/app-hub', (req, res) => {
   res.json(getAppHubPayload());
 });
 
-// --- SEARCH (SearXNG-only web provider) ---
+// --- SEARCH (compatibility proxy to the Cloudflare search Worker) ---
 
 app.get('/api/search/status', (req, res) => {
-  res.json({ provider: webSearch.provider, configured: webSearch.configured });
+  res.json({ provider: 'searxng-cloudflare-worker', configured: true });
 });
 
 app.get('/api/search/web', searchRateLimit, async (req, res) => {
   try {
-    const payload = await webSearch.searchWeb(req.query.q);
+    const requestUrl = new URL('/api/search/web', SEARCH_WORKER_BASE_URL);
+    requestUrl.searchParams.set('q', String(req.query.q || ''));
+    const response = await fetch(requestUrl, {
+      signal: AbortSignal.timeout(70000),
+      headers: { Accept: 'application/json', Origin: 'https://chainlensnft.info' },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(payload.error || 'Web search is temporarily unavailable.');
+      error.statusCode = response.status;
+      throw error;
+    }
     res.set('Cache-Control', 'private, max-age=60');
     res.json(payload);
   } catch (error) {
@@ -3263,8 +3273,6 @@ if (!API_KEYS.blockfrost) {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  const searchKeepAlive = startSearchKeepAlive();
-  if (searchKeepAlive.enabled) console.log('✅ Search keep-alive started (10 minute interval)');
   // Pre-warm the market cache so the first page load is instant
   fetch(`http://localhost:${PORT}/api/market/top100`)
     .then(() => console.log('✅ Market cache pre-warmed'))

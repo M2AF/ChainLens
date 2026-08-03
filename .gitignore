@@ -3,3 +3,4 @@ node_modules/
 .DS_Store
 apphublist.xlsx
 chainlens-diagnose.js
+*.cpuprofile
