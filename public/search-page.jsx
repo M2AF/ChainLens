@@ -1,6 +1,6 @@
 (function () {
   const { useEffect, useMemo, useRef, useState } = React;
-  const { getAppMatchTags, rankApps } = window.ChainLensSearchIntent;
+  const { getAppMatchTags, getSearchFeaturedApps, rankApps } = window.ChainLensSearchIntent;
   const { detectScannerIntent } = window.ChainLensChains;
 
   const EXAMPLES = ['Uniswap', 'Cardano wallets', 'NFT marketplaces'];
@@ -25,7 +25,7 @@
 
     const scannerIntent = useMemo(() => detectScannerIntent(submittedQuery), [submittedQuery]);
     const appResults = useMemo(
-      () => rankApps(apps, submittedQuery),
+      () => submittedQuery ? rankApps(apps, submittedQuery) : getSearchFeaturedApps(apps),
       [apps, submittedQuery]
     );
     const isEmpty = submittedQuery && !loading && !error && !scannerIntent && appResults.length === 0 && webResults.length === 0;

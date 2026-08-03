@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { getAppMatchTags, matchApps, parseSearchIntent, rankApps } = require('../public/search-intent');
+const { getAppMatchTags, getSearchFeaturedApps, matchApps, parseSearchIntent, rankApps } = require('../public/search-intent');
 
 const apps = [
   { id: 'yoroi', name: 'Yoroi Wallet', category: 'Wallet', chains: ['cardano'], featured: false, description: 'A light wallet for ADA.' },
@@ -38,4 +38,25 @@ test('returns the complete intent-matched set for App Hub filtering', () => {
   }));
   assert.equal(matchApps(manyWallets, 'Cardano wallets').length, 9);
   assert.equal(rankApps(manyWallets, 'Cardano wallets').length, 6);
+});
+
+test('returns the curated Search page featured apps in their display order', () => {
+  const catalog = [
+    { id: 'pump-fun', name: 'pump.fun' },
+    { id: 'uniswap', name: 'Uniswap' },
+    { id: 'unrelated', name: 'Unrelated' },
+    { id: 'magicmoney-wallet', name: 'MagicMoney Wallet' },
+    { id: 'defillama', name: 'DefiLlama' },
+    { id: 'emonad', name: 'Emonad' },
+    { id: 'sappy-seals', name: 'Sappy Seals' },
+  ];
+
+  assert.deepEqual(getSearchFeaturedApps(catalog).map(app => app.id), [
+    'magicmoney-wallet',
+    'sappy-seals',
+    'emonad',
+    'defillama',
+    'uniswap',
+    'pump-fun',
+  ]);
 });
