@@ -1,8 +1,6 @@
 const DEFAULT_TIMEOUT_MS = 70000;
 const DEFAULT_CACHE_TTL_MS = 2 * 60 * 1000;
 const DEFAULT_MAX_RESULTS = 10;
-const DEFAULT_KEEP_ALIVE_INTERVAL_MS = 10 * 60 * 1000;
-const DEFAULT_KEEP_ALIVE_TIMEOUT_MS = 60 * 1000;
 const MAX_QUERY_LENGTH = 200;
 
 const cleanText = (value) => String(value || '')
@@ -40,55 +38,6 @@ const validateQuery = (value) => {
     throw error;
   }
   return query;
-};
-
-const startSearchKeepAlive = ({
-  baseUrl = process.env.SEARXNG_BASE_URL,
-  fetchImpl = globalThis.fetch,
-  intervalMs = Number(process.env.SEARCH_KEEP_ALIVE_INTERVAL_MS) || DEFAULT_KEEP_ALIVE_INTERVAL_MS,
-  timeoutMs = Number(process.env.SEARCH_KEEP_ALIVE_TIMEOUT_MS) || DEFAULT_KEEP_ALIVE_TIMEOUT_MS,
-  logger = console,
-  timerApi = { setInterval, clearInterval, setTimeout, clearTimeout },
-} = {}) => {
-  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
-  if (!normalizedBaseUrl || typeof fetchImpl !== 'function' || intervalMs <= 0) {
-    return { enabled: false, initialPing: Promise.resolve(false), stop: () => {} };
-  }
-
-  let inFlight = null;
-  const ping = () => {
-    if (inFlight) return inFlight;
-
-    const controller = new AbortController();
-    const timeout = timerApi.setTimeout(() => controller.abort(), timeoutMs);
-    inFlight = fetchImpl(`${normalizedBaseUrl}/`, {
-      method: 'GET',
-      signal: controller.signal,
-      headers: { Accept: 'text/html', 'User-Agent': 'ChainLens-Search-KeepAlive/1.0' },
-    })
-      .then(response => {
-        if (!response.ok) logger.warn(`⚠️  Search keep-alive returned HTTP ${response.status}`);
-        return response.ok;
-      })
-      .catch(error => {
-        logger.warn(`⚠️  Search keep-alive failed: ${error?.name === 'AbortError' ? 'timed out' : error.message}`);
-        return false;
-      })
-      .finally(() => {
-        timerApi.clearTimeout(timeout);
-        inFlight = null;
-      });
-    return inFlight;
-  };
-
-  const interval = timerApi.setInterval(() => { void ping(); }, intervalMs);
-  interval?.unref?.();
-
-  return {
-    enabled: true,
-    initialPing: ping(),
-    stop: () => timerApi.clearInterval(interval),
-  };
 };
 
 const normalizeResult = (result, index) => {
@@ -201,6 +150,5 @@ module.exports = {
   createSearchService,
   normalizeBaseUrl,
   normalizeResult,
-  startSearchKeepAlive,
   validateQuery,
 };

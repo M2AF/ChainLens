@@ -4,6 +4,7 @@
   const { detectScannerIntent } = window.ChainLensChains;
 
   const EXAMPLES = ['Uniswap', 'Cardano wallets', 'NFT marketplaces'];
+  const WEB_SEARCH_API = 'https://chainlens-search.guildfordking.workers.dev/api/search/web';
 
   const initials = (name) => String(name || '')
     .split(/\s+/)
@@ -43,7 +44,7 @@
       requestRef.current = controller;
       setLoading(true);
       try {
-        const response = await fetch(`/api/search/web?q=${encodeURIComponent(value)}`, { signal: controller.signal });
+        const response = await fetch(`${WEB_SEARCH_API}?q=${encodeURIComponent(value)}`, { signal: controller.signal });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Web search is temporarily unavailable.');
         setWebResults(Array.isArray(payload.results) ? payload.results : []);

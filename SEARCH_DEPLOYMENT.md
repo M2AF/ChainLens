@@ -1,6 +1,6 @@
 # ChainLens Search deployment
 
-ChainLens Search uses one separate SearXNG web service on Render. The existing ChainLens service calls it through the server-side `/api/search/web` endpoint, so the SearXNG URL and search implementation are not built into the browser UI.
+ChainLens Search uses a Cloudflare Worker in front of the SearXNG web service on Render. The Search page calls the Worker directly, and the legacy server-side `/api/search/web` endpoint proxies to the same Worker for compatibility.
 
 ## 1. Deploy SearXNG on Render
 
@@ -13,25 +13,28 @@ ChainLens Search uses one separate SearXNG web service on Render. The existing C
 
 The Blueprint generates `SEARXNG_SECRET` automatically. Do not reuse or expose that value.
 
-## 2. Connect the existing ChainLens service
+## 2. Deploy the Cloudflare search Worker
 
-1. Open the existing ChainLens web service in Render.
-2. Go to **Environment**.
-3. Add this environment variable:
+The Worker project lives in `cloudflare-search-worker/`.
 
-   ```text
-   SEARXNG_BASE_URL=https://the-exact-url-from-step-1.onrender.com
-   ```
+```bash
+cd cloudflare-search-worker
+npm install
+npm test
+npm run check
+npm run deploy
+```
 
-4. Save the change and redeploy the existing ChainLens service.
+The deployed Worker is `https://chainlens-search.guildfordking.workers.dev`. Its 10-minute Cron Trigger keeps the SearXNG Render service awake independently of the ChainLens Render process.
 
-No change is required to `chainlensnft.info`. It remains attached to the existing ChainLens service.
+The Worker only accepts browser searches from the allowed ChainLens origins configured in `wrangler.jsonc`.
 
 ## 3. Verify
 
 Open these URLs after both deploys finish:
 
-- `https://chainlensnft.info/api/search/status` should return `{"provider":"searxng","configured":true}`.
+- `https://chainlens-search.guildfordking.workers.dev/api/search/status` should return `{"provider":"searxng-cloudflare-worker","configured":true}`.
+- `https://chainlensnft.info/api/search/status` should return the same provider through the compatibility endpoint after ChainLens deploys.
 - `https://chainlensnft.info` should open on the Search tab.
 - Search for a normal web query and confirm web results appear.
 - Search for an App Hub app such as `Uniswap` and confirm the app match appears immediately.
@@ -39,10 +42,6 @@ Open these URLs after both deploys finish:
 
 ## Free-tier behavior
 
-The SearXNG service can sleep after inactivity. The first search after it sleeps can take up to about a minute; the Search page explains this while it waits. App Hub matches and wallet recognition happen locally and continue to appear immediately.
+The Worker itself does not sleep. Its Cron Trigger requests SearXNG every 10 minutes, which is shorter than Render's inactivity window. App Hub matches and wallet recognition remain local and continue to appear immediately.
 
-The ChainLens backend limits each visitor to 30 proxied searches per minute and caches successful searches briefly to reduce load. The public SearXNG service itself is still reachable at its Render URL, which is acceptable for this free MVP but should be protected or moved behind the existing Magic Money Cloudflare Worker if usage grows.
-
-## Future Cloudflare migration
-
-The frontend only calls `/api/search/web`. To move search to the Magic Money Cloudflare Worker later, update the server-side provider implementation or its configured upstream; the Search page and its URLs do not need to change.
+The public SearXNG service itself remains reachable at its Render URL. The Worker restricts browser origins and briefly caches upstream search requests, but it is not a substitute for a private SearXNG origin if usage grows.
