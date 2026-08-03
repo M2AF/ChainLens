@@ -6,9 +6,6 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "workers_dev": true,
   "preview_urls": true,
-  "triggers": {
-    "crons": ["*/10 * * * *"]
-  },
   "vars": {
     "SEARXNG_BASE_URL": "https://chainlens-search-searxng.onrender.com",
     "ALLOWED_ORIGINS": "https://chainlensnft.info,https://www.chainlensnft.info,http://localhost:3001,http://127.0.0.1:3001"

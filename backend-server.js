@@ -1143,6 +1143,23 @@ app.get('/api/search/status', (req, res) => {
   res.json({ provider: 'searxng-cloudflare-worker', configured: true });
 });
 
+app.post('/api/search/activity', searchRateLimit, async (req, res) => {
+  try {
+    const requestUrl = new URL('/api/search/activity', SEARCH_WORKER_BASE_URL);
+    const response = await fetch(requestUrl, {
+      method: 'POST',
+      signal: AbortSignal.timeout(70000),
+      headers: { Accept: 'application/json', Origin: 'https://chainlensnft.info' },
+    });
+    if (!response.ok) throw new Error(`Search warm-up returned HTTP ${response.status}.`);
+    await response.body?.cancel();
+    res.status(204).end();
+  } catch (error) {
+    console.warn('⚠️  Search activity warm-up failed:', error.message);
+    res.status(503).json({ error: 'Search warm-up is temporarily unavailable.' });
+  }
+});
+
 app.get('/api/search/web', searchRateLimit, async (req, res) => {
   try {
     const requestUrl = new URL('/api/search/web', SEARCH_WORKER_BASE_URL);

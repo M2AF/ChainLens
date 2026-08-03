@@ -1,4 +1,3 @@
-import { createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index';
 
@@ -7,7 +6,8 @@ const workerEnv = {
   ALLOWED_ORIGINS: 'https://chainlensnft.info,https://www.chainlensnft.info,http://localhost:3001,http://127.0.0.1:3001',
 } satisfies Env;
 
-const request = (path: string, origin = 'https://chainlensnft.info') => new Request(`https://worker.example.com${path}`, {
+const request = (path: string, origin = 'https://chainlensnft.info', method = 'GET') => new Request(`https://worker.example.com${path}`, {
+  method,
   headers: { Origin: origin },
 });
 
@@ -53,20 +53,24 @@ describe('ChainLens search Worker', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('keeps SearXNG awake from the scheduled handler', async () => {
+  it('warms SearXNG only when ChainLens reports active use', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response('ok'));
     vi.stubGlobal('fetch', fetchMock);
-    const ctx = createExecutionContext();
-    const controller = {
-      scheduledTime: Date.now(),
-      cron: '*/10 * * * *',
-      noRetry() {},
-    } satisfies ScheduledController;
+    const response = await worker.fetch(request('/api/search/activity', 'https://chainlensnft.info', 'POST'), workerEnv);
 
-    worker.scheduled(controller, workerEnv, ctx);
-    await waitOnExecutionContext(ctx);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ active: true });
     expect(fetchMock).toHaveBeenCalledWith('https://chainlens-search-searxng.onrender.com/', expect.objectContaining({
       headers: expect.objectContaining({ 'User-Agent': 'ChainLens-Search-KeepAlive/2.0' }),
     }));
+  });
+
+  it('does not allow other sites to wake SearXNG', async () => {
+    const fetchMock = vi.fn<typeof fetch>();
+    vi.stubGlobal('fetch', fetchMock);
+    const response = await worker.fetch(request('/api/search/activity', 'https://example.com', 'POST'), workerEnv);
+
+    expect(response.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

@@ -34,7 +34,7 @@ const allowedOrigins = (env: Env): Set<string> => new Set(
 
 const corsHeaders = (origin: string | null, env: Env): HeadersInit => {
   const headers: Record<string, string> = {
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin',
@@ -125,6 +125,7 @@ const warmSearxng = async (env: Env, fetchImpl: Fetcher = fetch): Promise<boolea
       signal: AbortSignal.timeout(KEEP_ALIVE_TIMEOUT_MS),
     });
     if (!response.ok) throw new Error(`SearXNG returned HTTP ${response.status}.`);
+    await response.body?.cancel();
     console.log(JSON.stringify({ message: 'SearXNG keep-alive succeeded', status: response.status }));
     return true;
   } catch (error) {
@@ -146,12 +147,23 @@ const handleRequest = async (request: Request, env: Env, fetchImpl: Fetcher = fe
       ? new Response(null, { status: 204, headers: corsHeaders(origin, env) })
       : jsonResponse({ error: 'Origin not allowed.' }, 403, origin, env);
   }
-  if (request.method !== 'GET') return jsonResponse({ error: 'Method not allowed.' }, 405, origin, env);
 
   if (url.pathname === '/api/search/status') {
+    if (request.method !== 'GET') return jsonResponse({ error: 'Method not allowed.' }, 405, origin, env);
     return jsonResponse({ provider: 'searxng-cloudflare-worker', configured: true }, 200, origin, env);
   }
+
+  if (url.pathname === '/api/search/activity') {
+    if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed.' }, 405, origin, env);
+    if (!isAllowedOrigin) return jsonResponse({ error: 'Origin not allowed.' }, 403, origin, env);
+    const warmed = await warmSearxng(env, fetchImpl);
+    return warmed
+      ? jsonResponse({ active: true }, 200, origin, env)
+      : jsonResponse({ error: 'Search warm-up failed.' }, 503, origin, env);
+  }
+
   if (url.pathname !== '/api/search/web') return jsonResponse({ error: 'Not found.' }, 404, origin, env);
+  if (request.method !== 'GET') return jsonResponse({ error: 'Method not allowed.' }, 405, origin, env);
   if (!isAllowedOrigin) return jsonResponse({ error: 'Origin not allowed.' }, 403, origin, env);
 
   let query: string;
@@ -176,8 +188,5 @@ const handleRequest = async (request: Request, env: Env, fetchImpl: Fetcher = fe
 export default {
   fetch(request: Request, env: Env): Promise<Response> {
     return handleRequest(request, env);
-  },
-  scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): void {
-    ctx.waitUntil(warmSearxng(env));
   },
 } satisfies ExportedHandler<Env>;
