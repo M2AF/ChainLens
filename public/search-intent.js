@@ -21,6 +21,14 @@
     rwa: ['real world assets'], social: ['social'], stablecoin: ['stablecoins'],
     stablecoins: ['stablecoins'], swap: ['dex'], swaps: ['dex'], wallet: ['wallet'], wallets: ['wallet']
   };
+  var SEARCH_FEATURED_APP_IDS = [
+    'magicmoney-wallet',
+    'sappy-seals',
+    'emonad',
+    'defillama',
+    'uniswap',
+    'pump-fun'
+  ];
 
   var normalize = function (value) {
     return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -107,6 +115,11 @@
     return matchApps(apps, rawQuery).slice(0, 6);
   };
 
+  var getSearchFeaturedApps = function (apps) {
+    var appsById = new Map((apps || []).map(function (app) { return [app.id, app]; }));
+    return SEARCH_FEATURED_APP_IDS.map(function (id) { return appsById.get(id); }).filter(Boolean);
+  };
+
   var getAppMatchTags = function (app, rawQuery, apps) {
     var intent = parseSearchIntent(rawQuery, apps || [app]);
     var tags = [];
@@ -117,5 +130,5 @@
     return tags.slice(0, 2);
   };
 
-  return { getAppMatchTags: getAppMatchTags, matchApps: matchApps, parseSearchIntent: parseSearchIntent, rankApps: rankApps, scoreApp: scoreApp };
+  return { getAppMatchTags: getAppMatchTags, getSearchFeaturedApps: getSearchFeaturedApps, matchApps: matchApps, parseSearchIntent: parseSearchIntent, rankApps: rankApps, scoreApp: scoreApp };
 }));
