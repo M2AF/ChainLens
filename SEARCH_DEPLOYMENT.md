@@ -25,7 +25,9 @@ npm run check
 npm run deploy
 ```
 
-The deployed Worker is `https://chainlens-search.guildfordking.workers.dev`. Its 10-minute Cron Trigger keeps the SearXNG Render service awake independently of the ChainLens Render process.
+The deployed Worker is `https://chainlens-search.guildfordking.workers.dev`.
+
+ChainLens reports activity through `/api/search/activity` when its page is visible: once on page load, every 10 minutes, and whenever the tab becomes visible again. The ChainLens backend forwards that heartbeat to the Worker, which wakes SearXNG. There is no unconditional Cloudflare Cron Trigger.
 
 The Worker only accepts browser searches from the allowed ChainLens origins configured in `wrangler.jsonc`.
 
@@ -42,6 +44,6 @@ Open these URLs after both deploys finish:
 
 ## Free-tier behavior
 
-The Worker itself does not sleep. Its Cron Trigger requests SearXNG every 10 minutes, which is shorter than Render's inactivity window. App Hub matches and wallet recognition remain local and continue to appear immediately.
+The Worker itself does not sleep. SearXNG remains awake while visitors actively use ChainLens and is allowed to spin down when no visible ChainLens sessions remain. This prevents an idle search service from consuming nearly all of the workspace's shared Render free-instance hours. App Hub matches and wallet recognition remain local and continue to appear immediately.
 
 The public SearXNG service itself remains reachable at its Render URL. The Worker restricts browser origins and briefly caches upstream search requests, but it is not a substitute for a private SearXNG origin if usage grows.
