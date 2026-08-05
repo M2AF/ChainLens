@@ -3273,6 +3273,18 @@ console.log('✅ Transaction history routes configured');
 app.get('/app-hub-data.js', (req, res) => res.sendFile(path.join(__dirname, 'app-hub-data.js')));
 
 app.get('/docs', (req, res) => res.sendFile(path.join(__dirname, 'public', 'docs.html')));
+
+// Digital Asset Links — proves the MagicMoney Android app may use passkeys under
+// this domain. Android fetches this before every WebAuthn ceremony in the app, so
+// it must return JSON, not the SPA shell. Needs an explicit route because
+// express.static defaults to dotfiles:'ignore', which drops every /.well-known/
+// path through to the catch-all below. Contents are public (package names +
+// signing-certificate fingerprints); no secrets.
+app.get('/.well-known/assetlinks.json', (req, res) => {
+  res.type('application/json')
+     .sendFile(path.join(__dirname, 'public', '.well-known', 'assetlinks.json'));
+});
+
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 // Validate critical API keys at startup
 if (!API_KEYS.alchemy) {

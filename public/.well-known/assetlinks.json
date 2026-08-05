@@ -1,0 +1,22 @@
+[
+  {
+    "relation": ["delegate_permission/common.get_login_creds"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "info.chainlens.magicmoney",
+      "sha256_cert_fingerprints": [
+        "02:D4:74:0E:49:14:8E:76:F7:97:78:5A:38:2B:F0:25:8C:1E:4C:EC:14:44:D3:1B:8F:A4:18:50:DD:F0:F0:29"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.get_login_creds"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "info.chainlens.magicmoney.debug",
+      "sha256_cert_fingerprints": [
+        "08:41:AF:5A:00:9E:09:5B:B2:5B:46:E9:B5:A0:EE:5C:BA:86:05:F6:C4:5D:1D:E7:DD:87:13:A9:FE:CB:6A:7E"
+      ]
+    }
+  }
+]
