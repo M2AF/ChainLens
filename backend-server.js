@@ -110,9 +110,17 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:10000';
 // chainlensnft.info and vice-versa — the browser accepts an rpID that is the
 // page origin or a registrable suffix of it.
 const RP_NAME = 'ChainLens';
+const RP_PROD_DOMAIN = 'chainlensnft.info';
 const RP_ID = process.env.WEBAUTHN_RP_ID || (() => {
-  try { return new URL(FRONTEND_URL).hostname.replace(/^www\./, ''); }
-  catch { return 'localhost'; }
+  let host = null;
+  try { host = new URL(FRONTEND_URL).hostname.replace(/^www\./, ''); } catch { /* malformed */ }
+  // FRONTEND_URL defaults to http://localhost:10000 when unset, so a deploy that
+  // forgot it would bind every passkey to "localhost" — credentials that can
+  // never be used on the real site, and unfixable afterwards. In production the
+  // real domain always wins over that fallback.
+  const isLoopback = !host || host === 'localhost' || host === '127.0.0.1';
+  if (isLoopback && process.env.NODE_ENV === 'production') return RP_PROD_DOMAIN;
+  return host || RP_PROD_DOMAIN;
 })();
 // Origins the assertion may legitimately come from. Unlike rpID this is an
 // exact match, so both hostnames must be listed explicitly.
@@ -128,10 +136,10 @@ const RP_ORIGINS = (() => {
 if (webauthn) {
   console.log(`🔐 Passkey RP: id=${RP_ID} origins=${RP_ORIGINS.join(' ')}`);
   // rpID is baked into every credential and cannot be changed later without
-  // orphaning them all, so a deployment that falls back to 'localhost' because
-  // FRONTEND_URL was unset must be shouted about, not discovered months later.
-  if (RP_ID === 'localhost' && process.env.NODE_ENV === 'production') {
-    console.error('❌ WEBAUTHN_RP_ID resolved to "localhost" in production — passkeys registered now will NOT work on your real domain. Set WEBAUTHN_RP_ID (e.g. chainlensnft.info).');
+  // orphaning them all, so a mismatch between it and the site's own origins is
+  // worth shouting about rather than discovering months later.
+  if (!RP_ORIGINS.some(o => { try { return new URL(o).hostname === RP_ID || new URL(o).hostname.endsWith(`.${RP_ID}`); } catch { return false; } })) {
+    console.error(`❌ WEBAUTHN_RP_ID "${RP_ID}" does not match any allowed origin (${RP_ORIGINS.join(' ')}) — passkey ceremonies will be rejected by the browser. Set WEBAUTHN_RP_ID / WEBAUTHN_ORIGINS.`);
   }
 }
 
