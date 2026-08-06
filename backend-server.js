@@ -70,6 +70,14 @@ const deriveAGWAddress = async (eoaAddress) => {
   }
 };
 
+// ─── SimpleWebAuthn for passkey (WebAuthn) sign-in ────────────────────────────
+// Optional, like every other verifier here: if the dep is missing the passkey
+// routes report themselves unavailable and the UI hides the buttons, rather
+// than the server failing to boot.
+let webauthn = null;
+try { webauthn = require('@simplewebauthn/server'); console.log('✅ @simplewebauthn/server loaded'); }
+catch (e) { console.warn('⚠️  @simplewebauthn/server not installed — passkey sign-in disabled'); }
+
 // ─── TweetNaCl for Solana signature verification ──────────────────────────────
 let nacl = null;
 try { nacl = require('tweetnacl'); console.log('✅ tweetnacl loaded'); }
@@ -95,13 +103,49 @@ const base58Decode = (input) => {
 const JWT_SECRET = process.env.JWT_SECRET || 'chainlens-dev-secret-CHANGE-IN-PRODUCTION';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:10000';
 
+// ─── WebAuthn relying-party identity ─────────────────────────────────────────
+// rpID is the DOMAIN a passkey is bound to, and it is permanent: changing it
+// orphans every passkey already registered. Default to the registrable domain
+// (apex, no "www.") so a passkey made on www.chainlensnft.info still works on
+// chainlensnft.info and vice-versa — the browser accepts an rpID that is the
+// page origin or a registrable suffix of it.
+const RP_NAME = 'ChainLens';
+const RP_ID = process.env.WEBAUTHN_RP_ID || (() => {
+  try { return new URL(FRONTEND_URL).hostname.replace(/^www\./, ''); }
+  catch { return 'localhost'; }
+})();
+// Origins the assertion may legitimately come from. Unlike rpID this is an
+// exact match, so both hostnames must be listed explicitly.
+const RP_ORIGINS = (() => {
+  const fromEnv = (process.env.WEBAUTHN_ORIGINS || '')
+    .split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean);
+  if (fromEnv.length) return fromEnv;
+  const set = new Set();
+  try { set.add(new URL(FRONTEND_URL).origin); } catch { /* malformed FRONTEND_URL */ }
+  if (RP_ID !== 'localhost') { set.add(`https://${RP_ID}`); set.add(`https://www.${RP_ID}`); }
+  return [...set];
+})();
+if (webauthn) {
+  console.log(`🔐 Passkey RP: id=${RP_ID} origins=${RP_ORIGINS.join(' ')}`);
+  // rpID is baked into every credential and cannot be changed later without
+  // orphaning them all, so a deployment that falls back to 'localhost' because
+  // FRONTEND_URL was unset must be shouted about, not discovered months later.
+  if (RP_ID === 'localhost' && process.env.NODE_ENV === 'production') {
+    console.error('❌ WEBAUTHN_RP_ID resolved to "localhost" in production — passkeys registered now will NOT work on your real domain. Set WEBAUTHN_RP_ID (e.g. chainlensnft.info).');
+  }
+}
+
 // ─── In-memory nonce store (auto-cleaned every 5 min) ────────────────────────
 const _authNonces = {}; // { address_lower: { nonce, expires } }
 const _oauthStates = {}; // { state: { expires } }
+// { ceremonyId: { challenge, userId|null, expires } } — a WebAuthn challenge is
+// single-use and short-lived; holding it server-side is what stops a replay.
+const _passkeyChallenges = {};
 setInterval(() => {
   const now = Date.now();
   Object.keys(_authNonces).forEach(k => { if (_authNonces[k].expires < now) delete _authNonces[k]; });
   Object.keys(_oauthStates).forEach(k => { if (_oauthStates[k].expires < now) delete _oauthStates[k]; });
+  Object.keys(_passkeyChallenges).forEach(k => { if (_passkeyChallenges[k].expires < now) delete _passkeyChallenges[k]; });
 }, 5 * 60 * 1000);
 
 // ─── Auth middleware ──────────────────────────────────────────────────────────
@@ -173,8 +217,59 @@ const dbLinkWallet = async (userId, { chain, address, watch_only = false }) => {
   return data;
 };
 
+// ─── Passkey (cl_passkeys) helpers ───────────────────────────────────────────
+// Every one of these can fail with "relation does not exist" until the operator
+// runs sql/cl_passkeys.sql, so callers treat a throw as "passkeys unavailable"
+// rather than letting it surface as a 500.
+const dbListPasskeys = async (userId) => {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('cl_passkeys')
+    .select('id, credential_id, transports, device_type, backed_up, label, created_at, last_used_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
+};
+
+const dbFindPasskey = async (credentialId) => {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('cl_passkeys')
+    .select('*')
+    .eq('credential_id', credentialId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+};
+
+const dbInsertPasskey = async (userId, passkey) => {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('cl_passkeys')
+    .insert({ user_id: userId, ...passkey })
+    .select().single();
+  if (error) throw error;
+  return data;
+};
+
+const dbTouchPasskey = async (id, counter) => {
+  if (!supabase) return;
+  await supabase.from('cl_passkeys')
+    .update({ counter, last_used_at: new Date().toISOString() })
+    .eq('id', id);
+};
+
+// Scoped to user_id so one account can never delete another's passkey.
+const dbDeletePasskey = async (userId, id) => {
+  if (!supabase) return;
+  const { error } = await supabase.from('cl_passkeys')
+    .delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+};
+
 const app = express();
-const PORT = process.env.PORT || 10000; 
+const PORT = process.env.PORT || 10000;
 const SEARCH_WORKER_BASE_URL = process.env.SEARCH_WORKER_BASE_URL || 'https://chainlens-search.guildfordking.workers.dev';
 const searchRateLimits = new Map();
 
@@ -759,6 +854,235 @@ app.post('/api/auth/add-watch-wallet', requireAuth, async (req, res) => {
   } catch (e) {
     console.error('add-watch-wallet error:', e);
     res.status(500).json({ error: 'Failed to add watch wallet' });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PASSKEY (WebAuthn) SIGN-IN
+//
+// A passkey is a keypair the device generates and keeps; only the public half
+// reaches this server. Sign-in is a signature over a server-issued challenge —
+// there is nothing to phish, replay, or steal from the database.
+//
+// Registration requires an existing session (Google/Discord/wallet), so a
+// passkey is always ADDED to an account rather than creating one. That keeps a
+// second way in: losing every passkey never locks you out of the account.
+// ══════════════════════════════════════════════════════════════════════════════
+
+const b64uEncode = (buf) => Buffer.from(buf).toString('base64url');
+const b64uDecode = (str) => new Uint8Array(Buffer.from(str, 'base64url'));
+
+const PASSKEY_TTL_MS = 5 * 60 * 1000;
+
+// A ceremony id lets two tabs (or a retried prompt) each hold their own
+// challenge instead of clobbering a single per-user slot.
+const stashChallenge = (challenge, type, userId) => {
+  const ceremony = crypto.randomBytes(16).toString('hex');
+  _passkeyChallenges[ceremony] = { challenge, type, userId: userId || null, expires: Date.now() + PASSKEY_TTL_MS };
+  return ceremony;
+};
+
+// Single-use: consumed on first read so a captured response cannot be replayed.
+// `type` and `userId` pin a challenge to the exact ceremony it was issued for,
+// so a registration challenge can never be redeemed as a sign-in or vice-versa.
+const takeChallenge = (ceremony, type, userId) => {
+  const entry = _passkeyChallenges[ceremony];
+  if (!entry) return null;
+  delete _passkeyChallenges[ceremony];
+  if (entry.expires < Date.now()) return null;
+  if (entry.type !== type) return null;
+  if (entry.userId !== (userId || null)) return null;
+  return entry.challenge;
+};
+
+// Best-effort friendly name so the list in Settings isn't a wall of
+// indistinguishable rows. The user can send their own label instead.
+const guessPasskeyLabel = (userAgent = '') => {
+  const ua = String(userAgent);
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'iPhone / iPad';
+  if (/Android/i.test(ua)) return 'Android device';
+  if (/Macintosh|Mac OS X/i.test(ua)) return 'Mac';
+  if (/Windows/i.test(ua)) return 'Windows';
+  if (/Linux/i.test(ua)) return 'Linux';
+  return 'Passkey';
+};
+
+const passkeysConfigured = () => !!(webauthn && supabase);
+
+// ── Can this deployment offer passkeys at all? (public) ──────────────────────
+// The UI calls this before rendering any passkey button, so a server without
+// the dep — or without sql/cl_passkeys.sql run — simply shows nothing rather
+// than a button that errors when pressed.
+app.get('/api/auth/passkey/available', async (req, res) => {
+  if (!passkeysConfigured()) return res.json({ available: false, reason: 'not_configured' });
+  try {
+    const { error } = await supabase.from('cl_passkeys').select('id').limit(1);
+    if (error) throw error;
+    res.json({ available: true, rpId: RP_ID });
+  } catch (e) {
+    res.json({ available: false, reason: 'table_missing' });
+  }
+});
+
+// ── Step 1 of registration: options + challenge (requires a session) ─────────
+app.post('/api/auth/passkey/register-options', requireAuth, async (req, res) => {
+  if (!passkeysConfigured()) return res.status(503).json({ error: 'Passkeys are not enabled on this server' });
+  try {
+    const user = await dbGetUserById(req.user.sub);
+    if (!user) return res.status(404).json({ error: 'Account not found' });
+
+    // Offering an authenticator a credential it already holds makes it refuse
+    // rather than silently create a duplicate the user can't tell apart.
+    const existing = await dbListPasskeys(user.id);
+
+    const options = await webauthn.generateRegistrationOptions({
+      rpName: RP_NAME,
+      rpID: RP_ID,
+      userID: new TextEncoder().encode(user.id),
+      userName: user.email || user.display_name || `chainlens-${user.id.slice(0, 8)}`,
+      userDisplayName: user.display_name || 'ChainLens',
+      attestationType: 'none',            // no attestation: we don't track device models
+      excludeCredentials: existing.map(p => ({
+        id: p.credential_id,
+        transports: p.transports || undefined,
+      })),
+      authenticatorSelection: {
+        // Discoverable, so signing in needs no username typed at all.
+        residentKey: 'required',
+        // 'preferred', not 'required': a ChainLens profile is a read-only
+        // portfolio view that holds no keys, so refusing PIN-less security keys
+        // would cost compatibility for no real protection. Must stay paired
+        // with requireUserVerification:false below.
+        userVerification: 'preferred',
+      },
+    });
+
+    res.json({ options, ceremony: stashChallenge(options.challenge, 'register', user.id) });
+  } catch (e) {
+    console.error('passkey register-options error:', e.message);
+    res.status(503).json({ error: 'Passkeys are not set up on this server yet' });
+  }
+});
+
+// ── Step 2 of registration: verify and store the public key ──────────────────
+app.post('/api/auth/passkey/register', requireAuth, async (req, res) => {
+  if (!passkeysConfigured()) return res.status(503).json({ error: 'Passkeys are not enabled on this server' });
+  const { response, ceremony, label } = req.body || {};
+  if (!response || !ceremony) return res.status(400).json({ error: 'response and ceremony required' });
+
+  const expectedChallenge = takeChallenge(ceremony, 'register', req.user.sub);
+  if (!expectedChallenge) return res.status(400).json({ error: 'That request expired — please try again' });
+
+  try {
+    const verification = await webauthn.verifyRegistrationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: RP_ORIGINS,
+      expectedRPID: RP_ID,
+      requireUserVerification: false,
+    });
+    if (!verification.verified) return res.status(400).json({ error: 'Passkey could not be verified' });
+
+    const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+    await dbInsertPasskey(req.user.sub, {
+      credential_id: credential.id,
+      public_key: b64uEncode(credential.publicKey),
+      counter: credential.counter || 0,
+      transports: credential.transports || null,
+      device_type: credentialDeviceType,
+      backed_up: !!credentialBackedUp,
+      label: (typeof label === 'string' && label.trim().slice(0, 60)) || guessPasskeyLabel(req.headers['user-agent']),
+    });
+
+    res.json({ success: true, passkeys: await dbListPasskeys(req.user.sub) });
+  } catch (e) {
+    console.error('passkey register error:', e.message);
+    // 23505 = unique violation: this credential is already registered somewhere.
+    if (e.code === '23505') return res.status(409).json({ error: 'That passkey is already registered' });
+    res.status(400).json({ error: 'Passkey registration failed' });
+  }
+});
+
+// ── Step 1 of sign-in: challenge only (public) ───────────────────────────────
+// No allowCredentials and no address in the request: the authenticator offers
+// whichever discoverable ChainLens passkeys it holds. That also means this
+// endpoint reveals nothing about who has an account.
+app.post('/api/auth/passkey/login-options', async (req, res) => {
+  if (!passkeysConfigured()) return res.status(503).json({ error: 'Passkeys are not enabled on this server' });
+  try {
+    const options = await webauthn.generateAuthenticationOptions({
+      rpID: RP_ID,
+      userVerification: 'preferred',
+    });
+    res.json({ options, ceremony: stashChallenge(options.challenge, 'login', null) });
+  } catch (e) {
+    console.error('passkey login-options error:', e.message);
+    res.status(503).json({ error: 'Passkeys are not enabled on this server' });
+  }
+});
+
+// ── Step 2 of sign-in: verify the assertion, issue a token ───────────────────
+app.post('/api/auth/passkey/login', async (req, res) => {
+  if (!passkeysConfigured()) return res.status(503).json({ error: 'Passkeys are not enabled on this server' });
+  const { response, ceremony } = req.body || {};
+  if (!response?.id || !ceremony) return res.status(400).json({ error: 'response and ceremony required' });
+
+  const expectedChallenge = takeChallenge(ceremony, 'login', null);
+  if (!expectedChallenge) return res.status(400).json({ error: 'That sign-in request expired — please try again' });
+
+  try {
+    const stored = await dbFindPasskey(response.id);
+    // Deliberately the same message as a failed signature: a caller must not be
+    // able to probe which credential ids this server knows about.
+    if (!stored) return res.status(401).json({ error: 'Passkey not recognised' });
+
+    const verification = await webauthn.verifyAuthenticationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: RP_ORIGINS,
+      expectedRPID: RP_ID,
+      requireUserVerification: false,
+      credential: {
+        id: stored.credential_id,
+        publicKey: b64uDecode(stored.public_key),
+        counter: Number(stored.counter) || 0,
+        transports: stored.transports || undefined,
+      },
+    });
+    if (!verification.verified) return res.status(401).json({ error: 'Passkey not recognised' });
+
+    await dbTouchPasskey(stored.id, verification.authenticationInfo.newCounter);
+
+    const profile = await dbGetUserById(stored.user_id);
+    if (!profile) return res.status(401).json({ error: 'Passkey not recognised' });
+
+    const token = jwt.sign({ sub: stored.user_id }, JWT_SECRET, { expiresIn: '30d' });
+    console.log(`🔐 Passkey sign-in for user ${stored.user_id}`);
+    res.json({ token, profile });
+  } catch (e) {
+    console.error('passkey login error:', e.message);
+    res.status(401).json({ error: 'Passkey not recognised' });
+  }
+});
+
+// ── List this account's passkeys ─────────────────────────────────────────────
+app.get('/api/auth/passkey/list', requireAuth, async (req, res) => {
+  if (!passkeysConfigured()) return res.json({ passkeys: [] });
+  try { res.json({ passkeys: await dbListPasskeys(req.user.sub) }); }
+  catch (e) { res.json({ passkeys: [] }); }
+});
+
+// ── Remove one ───────────────────────────────────────────────────────────────
+// The credential itself lives on the user's device; this only revokes its
+// access here, so the UI tells them to delete it in their OS as well.
+app.delete('/api/auth/passkey/:id', requireAuth, async (req, res) => {
+  if (!passkeysConfigured()) return res.status(503).json({ error: 'Passkeys are not enabled on this server' });
+  try {
+    await dbDeletePasskey(req.user.sub, req.params.id);
+    res.json({ success: true, passkeys: await dbListPasskeys(req.user.sub) });
+  } catch (e) {
+    console.error('passkey delete error:', e.message);
+    res.status(500).json({ error: 'Failed to remove passkey' });
   }
 });
 
