@@ -648,7 +648,7 @@
           // whatsoever happened, which reads as a broken page. Say something
           // that is true of either case.
           if (e.name === 'NotAllowedError') {
-            setProfileError('No passkey was used. If this device has no ChainLens passkey yet, sign in another way and add one from your profile — passkeys made in one browser aren’t always shared with others.');
+            setProfileError('No passkey was used. If you’re in an app’s built-in browser, that’s expected — password managers only release passkeys to browsers they recognise. Open ChainLens in Chrome, Samsung Internet, or Brave, or sign in with Google or Discord instead.');
           } else {
             setProfileError(e.message || 'Passkey sign-in failed');
           }
@@ -681,7 +681,21 @@
           // — the existing one already works in EVERY browser on the device,
           // because passkeys live in the OS password manager, not in a browser.
           // Saying only "already has one" left people trying to add another.
-          if (e.name === 'InvalidStateError') setProfileError('You already have a passkey on this device — sign out and use “Sign in with a passkey” to try it. Passkeys are shared across every browser on the device, so one is enough.');
+          // Android overloads InvalidStateError for two unrelated things, and
+          // guessing between them misleads people badly:
+          //  1. excludeCredentials matched — you genuinely already have one.
+          //  2. The credential provider REFUSED THE APP. Samsung Pass returns
+          //     "Can't use passkeys with this browser." here (measured on a
+          //     Galaxy S21+ inside an in-app WebView). Password managers only
+          //     release site passkeys to browsers they recognise, so an
+          //     embedded browser cannot use them however it is configured.
+          // Prefer the platform's own wording when it explains itself.
+          if (e.name === 'InvalidStateError') {
+            const msg = String(e.message || '');
+            setProfileError(/browser/i.test(msg)
+              ? msg + ' Password managers only hand passkeys to browsers they recognise, so in-app browsers can’t use them. Open ChainLens in Chrome, Samsung Internet, or Brave.'
+              : 'You already have a passkey on this device — sign out and use “Sign in with a passkey” to try it.');
+          }
           else if (e.name !== 'NotAllowedError') setProfileError(e.message || 'Could not add that passkey');
         }
         setPasskeyBusy(false);
