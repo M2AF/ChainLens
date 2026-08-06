@@ -641,8 +641,17 @@
           localStorage.setItem('cl_token', data.token);
           if (data.profile) setUserProfile(data.profile);
         } catch (e) {
-          // NotAllowedError just means the OS prompt was dismissed or timed out.
-          if (e.name !== 'NotAllowedError') setProfileError(e.message || 'Passkey sign-in failed');
+          // NotAllowedError covers BOTH "user dismissed the prompt" and "the
+          // device had no passkey for this site" — the spec deliberately makes
+          // them indistinguishable so a site cannot probe who has an account.
+          // Staying silent was wrong: the user pressed a button and nothing
+          // whatsoever happened, which reads as a broken page. Say something
+          // that is true of either case.
+          if (e.name === 'NotAllowedError') {
+            setProfileError('No passkey was used. If this device has no ChainLens passkey yet, sign in another way and add one from your profile — passkeys made in one browser aren’t always shared with others.');
+          } else {
+            setProfileError(e.message || 'Passkey sign-in failed');
+          }
         }
         setPasskeyBusy(false);
       };
