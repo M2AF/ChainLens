@@ -374,6 +374,10 @@
       // control stays hidden until `passkeyAvailable` is confirmed — a button
       // that fails when pressed is worse than no button.
       const [passkeyAvailable, setPasskeyAvailable] = useState(false);
+      // Tracked separately from the server check: a browser with no WebAuthn
+      // used to make the whole section disappear with no explanation, which
+      // reads as a broken site rather than an unsupported browser.
+      const [passkeyBrowserOk] = useState(() => typeof window.PublicKeyCredential === 'function');
       const [passkeys, setPasskeys] = useState([]);
       const [passkeyBusy, setPasskeyBusy] = useState(false);
       const [showAvatarEditor, setShowAvatarEditor] = useState(false);
@@ -598,8 +602,9 @@
 
       // Feature-detect once: the browser must implement WebAuthn and the server
       // must have both the library and the cl_passkeys table.
+      // Asked regardless of browser support, so the card can still render and
+      // explain itself on a browser that can't do WebAuthn.
       useEffect(() => {
-        if (!window.PublicKeyCredential) return;
         fetch('/api/auth/passkey/available')
           .then(r => r.json())
           .then(d => setPasskeyAvailable(!!d.available))
@@ -2495,8 +2500,9 @@
                         </button>
                       </div>
 
-                      {/* Passkey sign-in — hidden unless browser + server both support it */}
-                      {passkeyAvailable && (
+                      {/* Passkey sign-in — needs BOTH sides; offering a button that
+                          cannot possibly work is worse than not offering one. */}
+                      {passkeyAvailable && passkeyBrowserOk && (
                         <button onClick={signInWithPasskey} disabled={passkeyBusy || !!walletConnecting}
                           className={`social-btn w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl mb-8 border-2 font-bold text-sm disabled:opacity-50 slide-up-2 border-amber-400/40 hover:border-amber-400 hover:bg-amber-400/5`}>
                           <span className="text-xl">🔑</span>
@@ -2818,7 +2824,16 @@
                             Your device keeps the key; ChainLens only ever stores the public half.
                           </p>
 
-                          {passkeys.length === 0 ? (
+                          {!passkeyBrowserOk ? (
+                            <div className={`text-center py-6 px-4 rounded-2xl border ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                              <p className="text-sm font-bold mb-1">This browser can’t use passkeys</p>
+                              <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                It doesn’t support WebAuthn. Open ChainLens in Chrome, Safari, or Edge to add
+                                or use a passkey — any you add there will work on this account.
+                                {passkeys.length > 0 && ` You currently have ${passkeys.length} registered.`}
+                              </p>
+                            </div>
+                          ) : passkeys.length === 0 ? (
                             <p className={`text-center py-6 text-sm italic ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
                               No passkeys yet. Add one to sign in without Google, Discord, or a wallet.
                             </p>
@@ -2844,13 +2859,15 @@
                             </div>
                           )}
 
-                          <button onClick={addPasskey} disabled={passkeyBusy}
-                            className={`w-full flex items-center justify-center gap-2 py-4 px-6 rounded-2xl border border-dashed text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-40 ${darkMode ? 'border-slate-600 text-slate-400 hover:border-amber-400 hover:text-amber-400 hover:bg-amber-400/5' : 'border-slate-300 text-slate-400 hover:border-amber-500 hover:text-amber-500 hover:bg-amber-50'}`}>
-                            <span className="text-base">＋</span>
-                            {passkeyBusy ? 'Waiting for your device…' : 'Add a passkey'}
-                          </button>
+                          {passkeyBrowserOk && (
+                            <button onClick={addPasskey} disabled={passkeyBusy}
+                              className={`w-full flex items-center justify-center gap-2 py-4 px-6 rounded-2xl border border-dashed text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-40 ${darkMode ? 'border-slate-600 text-slate-400 hover:border-amber-400 hover:text-amber-400 hover:bg-amber-400/5' : 'border-slate-300 text-slate-400 hover:border-amber-500 hover:text-amber-500 hover:bg-amber-50'}`}>
+                              <span className="text-base">＋</span>
+                              {passkeyBusy ? 'Waiting for your device…' : 'Add a passkey'}
+                            </button>
+                          )}
 
-                          {passkeys.length > 0 && (
+                          {passkeyBrowserOk && passkeys.length > 0 && (
                             <p className={`text-[10px] mt-4 text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
                               Removing a passkey revokes its access here. Delete it in your device's password manager too.
                             </p>
