@@ -667,7 +667,12 @@
           if (!res.ok) throw new Error(data.error || 'Could not add that passkey');
           setPasskeys(data.passkeys || []);
         } catch (e) {
-          if (e.name === 'InvalidStateError') setProfileError('That device already has a ChainLens passkey.');
+          // InvalidStateError means excludeCredentials matched: this authenticator
+          // already holds a passkey for this account. That is success, not failure
+          // — the existing one already works in EVERY browser on the device,
+          // because passkeys live in the OS password manager, not in a browser.
+          // Saying only "already has one" left people trying to add another.
+          if (e.name === 'InvalidStateError') setProfileError('You already have a passkey on this device — sign out and use “Sign in with a passkey” to try it. Passkeys are shared across every browser on the device, so one is enough.');
           else if (e.name !== 'NotAllowedError') setProfileError(e.message || 'Could not add that passkey');
         }
         setPasskeyBusy(false);
