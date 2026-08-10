@@ -1074,10 +1074,20 @@ app.post('/api/auth/passkey/login', async (req, res) => {
 });
 
 // ── List this account's passkeys ─────────────────────────────────────────────
+// ⚠ An empty list here has meant three different things: the account really has
+// no passkeys, the server has none configured, and the query threw. A client
+// cannot safely prune its local passkey list against an answer that ambiguous —
+// a transient database fault would read as "the user deleted everything". The
+// `configured` / `unavailable` flags are additive (same shape, same status) and
+// let a caller tell "none" from "don't know". See passkey-reconcile.ts in the
+// wallet, which stays conservative when they are absent, for an older server.
 app.get('/api/auth/passkey/list', requireAuth, async (req, res) => {
-  if (!passkeysConfigured()) return res.json({ passkeys: [] });
-  try { res.json({ passkeys: await dbListPasskeys(req.user.sub) }); }
-  catch (e) { res.json({ passkeys: [] }); }
+  if (!passkeysConfigured()) return res.json({ passkeys: [], configured: false });
+  try { res.json({ passkeys: await dbListPasskeys(req.user.sub), configured: true }); }
+  catch (e) {
+    console.error('passkey list error:', e.message);
+    res.json({ passkeys: [], configured: true, unavailable: true });
+  }
 });
 
 // ── Remove one ───────────────────────────────────────────────────────────────
