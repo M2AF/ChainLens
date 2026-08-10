@@ -694,7 +694,12 @@
             const msg = String(e.message || '');
             setProfileError(/browser/i.test(msg)
               ? msg + ' Password managers only hand passkeys to browsers they recognise, so in-app browsers can’t use them. Open ChainLens in Chrome, Samsung Internet, or Brave.'
-              : 'You already have a passkey on this device — sign out and use “Sign in with a passkey” to try it.');
+              // NOT "on this device". Seed-derived authenticators (Magic Money)
+              // recompute credentials from the recovery phrase, so a passkey
+              // created on one device is recognised as already existing on every
+              // other device holding the same phrase — and refusing to duplicate
+              // it is correct. Saying "this device" made that read as a bug.
+              : 'You already have a passkey for ChainLens — sign out and use “Sign in with a passkey” to use it. Some password managers share one passkey across all your devices, so you may not need another.');
           }
           else if (e.name !== 'NotAllowedError') setProfileError(e.message || 'Could not add that passkey');
         }
