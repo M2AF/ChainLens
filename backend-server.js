@@ -915,6 +915,55 @@ const guessPasskeyLabel = (userAgent = '') => {
   return 'Passkey';
 };
 
+// ── Which authenticator minted this? ─────────────────────────────────────────
+// The user agent says which BROWSER registered a passkey, not which
+// authenticator holds it — so a Magic Money passkey and a Google Password
+// Manager one both label as "Windows", and the list cannot tell the user which
+// entry is which. The AAGUID is the field that names the issuer.
+//
+// ⚠ A HINT, NOT A PROOF. We accept attestationType 'none', so the AAGUID is
+// self-asserted and nothing here is cryptographically bound to an issuer. It is
+// good enough to label a row for a human and must never gate access.
+const KNOWN_AAGUIDS = {
+  '2c4b3c62-a6fc-6b9f-47f2-4ede41f1b4bf': 'Magic Money',
+  'ea9b8d66-4d01-1d21-3ce4-b6b48cb575d4': 'Google Password Manager',
+  'adce0002-35bc-c60a-648b-0b25f1f05503': 'Chrome on Mac',
+  '08987058-cadc-4b81-b6e1-30de50dcbe96': 'Windows Hello',
+  '9ddd1817-af5a-4672-a2b9-3e3dd95000a9': 'Windows Hello',
+  '6028b017-b1d4-4c02-b4b3-afcdafc96bb2': 'Windows Hello',
+  'd548826e-79b4-db40-a3d8-11116f7e8349': 'Bitwarden',
+  'bada5566-a7aa-401f-bd96-45619a55120d': '1Password',
+  '531126d6-e717-415c-9320-3d9aa6981239': 'Dashlane',
+  'fbfc3007-154e-4ecc-8c0b-6e020557d7bd': 'iCloud Keychain',
+  '53414d53-554e-4700-0000-000000000000': 'Samsung Pass',
+};
+
+const ZERO_AAGUID = '00000000-0000-0000-0000-000000000000';
+
+// Magic Money credential ids are `0x01 || nonce(16) || tag(16)` — 33 bytes with
+// a version byte. Unforgeable it is not; distinctive it is.
+const looksLikeMagicMoneyCredential = (credentialId) => {
+  try {
+    const raw = Buffer.from(String(credentialId), 'base64url');
+    return raw.length === 33 && raw[0] === 0x01;
+  } catch { return false; }
+};
+
+const passkeyLabel = ({ aaguid, credentialId, userAgent }) => {
+  const known = KNOWN_AAGUIDS[String(aaguid || '').toLowerCase()];
+  if (known) return known;
+
+  // ⚠ Magic Money's own in-app browser deliberately reports a ZEROED AAGUID:
+  // blanking it is the client's job, and on that path the wallet is both the
+  // authenticator and the client. So the passkeys most certainly ours are
+  // exactly the ones the AAGUID cannot name. Fall back to the credential-id
+  // shape, which is the only remaining signal that distinguishes them.
+  if ((!aaguid || aaguid === ZERO_AAGUID) && looksLikeMagicMoneyCredential(credentialId)) {
+    return 'Magic Money';
+  }
+  return guessPasskeyLabel(userAgent);
+};
+
 const passkeysConfigured = () => !!(webauthn && supabase);
 
 // ── Can this deployment offer passkeys at all? (public) ──────────────────────
@@ -991,7 +1040,7 @@ app.post('/api/auth/passkey/register', requireAuth, async (req, res) => {
     });
     if (!verification.verified) return res.status(400).json({ error: 'Passkey could not be verified' });
 
-    const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+    const { credential, credentialDeviceType, credentialBackedUp, aaguid } = verification.registrationInfo;
     await dbInsertPasskey(req.user.sub, {
       credential_id: credential.id,
       public_key: b64uEncode(credential.publicKey),
@@ -999,7 +1048,11 @@ app.post('/api/auth/passkey/register', requireAuth, async (req, res) => {
       transports: credential.transports || null,
       device_type: credentialDeviceType,
       backed_up: !!credentialBackedUp,
-      label: (typeof label === 'string' && label.trim().slice(0, 60)) || guessPasskeyLabel(req.headers['user-agent']),
+      // Name the authenticator, not the browser: with a seed-derived wallet a
+      // user can hold several passkeys for this account and needs to tell them
+      // apart in the list. A caller-supplied label still wins.
+      label: (typeof label === 'string' && label.trim().slice(0, 60))
+        || passkeyLabel({ aaguid, credentialId: credential.id, userAgent: req.headers['user-agent'] }),
     });
 
     res.json({ success: true, passkeys: await dbListPasskeys(req.user.sub) });
