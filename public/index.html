@@ -359,6 +359,19 @@
       return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     };
 
+    const CHAT_LINK_SOURCE = '(?:\\b[a-z][a-z0-9+.-]*:\\/\\/[^\\s<]+|\\bmailto:[^\\s<]+|\\bwww\\.[^\\s<]+|\\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}(?:[/?#][^\\s<]*)?)';
+    const chatTextContainsLink = (value) => new RegExp(CHAT_LINK_SOURCE, 'i').test(String(value || ''));
+    const renderChatText = (content, allowLinks) => {
+      if (!allowLinks) return content;
+      return String(content).split(new RegExp(`(${CHAT_LINK_SOURCE})`, 'gi')).map((part, index) => {
+        if (!new RegExp(`^(?:${CHAT_LINK_SOURCE})$`, 'i').test(part)) return part;
+        if (/^[a-z][a-z0-9+.-]*:\/\//i.test(part) && !/^https?:\/\//i.test(part)) return part;
+        const href = /^(?:https?:\/\/|mailto:)/i.test(part) ? part : `https://${part}`;
+        return <a key={`${part}-${index}`} href={href} target="_blank" rel="noopener noreferrer"
+          className="font-bold underline decoration-current/50 underline-offset-2 hover:decoration-current">{part}</a>;
+      });
+    };
+
     const ChatAvatar = ({ profile, size = 34 }) => {
       const name = profile?.display_name || 'ChainLens user';
       const initials = name.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
@@ -375,7 +388,7 @@
       );
     };
 
-    const ChatMessage = ({ message, own, darkMode }) => (
+    const ChatMessage = ({ message, own, darkMode, allowLinks, deleting, onDelete }) => (
       <div className={`flex gap-2.5 ${own ? 'flex-row-reverse' : ''}`} data-message-id={message.id}>
         <ChatAvatar profile={message.author} size={30} />
         <div className={`min-w-0 max-w-[78%] ${own ? 'text-right' : ''}`}>
@@ -384,6 +397,13 @@
               {message.author?.display_name || 'ChainLens user'}
             </span>
             <span className={`text-[8px] flex-shrink-0 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{formatChatTime(message.created_at)}</span>
+            {own && (
+              <button type="button" onClick={() => onDelete(message)} disabled={deleting}
+                aria-label="Delete message" title="Delete message"
+                className={`-my-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md transition-colors disabled:opacity-40 ${darkMode ? 'text-slate-600 hover:bg-red-500/15 hover:text-red-400' : 'text-slate-400 hover:bg-red-50 hover:text-red-500'}`}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+            )}
           </div>
           {message.message_type === 'gif' ? (
             <div className={`overflow-hidden rounded-2xl border ${own ? 'rounded-tr-sm' : 'rounded-tl-sm'} ${darkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-slate-100'}`}>
@@ -394,7 +414,7 @@
             <div className={`inline-block px-3 py-2 rounded-2xl text-left text-xs leading-relaxed whitespace-pre-wrap break-words ${own
               ? 'rounded-tr-sm bg-cyan-500 text-slate-950'
               : darkMode ? 'rounded-tl-sm bg-slate-800 text-slate-100' : 'rounded-tl-sm bg-slate-100 text-slate-800'}`}>
-              {message.content}
+              {renderChatText(message.content, allowLinks)}
             </div>
           )}
           {!own && message.author?.id && (
@@ -418,6 +438,7 @@
       const [friendId, setFriendId] = useState('');
       const [draft, setDraft] = useState('');
       const [sending, setSending] = useState(false);
+      const [deletingMessageId, setDeletingMessageId] = useState(null);
       const [busyFriendship, setBusyFriendship] = useState(null);
       const [error, setError] = useState('');
       const [notice, setNotice] = useState('');
@@ -447,9 +468,9 @@
         for (const row of rows || []) cursorRef.current = Math.max(cursorRef.current, Number(row.id) || 0);
       };
 
-      const loadWorld = useCallback(async (incremental = false) => {
+      const loadWorld = useCallback(async (incremental = false, quiet = false) => {
         if (!authToken) return;
-        if (!incremental) setMessagesLoading(true);
+        if (!incremental && !quiet) setMessagesLoading(true);
         try {
           const suffix = incremental ? `?after=${worldCursor.current}` : '';
           const body = await api(`/api/chat/world${suffix}`);
@@ -459,7 +480,7 @@
         } catch (requestError) {
           setError(requestError.message);
         } finally {
-          if (!incremental) setMessagesLoading(false);
+          if (!incremental && !quiet) setMessagesLoading(false);
         }
       }, [api, authToken]);
 
@@ -478,9 +499,9 @@
         }
       }, [api, authToken]);
 
-      const loadDirect = useCallback(async (friend, incremental = false) => {
+      const loadDirect = useCallback(async (friend, incremental = false, quiet = false) => {
         if (!friend || !authToken) return;
-        if (!incremental) setDirectLoading(true);
+        if (!incremental && !quiet) setDirectLoading(true);
         try {
           const suffix = incremental ? `?after=${directCursor.current}` : '';
           const body = await api(`/api/chat/friends/${encodeURIComponent(friend.id)}/messages${suffix}`);
@@ -490,7 +511,7 @@
         } catch (requestError) {
           setError(requestError.message);
         } finally {
-          if (!incremental) setDirectLoading(false);
+          if (!incremental && !quiet) setDirectLoading(false);
         }
       }, [api, authToken]);
 
@@ -517,8 +538,9 @@
       useEffect(() => {
         if (!open || !status?.eligible || tab !== 'world') return;
         loadWorld(false);
-        const interval = setInterval(() => loadWorld(true), 3000);
-        return () => clearInterval(interval);
+        const pollInterval = setInterval(() => loadWorld(true), 3000);
+        const reconcileInterval = setInterval(() => loadWorld(false, true), 15000);
+        return () => { clearInterval(pollInterval); clearInterval(reconcileInterval); };
       }, [open, status?.eligible, tab, loadWorld]);
 
       useEffect(() => {
@@ -533,8 +555,9 @@
         directCursor.current = 0;
         setDirectMessages([]);
         loadDirect(selectedFriend, false);
-        const interval = setInterval(() => loadDirect(selectedFriend, true), 3000);
-        return () => clearInterval(interval);
+        const pollInterval = setInterval(() => loadDirect(selectedFriend, true), 3000);
+        const reconcileInterval = setInterval(() => loadDirect(selectedFriend, false, true), 15000);
+        return () => { clearInterval(pollInterval); clearInterval(reconcileInterval); };
       }, [open, status?.eligible, selectedFriend?.id, loadDirect]);
 
       useEffect(() => {
@@ -551,6 +574,10 @@
 
       const sendMessage = async (type, content) => {
         if (sending) return;
+        if (!selectedFriend && type === 'text' && chatTextContainsLink(content)) {
+          setError('Links can only be sent in direct messages.');
+          return;
+        }
         setSending(true);
         setError('');
         try {
@@ -571,6 +598,30 @@
           setError(requestError.message);
         } finally {
           setSending(false);
+        }
+      };
+
+      const deleteMessage = async (message) => {
+        if (deletingMessageId !== null) return;
+        if (!window.confirm('Delete this message? This cannot be undone.')) return;
+        const messageId = String(message.id);
+        setDeletingMessageId(messageId);
+        setError('');
+        try {
+          const url = selectedFriend
+            ? `/api/chat/friends/${encodeURIComponent(selectedFriend.id)}/messages/${encodeURIComponent(messageId)}`
+            : `/api/chat/world/${encodeURIComponent(messageId)}`;
+          await api(url, { method: 'DELETE' });
+          if (selectedFriend) {
+            setDirectMessages(current => current.filter(row => String(row.id) !== messageId));
+          } else {
+            setMessages(current => current.filter(row => String(row.id) !== messageId));
+          }
+          flashNotice('Message deleted');
+        } catch (requestError) {
+          setError(requestError.message);
+        } finally {
+          setDeletingMessageId(null);
         }
       };
 
@@ -622,7 +673,7 @@
           const endpoint = search ? 'search' : 'trending';
           const url = new URL(`https://api.giphy.com/v1/gifs/${endpoint}`);
           url.searchParams.set('api_key', status.giphyApiKey);
-          url.searchParams.set('limit', '18');
+          url.searchParams.set('limit', '30');
           url.searchParams.set('rating', 'pg-13');
           if (search) {
             url.searchParams.set('q', search.slice(0, 50));
@@ -780,7 +831,9 @@
                 ) : currentMessages.length === 0 ? (
                   <div className={`h-full flex flex-col items-center justify-center text-center px-8 ${muted}`}><span className="text-3xl mb-3">👋</span><p className="text-xs">{selectedFriend ? `Start a conversation with ${selectedFriend.display_name}.` : 'World Chat is quiet. Say hello!'}</p></div>
                 ) : currentMessages.map(message => (
-                  <ChatMessage key={message.id} message={message} own={message.author?.id === userProfile?.id} darkMode={darkMode} />
+                  <ChatMessage key={message.id} message={message} own={message.author?.id === userProfile?.id}
+                    darkMode={darkMode} allowLinks={Boolean(selectedFriend)}
+                    deleting={deletingMessageId === String(message.id)} onDelete={deleteMessage} />
                 ))}
               </div>
 
@@ -798,7 +851,9 @@
                       </div>
                     )}
                   </div>
-                  <div className={`px-3 py-1 text-right text-[8px] font-black uppercase tracking-widest ${muted}`}>Powered by GIPHY</div>
+                  <div className={`px-3 py-1 flex items-center justify-between text-[8px] font-black uppercase tracking-widest ${muted}`}>
+                    <span>{gifs.length ? `${gifs.length} GIFs` : ''}</span><span>Powered by GIPHY</span>
+                  </div>
                 </div>
               )}
 
@@ -806,7 +861,7 @@
                 className={`p-2.5 border-t flex items-end gap-2 ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
                 <button type="button" onClick={openGifPicker} aria-label="Open GIPHY picker"
                   className={`h-10 px-2.5 rounded-xl border text-[9px] font-black ${showGifs ? 'bg-cyan-500 text-slate-950 border-cyan-500' : darkMode ? 'border-slate-700 text-cyan-400' : 'border-slate-200 text-cyan-600'}`}>GIF</button>
-                <textarea value={draft} onChange={event => setDraft(event.target.value)} maxLength="500" rows="1" placeholder={selectedFriend ? `Message ${selectedFriend.display_name}` : 'Message World Chat'}
+                <textarea value={draft} onChange={event => setDraft(event.target.value)} maxLength="500" rows="1" placeholder={selectedFriend ? `Message ${selectedFriend.display_name}` : 'Message World Chat · no links'}
                   onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage('text', draft); } }}
                   className={`min-h-10 max-h-24 min-w-0 flex-1 resize-none rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-cyan-400 ${darkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`} />
                 <button disabled={sending || !draft.trim()} aria-label="Send message" className="w-10 h-10 rounded-xl bg-cyan-500 text-slate-950 flex items-center justify-center disabled:opacity-40">
@@ -4015,7 +4070,7 @@
             {simpleSwapLoaded && (
               <div
                 className={`w-[min(calc(100vw-3rem),560px)] rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-3 transition-all duration-200 ${showSimpleSwap ? 'opacity-100 translate-y-0 pointer-events-auto visible' : 'opacity-0 translate-y-3 pointer-events-none invisible'} ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
-                style={{ animation: showSimpleSwap ? 'slideUp 0.2s ease-out both' : 'none' }}
+                style={{ display: showSimpleSwap ? 'block' : 'none', animation: showSimpleSwap ? 'slideUp 0.2s ease-out both' : 'none' }}
                 onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between gap-3 px-2 pb-3">
                   <div>
@@ -4067,6 +4122,7 @@
                 setShowDonate(false);
                 setShowWallet(false);
               }}
+              data-testid="simpleswap-trigger"
               className={`hidden md:flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showSimpleSwap
                 ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
                 : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-emerald-400 hover:text-emerald-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-500 backdrop-blur-md')}`}>

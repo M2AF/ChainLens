@@ -253,9 +253,12 @@ GIPHY integration key as `GIPHY_API_KEY`. Messenger requires the signed-in
 profile to have at least one verified (non-watch-only) wallet and at least one
 linked Google or Discord account. Friend requests use the full `cl_users.id`
 UUID shown beneath the profile name; direct messages unlock only after the
-recipient accepts. The frontend polls cursor-based message endpoints, while the
-Express server owns authorization and is the only caller allowed to access the
-RLS-protected chat tables.
+recipient accepts. Users can delete only messages they authored. Text links are
+blocked in World Chat and rendered as clickable links only in direct messages;
+GIPHY remains available in both scopes and returns up to 30 results per search.
+The frontend polls cursor-based message endpoints and periodically reconciles
+deletions, while the Express server owns authorization and is the only caller
+allowed to access the RLS-protected chat tables.
 
 ### localStorage (client-side)
 

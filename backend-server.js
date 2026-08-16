@@ -347,6 +347,12 @@ const parseChatCursor = (value) => {
   return cursor;
 };
 
+const parseChatMessageId = (value) => {
+  const messageId = Number(value);
+  if (!Number.isSafeInteger(messageId) || messageId < 1) throw new Error('Invalid message ID');
+  return messageId;
+};
+
 const chatMessageWindows = new Map();
 const chatMessageAllowed = (userId) => {
   const now = Date.now();
@@ -1693,7 +1699,7 @@ app.post('/api/chat/world', requireAuth, requireChatAccess, async (req, res) => 
   }
   let message;
   try {
-    message = normalizeChatContent(req.body?.type, req.body?.content);
+    message = normalizeChatContent(req.body?.type, req.body?.content, { allowLinks: false });
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
@@ -1706,6 +1712,31 @@ app.post('/api/chat/world', requireAuth, requireChatAccess, async (req, res) => 
     res.status(201).json({ message: hydrated });
   } catch (error) {
     chatDbFailure(res, error, 'Could not send that message');
+  }
+});
+
+// The service-role database client bypasses RLS, so ownership is deliberately
+// part of the DELETE filter. A guessed message id can never delete another
+// user's World Chat message.
+app.delete('/api/chat/world/:messageId', requireAuth, requireChatAccess, async (req, res) => {
+  let messageId;
+  try {
+    messageId = parseChatMessageId(req.params.messageId);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+  try {
+    const { data, error } = await supabase.from('cl_world_messages')
+      .delete()
+      .eq('id', messageId)
+      .eq('user_id', req.user.sub)
+      .select('id')
+      .maybeSingle();
+    if (error) return chatDbFailure(res, error, 'Could not delete that message');
+    if (!data) return res.status(404).json({ error: 'Message not found or already deleted' });
+    res.json({ success: true, message_id: data.id });
+  } catch (error) {
+    chatDbFailure(res, error, 'Could not delete that message');
   }
 });
 
@@ -1876,7 +1907,7 @@ app.post('/api/chat/friends/:friendId/messages', requireAuth, requireChatAccess,
   }
   let message;
   try {
-    message = normalizeChatContent(req.body?.type, req.body?.content);
+    message = normalizeChatContent(req.body?.type, req.body?.content, { allowLinks: true });
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
@@ -1893,6 +1924,33 @@ app.post('/api/chat/friends/:friendId/messages', requireAuth, requireChatAccess,
     res.status(201).json({ message: hydrated });
   } catch (error) {
     chatDbFailure(res, error, 'Could not send that direct message');
+  }
+});
+
+app.delete('/api/chat/friends/:friendId/messages/:messageId', requireAuth, requireChatAccess, async (req, res) => {
+  const friendId = String(req.params.friendId || '').toLowerCase();
+  if (!isUuid(friendId)) return res.status(400).json({ error: 'Invalid friend ID' });
+  let messageId;
+  try {
+    messageId = parseChatMessageId(req.params.messageId);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+  try {
+    const friendship = await dbGetAcceptedFriendship(req.user.sub, friendId);
+    if (!friendship) return res.status(403).json({ error: 'Direct messages are only available between friends' });
+    const { data, error } = await supabase.from('cl_direct_messages')
+      .delete()
+      .eq('id', messageId)
+      .eq('friendship_id', friendship.id)
+      .eq('sender_id', req.user.sub)
+      .select('id')
+      .maybeSingle();
+    if (error) return chatDbFailure(res, error, 'Could not delete that direct message');
+    if (!data) return res.status(404).json({ error: 'Message not found or already deleted' });
+    res.json({ success: true, message_id: data.id });
+  } catch (error) {
+    chatDbFailure(res, error, 'Could not delete that direct message');
   }
 });
 

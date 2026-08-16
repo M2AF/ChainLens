@@ -4,6 +4,7 @@ const {
   isUuid,
   orderedFriendPair,
   isGiphyMediaUrl,
+  containsChatLink,
   normalizeChatContent,
 } = require('../chat-service');
 
@@ -24,6 +25,26 @@ test('accepts bounded text messages and rejects empty or oversized text', () => 
   });
   assert.throws(() => normalizeChatContent('text', '   '), /message first/i);
   assert.throws(() => normalizeChatContent('text', 'x'.repeat(501)), /500/);
+});
+
+test('blocks links in World Chat while allowing them in direct messages', () => {
+  for (const value of [
+    'Visit https://chainlensnft.info',
+    'Try www.chainlensnft.info/chat',
+    'Open chainlensnft.info',
+    'Email mailto:hello@chainlensnft.info',
+  ]) {
+    assert.equal(containsChatLink(value), true);
+    assert.throws(
+      () => normalizeChatContent('text', value, { allowLinks: false }),
+      /direct messages/i,
+    );
+  }
+  assert.equal(containsChatLink('Version 1.2 is ready... say hello!'), false);
+  assert.deepEqual(normalizeChatContent('text', 'https://chainlensnft.info', { allowLinks: true }), {
+    message_type: 'text',
+    content: 'https://chainlensnft.info',
+  });
 });
 
 test('only accepts HTTPS GIPHY media URLs for GIF messages', () => {

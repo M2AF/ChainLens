@@ -19,6 +19,20 @@ const FRIEND = {
 async function installChatMocks(page) {
   let accepted = false;
   let nextMessageId = 20;
+  const worldMessages = [{
+    id: 1,
+    message_type: 'text',
+    content: 'Welcome to World Chat!',
+    created_at: '2026-08-15T12:00:00.000Z',
+    author: FRIEND,
+  }];
+  const directMessages = [{
+    id: 8,
+    message_type: 'text',
+    content: 'Hey from your friend list.',
+    created_at: '2026-08-15T12:05:00.000Z',
+    author: FRIEND,
+  }];
 
   await page.addInitScript(() => localStorage.setItem('cl_token', 'playwright-chat-token'));
   await page.route('**/api/profile', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ME) }));
@@ -29,22 +43,26 @@ async function installChatMocks(page) {
     body: JSON.stringify({ eligible: true, walletLinked: true, socialLinked: true, giphyApiKey: 'public-e2e-key' }),
   }));
   await page.route('**/api/chat/world**', async route => {
-    if (route.request().method() === 'POST') {
+    const method = route.request().method();
+    if (method === 'POST') {
       const sent = route.request().postDataJSON();
+      const message = { id: ++nextMessageId, message_type: sent.type, content: sent.content, created_at: new Date().toISOString(), author: ME };
+      worldMessages.push(message);
       return route.fulfill({
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify({ message: { id: ++nextMessageId, message_type: sent.type, content: sent.content, created_at: new Date().toISOString(), author: ME } }),
+        body: JSON.stringify({ message }),
       });
     }
+    if (method === 'DELETE') {
+      const messageId = Number(new URL(route.request().url()).pathname.split('/').pop());
+      const index = worldMessages.findIndex(message => message.id === messageId && message.author.id === ME.id);
+      if (index >= 0) worldMessages.splice(index, 1);
+      return route.fulfill({ status: index >= 0 ? 200 : 404, contentType: 'application/json', body: JSON.stringify(index >= 0 ? { success: true, message_id: messageId } : { error: 'Message not found' }) });
+    }
     const url = new URL(route.request().url());
-    const messages = url.searchParams.has('after') ? [] : [{
-      id: 1,
-      message_type: 'text',
-      content: 'Welcome to World Chat!',
-      created_at: '2026-08-15T12:00:00.000Z',
-      author: FRIEND,
-    }];
+    const after = Number(url.searchParams.get('after') || 0);
+    const messages = url.searchParams.has('after') ? worldMessages.filter(message => message.id > after) : worldMessages;
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ messages }) });
   });
   await page.route('**/api/chat/friends', async route => {
@@ -62,28 +80,36 @@ async function installChatMocks(page) {
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
   });
   await page.route(`**/api/chat/friends/${FRIEND.id}/messages**`, async route => {
-    if (route.request().method() === 'POST') {
+    const method = route.request().method();
+    if (method === 'POST') {
       const sent = route.request().postDataJSON();
+      const message = { id: ++nextMessageId, message_type: sent.type, content: sent.content, created_at: new Date().toISOString(), author: ME };
+      directMessages.push(message);
       return route.fulfill({
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify({ message: { id: ++nextMessageId, message_type: sent.type, content: sent.content, created_at: new Date().toISOString(), author: ME } }),
+        body: JSON.stringify({ message }),
       });
     }
+    if (method === 'DELETE') {
+      const messageId = Number(new URL(route.request().url()).pathname.split('/').pop());
+      const index = directMessages.findIndex(message => message.id === messageId && message.author.id === ME.id);
+      if (index >= 0) directMessages.splice(index, 1);
+      return route.fulfill({ status: index >= 0 ? 200 : 404, contentType: 'application/json', body: JSON.stringify(index >= 0 ? { success: true, message_id: messageId } : { error: 'Message not found' }) });
+    }
     const url = new URL(route.request().url());
-    const messages = url.searchParams.has('after') ? [] : [{
-      id: 8,
-      message_type: 'text',
-      content: 'Hey from your friend list.',
-      created_at: '2026-08-15T12:05:00.000Z',
-      author: FRIEND,
-    }];
+    const after = Number(url.searchParams.get('after') || 0);
+    const messages = url.searchParams.has('after') ? directMessages.filter(message => message.id > after) : directMessages;
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ messages }) });
   });
   await page.route('https://api.giphy.com/**', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: JSON.stringify({ data: [{ id: 'e2e-gif', title: 'Celebration', images: { fixed_width: { url: 'https://media.giphy.com/media/e2e/giphy.gif', webp: 'https://media.giphy.com/media/e2e/giphy.webp' } } }] }),
+    body: JSON.stringify({ data: Array.from({ length: 30 }, (_, index) => ({
+      id: `e2e-gif-${index + 1}`,
+      title: index === 0 ? 'Celebration' : `Celebration ${index + 1}`,
+      images: { fixed_width: { url: `https://media.giphy.com/media/e2e-${index + 1}/giphy.gif`, webp: `https://media.giphy.com/media/e2e-${index + 1}/giphy.webp` } },
+    })) }),
   }));
   await page.route('https://media.giphy.com/**', route => route.fulfill({
     status: 200,
@@ -111,9 +137,18 @@ test('World Chat, friend acceptance, DMs, GIPHY, and profile ID work together', 
   await page.getByTestId('chat-trigger').click();
 
   await expect(page.getByText('Welcome to World Chat!')).toBeVisible();
-  await page.getByPlaceholder('Message World Chat').fill('Hello ChainLens');
+  await page.getByPlaceholder('Message World Chat · no links').fill('https://chainlensnft.info/docs');
+  await page.getByLabel('Send message').click();
+  await expect(page.getByText('Links can only be sent in direct messages.')).toBeVisible();
+
+  await page.getByPlaceholder('Message World Chat · no links').fill('Hello ChainLens');
   await page.getByLabel('Send message').click();
   await expect(page.getByText('Hello ChainLens')).toBeVisible();
+  const ownWorldMessage = page.getByTestId('world-chat-feed').locator('[data-message-id]').filter({ hasText: 'Hello ChainLens' });
+  page.once('dialog', dialog => dialog.accept());
+  await ownWorldMessage.getByLabel('Delete message').click();
+  await expect(ownWorldMessage).toHaveCount(0);
+  await expect(page.getByText('Message deleted')).toBeVisible();
 
   await page.getByRole('button', { name: /^Friends/ }).click();
   await expect(page.getByText(ME.id, { exact: true })).toBeVisible();
@@ -124,10 +159,24 @@ test('World Chat, friend acceptance, DMs, GIPHY, and profile ID work together', 
   await page.getByRole('button', { name: /Chain Friend/ }).click();
   await expect(page.getByText('Hey from your friend list.')).toBeVisible();
 
+  const directLink = 'https://chainlensnft.info/docs';
+  await page.getByPlaceholder(`Message ${FRIEND.display_name}`).fill(directLink);
+  await page.getByLabel('Send message').click();
+  await expect(page.getByRole('link', { name: directLink })).toHaveAttribute('href', directLink);
+  const ownDirectMessage = page.getByTestId('direct-message-feed').locator('[data-message-id]').filter({ hasText: directLink });
+  page.once('dialog', dialog => dialog.accept());
+  await ownDirectMessage.getByLabel('Delete message').click();
+  await expect(ownDirectMessage).toHaveCount(0);
+
+  const giphyRequestPromise = page.waitForRequest(request => request.url().startsWith('https://api.giphy.com/v1/gifs/'));
   await page.getByLabel('Open GIPHY picker').click();
+  const giphyRequest = await giphyRequestPromise;
+  expect(new URL(giphyRequest.url()).searchParams.get('limit')).toBe('30');
   await expect(page.getByText('Powered by GIPHY')).toBeVisible();
-  await expect(page.getByTitle('Celebration')).toBeVisible();
-  await page.getByTitle('Celebration').click();
+  await expect(page.getByText('30 GIFs')).toBeVisible();
+  await expect(page.locator('button[title^="Celebration"]')).toHaveCount(30);
+  await expect(page.getByRole('button', { name: 'Celebration', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Celebration', exact: true }).click();
   await expect(page.getByTestId('direct-message-feed').locator('img[alt^="GIF from"]')).toBeVisible();
   await page.getByLabel('Open GIPHY picker').click();
   await page.screenshot({ path: 'test-results/chat-desktop.png', fullPage: true });
@@ -140,6 +189,29 @@ test('World Chat, friend acceptance, DMs, GIPHY, and profile ID work together', 
   await page.getByRole('button', { name: 'Close chat' }).click();
   await page.getByRole('button', { name: 'Profile', exact: true }).click();
   await expect(page.getByText(ME.id, { exact: true })).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
+
+test('opening Chat after SimpleSwap keeps Messenger fully inside the viewport', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await installChatMocks(page);
+  await page.route('https://simpleswap.io/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>SimpleSwap</title>' }));
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+
+  await page.getByTestId('simpleswap-trigger').click();
+  await expect(page.locator('#simpleswap-frame')).toBeVisible();
+  await page.getByTestId('chat-trigger').click();
+
+  const panel = page.getByTestId('chat-panel');
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole('heading', { name: 'Messenger' })).toBeVisible();
+  await expect(page.locator('#simpleswap-frame')).toBeHidden();
+  const box = await panel.boundingBox();
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height).toBeLessThanOrEqual(900);
+  await page.screenshot({ path: 'test-results/chat-after-simpleswap.png', fullPage: true });
   expect(pageErrors).toEqual([]);
 });
 
