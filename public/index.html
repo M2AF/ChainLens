@@ -21,6 +21,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/chain-catalog.js"></script>
   <script src="/wallet-providers.js"></script>
+  <script src="/asset-filter-key.js"></script>
   <script src="app-hub-data.js"></script>
 
   <script>
@@ -172,6 +173,60 @@
       validateProfileWalletAddress, normalizeProfileWalletAddress
     } = window.ChainLensChains;
     const { discoverWalletProviders, requestLinkedAddress } = window.ChainLensWalletProviders;
+    const { keyFor: assetKeyFor, legacyKeyToCanonical, mergeEntries: mergeFilterEntries,
+            sanitizeEntries: sanitizeFilterEntries } = window.assetFilterKey;
+
+    // ── Hidden / spam assets ──────────────────────────────────────────────────
+    //
+    // The same list MagicMoney Wallet keeps, under the same keys, carried on the
+    // ChainLens profile — hide a scam airdrop in either product and it is hidden
+    // in both, on every device you are signed in on.
+    //
+    // localStorage is what the grid renders from, always. Signing in ADDS the
+    // profile copy; it never becomes a prerequisite, and a failed request leaves
+    // the local list exactly as it was.
+    const FILTERS_STORE = 'cl_asset_filters_v1';
+    const FILTERS_MIGRATED = 'cl_asset_filters_migrated_v1';
+
+    /**
+     * Fold the pre-sync `hiddenAssets` / `spamAssets` arrays into the entries
+     * map, once. Those held our old display-id keys, which the wallet cannot
+     * match — so without this, the release would look like it had forgotten
+     * everything you ever hid. Stamped t=0 so ANY later decision, on any device,
+     * outranks them. The old arrays are left in place, not deleted.
+     */
+    const migrateLegacyFilters = (entries) => {
+      if (localStorage.getItem(FILTERS_MIGRATED) === '1') return entries;
+      const out = Object.assign({}, entries);
+      [['hiddenAssets', 'h'], ['spamAssets', 's']].forEach(([store, state]) => {
+        let legacy = [];
+        try { legacy = JSON.parse(localStorage.getItem(store) || '[]'); } catch { return; }
+        if (!Array.isArray(legacy)) return;
+        legacy.forEach(old => {
+          if (typeof old !== 'string') return;
+          // One old key has several readings; all are recorded, and the wrong
+          // ones match no asset you hold.
+          legacyKeyToCanonical(old).forEach(key => { if (!out[key]) out[key] = { s: state, t: 0 }; });
+        });
+      });
+      try {
+        localStorage.setItem(FILTERS_MIGRATED, '1');
+        localStorage.setItem(FILTERS_STORE, JSON.stringify(out));
+      } catch {}
+      return out;
+    };
+
+    const loadStoredFilters = () => {
+      try {
+        return migrateLegacyFilters(sanitizeFilterEntries(JSON.parse(localStorage.getItem(FILTERS_STORE) || '{}')));
+      } catch {
+        return migrateLegacyFilters({});
+      }
+    };
+
+    const saveStoredFilters = (entries) => {
+      try { localStorage.setItem(FILTERS_STORE, JSON.stringify(entries)); } catch {}
+    };
 
     class ErrorBoundary extends React.Component {
       constructor(props) { super(props); this.state = { error: null }; }
@@ -288,6 +343,490 @@
       );
     });
 
+    // ── ChainLens Messenger ─────────────────────────────────────────────────
+    // A compact MSN-inspired popup shared by World Chat and friend DMs. The
+    // existing ChainLens JWT remains the only browser credential; every API
+    // route independently enforces wallet + social eligibility.
+    const mergeChatMessages = (current, incoming) => {
+      const byId = new Map(current.map(message => [String(message.id), message]));
+      (incoming || []).forEach(message => byId.set(String(message.id), message));
+      return [...byId.values()].sort((a, b) => Number(a.id) - Number(b.id));
+    };
+
+    const formatChatTime = (value) => {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '';
+      return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    };
+
+    const ChatAvatar = ({ profile, size = 34 }) => {
+      const name = profile?.display_name || 'ChainLens user';
+      const initials = name.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
+      const hue = [...String(profile?.id || name)].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 360;
+      return profile?.avatar_url ? (
+        <img src={profile.avatar_url} alt="" referrerPolicy="no-referrer"
+          className="rounded-full object-cover flex-shrink-0"
+          style={{ width: size, height: size }} />
+      ) : (
+        <span className="rounded-full flex items-center justify-center flex-shrink-0 text-white font-black"
+          style={{ width: size, height: size, fontSize: Math.max(9, size * 0.32), background: `linear-gradient(135deg,hsl(${hue} 75% 55%),hsl(${(hue + 50) % 360} 70% 42%))` }}>
+          {initials || 'CL'}
+        </span>
+      );
+    };
+
+    const ChatMessage = ({ message, own, darkMode }) => (
+      <div className={`flex gap-2.5 ${own ? 'flex-row-reverse' : ''}`} data-message-id={message.id}>
+        <ChatAvatar profile={message.author} size={30} />
+        <div className={`min-w-0 max-w-[78%] ${own ? 'text-right' : ''}`}>
+          <div className={`flex items-baseline gap-2 mb-1 ${own ? 'justify-end' : ''}`}>
+            <span className={`text-[10px] font-black truncate ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+              {message.author?.display_name || 'ChainLens user'}
+            </span>
+            <span className={`text-[8px] flex-shrink-0 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{formatChatTime(message.created_at)}</span>
+          </div>
+          {message.message_type === 'gif' ? (
+            <div className={`overflow-hidden rounded-2xl border ${own ? 'rounded-tr-sm' : 'rounded-tl-sm'} ${darkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-slate-100'}`}>
+              <img src={message.content} alt={`GIF from ${message.author?.display_name || 'ChainLens user'}`}
+                className="block max-h-52 w-full object-contain" loading="lazy" />
+            </div>
+          ) : (
+            <div className={`inline-block px-3 py-2 rounded-2xl text-left text-xs leading-relaxed whitespace-pre-wrap break-words ${own
+              ? 'rounded-tr-sm bg-cyan-500 text-slate-950'
+              : darkMode ? 'rounded-tl-sm bg-slate-800 text-slate-100' : 'rounded-tl-sm bg-slate-100 text-slate-800'}`}>
+              {message.content}
+            </div>
+          )}
+          {!own && message.author?.id && (
+            <div className={`mt-1 font-mono text-[7px] truncate ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}>{message.author.id}</div>
+          )}
+        </div>
+      </div>
+    );
+
+    const ChatWidget = ({ open, onClose, onOpenProfile, darkMode, authToken, userProfile }) => {
+      const [tab, setTab] = useState('world');
+      const [status, setStatus] = useState(null);
+      const [statusLoading, setStatusLoading] = useState(false);
+      const [messages, setMessages] = useState([]);
+      const [messagesLoading, setMessagesLoading] = useState(false);
+      const [friends, setFriends] = useState({ friends: [], incoming: [], outgoing: [] });
+      const [friendsLoading, setFriendsLoading] = useState(false);
+      const [selectedFriend, setSelectedFriend] = useState(null);
+      const [directMessages, setDirectMessages] = useState([]);
+      const [directLoading, setDirectLoading] = useState(false);
+      const [friendId, setFriendId] = useState('');
+      const [draft, setDraft] = useState('');
+      const [sending, setSending] = useState(false);
+      const [busyFriendship, setBusyFriendship] = useState(null);
+      const [error, setError] = useState('');
+      const [notice, setNotice] = useState('');
+      const [showGifs, setShowGifs] = useState(false);
+      const [gifQuery, setGifQuery] = useState('');
+      const [gifs, setGifs] = useState([]);
+      const [gifsLoading, setGifsLoading] = useState(false);
+      const worldCursor = useRef(0);
+      const directCursor = useRef(0);
+      const feedRef = useRef(null);
+
+      const api = useCallback(async (url, options = {}) => {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+            ...(options.headers || {}),
+          },
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || 'Messenger request failed');
+        return body;
+      }, [authToken]);
+
+      const updateCursor = (cursorRef, rows) => {
+        for (const row of rows || []) cursorRef.current = Math.max(cursorRef.current, Number(row.id) || 0);
+      };
+
+      const loadWorld = useCallback(async (incremental = false) => {
+        if (!authToken) return;
+        if (!incremental) setMessagesLoading(true);
+        try {
+          const suffix = incremental ? `?after=${worldCursor.current}` : '';
+          const body = await api(`/api/chat/world${suffix}`);
+          updateCursor(worldCursor, body.messages);
+          setMessages(current => incremental ? mergeChatMessages(current, body.messages) : (body.messages || []));
+          setError('');
+        } catch (requestError) {
+          setError(requestError.message);
+        } finally {
+          if (!incremental) setMessagesLoading(false);
+        }
+      }, [api, authToken]);
+
+      const loadFriends = useCallback(async (quiet = false) => {
+        if (!authToken) return;
+        if (!quiet) setFriendsLoading(true);
+        try {
+          const body = await api('/api/chat/friends');
+          setFriends(body);
+          setSelectedFriend(current => current && (body.friends || []).find(friend => friend.id === current.id) || null);
+          setError('');
+        } catch (requestError) {
+          setError(requestError.message);
+        } finally {
+          if (!quiet) setFriendsLoading(false);
+        }
+      }, [api, authToken]);
+
+      const loadDirect = useCallback(async (friend, incremental = false) => {
+        if (!friend || !authToken) return;
+        if (!incremental) setDirectLoading(true);
+        try {
+          const suffix = incremental ? `?after=${directCursor.current}` : '';
+          const body = await api(`/api/chat/friends/${encodeURIComponent(friend.id)}/messages${suffix}`);
+          updateCursor(directCursor, body.messages);
+          setDirectMessages(current => incremental ? mergeChatMessages(current, body.messages) : (body.messages || []));
+          setError('');
+        } catch (requestError) {
+          setError(requestError.message);
+        } finally {
+          if (!incremental) setDirectLoading(false);
+        }
+      }, [api, authToken]);
+
+      useEffect(() => {
+        setStatus(null);
+        setMessages([]);
+        setDirectMessages([]);
+        setSelectedFriend(null);
+        worldCursor.current = 0;
+        directCursor.current = 0;
+      }, [authToken]);
+
+      useEffect(() => {
+        if (!open || !authToken) return;
+        let cancelled = false;
+        setStatusLoading(true);
+        api('/api/chat/status')
+          .then(body => { if (!cancelled) { setStatus(body); setError(''); } })
+          .catch(requestError => { if (!cancelled) setError(requestError.message); })
+          .finally(() => { if (!cancelled) setStatusLoading(false); });
+        return () => { cancelled = true; };
+      }, [open, authToken, api]);
+
+      useEffect(() => {
+        if (!open || !status?.eligible || tab !== 'world') return;
+        loadWorld(false);
+        const interval = setInterval(() => loadWorld(true), 3000);
+        return () => clearInterval(interval);
+      }, [open, status?.eligible, tab, loadWorld]);
+
+      useEffect(() => {
+        if (!open || !status?.eligible || tab !== 'friends') return;
+        loadFriends(false);
+        const interval = setInterval(() => loadFriends(true), 6000);
+        return () => clearInterval(interval);
+      }, [open, status?.eligible, tab, loadFriends]);
+
+      useEffect(() => {
+        if (!open || !status?.eligible || !selectedFriend) return;
+        directCursor.current = 0;
+        setDirectMessages([]);
+        loadDirect(selectedFriend, false);
+        const interval = setInterval(() => loadDirect(selectedFriend, true), 3000);
+        return () => clearInterval(interval);
+      }, [open, status?.eligible, selectedFriend?.id, loadDirect]);
+
+      useEffect(() => {
+        if (!feedRef.current) return;
+        requestAnimationFrame(() => {
+          if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
+        });
+      }, [messages.length, directMessages.length, selectedFriend?.id, tab]);
+
+      const flashNotice = (value) => {
+        setNotice(value);
+        setTimeout(() => setNotice(''), 2500);
+      };
+
+      const sendMessage = async (type, content) => {
+        if (sending) return;
+        setSending(true);
+        setError('');
+        try {
+          const url = selectedFriend
+            ? `/api/chat/friends/${encodeURIComponent(selectedFriend.id)}/messages`
+            : '/api/chat/world';
+          const body = await api(url, { method: 'POST', body: JSON.stringify({ type, content }) });
+          if (selectedFriend) {
+            updateCursor(directCursor, [body.message]);
+            setDirectMessages(current => mergeChatMessages(current, [body.message]));
+          } else {
+            updateCursor(worldCursor, [body.message]);
+            setMessages(current => mergeChatMessages(current, [body.message]));
+          }
+          setDraft('');
+          setShowGifs(false);
+        } catch (requestError) {
+          setError(requestError.message);
+        } finally {
+          setSending(false);
+        }
+      };
+
+      const sendFriendRequest = async (event) => {
+        event.preventDefault();
+        if (!friendId.trim()) return;
+        setBusyFriendship('new');
+        setError('');
+        try {
+          await api('/api/chat/friends', {
+            method: 'POST',
+            body: JSON.stringify({ chainlens_id: friendId.trim() }),
+          });
+          setFriendId('');
+          flashNotice('Friend request sent');
+          await loadFriends(true);
+        } catch (requestError) {
+          setError(requestError.message);
+        } finally {
+          setBusyFriendship(null);
+        }
+      };
+
+      const changeFriendship = async (friendship, action) => {
+        setBusyFriendship(friendship.friendship_id);
+        setError('');
+        try {
+          await api(`/api/chat/friends/${friendship.friendship_id}${action === 'accept' ? '/accept' : ''}`, {
+            method: action === 'accept' ? 'POST' : 'DELETE',
+          });
+          flashNotice(action === 'accept' ? `${friendship.display_name} is now your friend` : 'Friend list updated');
+          await loadFriends(true);
+        } catch (requestError) {
+          setError(requestError.message);
+        } finally {
+          setBusyFriendship(null);
+        }
+      };
+
+      const loadGifs = async (query = '') => {
+        if (!status?.giphyApiKey) {
+          setError('GIF search is waiting for GIPHY_API_KEY to be configured.');
+          return;
+        }
+        setGifsLoading(true);
+        setError('');
+        try {
+          const search = query.trim();
+          const endpoint = search ? 'search' : 'trending';
+          const url = new URL(`https://api.giphy.com/v1/gifs/${endpoint}`);
+          url.searchParams.set('api_key', status.giphyApiKey);
+          url.searchParams.set('limit', '18');
+          url.searchParams.set('rating', 'pg-13');
+          if (search) {
+            url.searchParams.set('q', search.slice(0, 50));
+            url.searchParams.set('lang', 'en');
+          }
+          const response = await fetch(url.toString());
+          const body = await response.json();
+          if (!response.ok || !Array.isArray(body.data)) throw new Error('GIPHY search is unavailable right now');
+          setGifs(body.data.map(gif => ({
+            id: gif.id,
+            title: gif.title || 'GIPHY GIF',
+            url: gif.images?.fixed_width?.url || gif.images?.downsized_medium?.url || gif.images?.original?.url,
+            preview: gif.images?.fixed_width?.webp || gif.images?.fixed_width?.url || gif.images?.original?.url,
+          })).filter(gif => gif.url && gif.preview));
+        } catch (requestError) {
+          setError(requestError.message || 'GIPHY search failed');
+        } finally {
+          setGifsLoading(false);
+        }
+      };
+
+      const openGifPicker = () => {
+        const next = !showGifs;
+        setShowGifs(next);
+        if (next && gifs.length === 0) loadGifs('');
+      };
+
+      if (!open) return null;
+
+      const panel = darkMode ? 'bg-slate-900/95 border-slate-700 text-white' : 'bg-white/95 border-slate-200 text-slate-900';
+      const muted = darkMode ? 'text-slate-500' : 'text-slate-400';
+      const currentMessages = selectedFriend ? directMessages : messages;
+      const currentLoading = selectedFriend ? directLoading : messagesLoading;
+
+      return (
+        <section aria-label="ChainLens Messenger" data-testid="chat-panel"
+          className={`w-[min(calc(100vw-2rem),430px)] h-[min(72vh,590px)] rounded-[1.5rem] border shadow-2xl backdrop-blur-xl overflow-hidden flex flex-col ${panel}`}
+          style={{ animation: 'slideUp 0.2s ease-out both' }} onClick={event => event.stopPropagation()}>
+          <header className={`px-4 pt-3 border-b ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+            <div className="flex items-center justify-between gap-3 pb-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-slate-950 shadow-lg shadow-cyan-500/20">
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 5.5h16v11H8l-4 3v-14Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M8 10h8M8 13h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                </span>
+                <div className="min-w-0">
+                  <p className={`text-[8px] font-black uppercase tracking-[0.2em] ${muted}`}>ChainLens</p>
+                  <h2 className="font-heading font-extrabold text-sm truncate">Messenger</h2>
+                </div>
+              </div>
+              <button onClick={onClose} aria-label="Close chat"
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${darkMode ? 'bg-slate-800 text-slate-400 hover:bg-red-500 hover:text-white' : 'bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white'}`}>×</button>
+            </div>
+            <div className="grid grid-cols-2 gap-1">
+              {[['world', 'World Chat'], ['friends', `Friends${friends.incoming?.length ? ` (${friends.incoming.length})` : ''}`]].map(([value, label]) => (
+                <button key={value} onClick={() => { setTab(value); setSelectedFriend(null); setShowGifs(false); setError(''); }}
+                  className={`py-2.5 rounded-t-xl text-[10px] font-black uppercase tracking-widest border-b-2 transition-colors ${tab === value ? 'border-cyan-400 text-cyan-400' : `border-transparent ${muted}`}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </header>
+
+          {!authToken ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
+              <span className="text-4xl mb-4">💬</span>
+              <h3 className="font-heading font-extrabold text-lg">Sign in to chat</h3>
+              <p className={`text-xs leading-relaxed mt-2 ${muted}`}>Messenger uses your synced ChainLens name, profile picture, and ID.</p>
+              <button onClick={onOpenProfile} className="mt-5 px-5 py-3 rounded-xl bg-cyan-500 text-slate-950 text-xs font-black uppercase tracking-widest">Open Profile</button>
+            </div>
+          ) : statusLoading && !status ? (
+            <div className={`flex-1 flex items-center justify-center text-xs ${muted}`}>Checking your account…</div>
+          ) : status && !status.eligible ? (
+            <div className="flex-1 flex flex-col items-center justify-center px-7 text-center">
+              <span className="text-4xl mb-4">🔐</span>
+              <h3 className="font-heading font-extrabold text-lg">Unlock Messenger</h3>
+              <p className={`text-xs leading-relaxed mt-2 ${muted}`}>Chat requires one verified wallet and either Google or Discord on the same ChainLens account.</p>
+              <div className={`w-full mt-5 rounded-2xl border overflow-hidden text-left ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+                <div className={`px-4 py-3 flex items-center justify-between text-xs ${darkMode ? 'bg-slate-950/50' : 'bg-slate-50'}`}><span>Verified wallet</span><strong className={status.walletLinked ? 'text-emerald-400' : 'text-amber-400'}>{status.walletLinked ? 'Linked ✓' : 'Required'}</strong></div>
+                <div className={`px-4 py-3 flex items-center justify-between text-xs border-t ${darkMode ? 'border-slate-800 bg-slate-950/50' : 'border-slate-200 bg-slate-50'}`}><span>Google or Discord</span><strong className={status.socialLinked ? 'text-emerald-400' : 'text-amber-400'}>{status.socialLinked ? 'Linked ✓' : 'Required'}</strong></div>
+              </div>
+              <button onClick={onOpenProfile} className="mt-5 px-5 py-3 rounded-xl bg-cyan-500 text-slate-950 text-xs font-black uppercase tracking-widest">Manage Profile</button>
+            </div>
+          ) : status?.eligible && tab === 'friends' && !selectedFriend ? (
+            <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
+              <div className={`rounded-2xl border p-3 ${darkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`text-[8px] font-black uppercase tracking-widest mb-1 ${muted}`}>Your ChainLens ID</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[9px] flex-1 break-all">{userProfile?.id}</span>
+                  <button onClick={() => { navigator.clipboard.writeText(userProfile?.id || ''); flashNotice('ID copied'); }}
+                    className="text-[9px] font-black uppercase tracking-widest text-cyan-400">Copy</button>
+                </div>
+              </div>
+              <form onSubmit={sendFriendRequest} className="flex gap-2">
+                <input value={friendId} onChange={event => setFriendId(event.target.value)} placeholder="Friend's ChainLens ID"
+                  aria-label="Friend's ChainLens ID" maxLength="36"
+                  className={`min-w-0 flex-1 rounded-xl border px-3 py-2.5 font-mono text-[10px] outline-none focus:border-cyan-400 ${darkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`} />
+                <button disabled={busyFriendship === 'new' || friendId.trim().length !== 36}
+                  className="px-3 rounded-xl bg-cyan-500 text-slate-950 text-[9px] font-black uppercase tracking-widest disabled:opacity-40">Add</button>
+              </form>
+
+              {friendsLoading ? <div className={`text-xs text-center py-8 ${muted}`}>Loading friends…</div> : (
+                <>
+                  {(friends.incoming || []).length > 0 && <div className="space-y-2">
+                    <div className={`text-[9px] font-black uppercase tracking-widest ${muted}`}>Friend requests</div>
+                    {friends.incoming.map(request => (
+                      <div key={request.friendship_id} className={`rounded-2xl border p-3 flex items-center gap-3 ${darkMode ? 'border-slate-800 bg-slate-950/50' : 'border-slate-200 bg-white'}`}>
+                        <ChatAvatar profile={request} />
+                        <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate">{request.display_name}</div><div className={`font-mono text-[7px] truncate ${muted}`}>{request.id}</div></div>
+                        <button onClick={() => changeFriendship(request, 'accept')} disabled={busyFriendship === request.friendship_id} className="text-[9px] font-black uppercase text-emerald-400">Accept</button>
+                        <button onClick={() => changeFriendship(request, 'remove')} disabled={busyFriendship === request.friendship_id} aria-label="Decline friend request" className={`text-sm ${muted}`}>×</button>
+                      </div>
+                    ))}
+                  </div>}
+
+                  <div className="space-y-2">
+                    <div className={`text-[9px] font-black uppercase tracking-widest ${muted}`}>Friends · {(friends.friends || []).length}</div>
+                    {(friends.friends || []).length === 0 ? (
+                      <div className={`rounded-2xl border border-dashed py-8 text-center text-xs ${darkMode ? 'border-slate-800 text-slate-600' : 'border-slate-200 text-slate-400'}`}>Add a friend by their ChainLens ID.</div>
+                    ) : friends.friends.map(friend => (
+                      <button key={friend.id} onClick={() => { setSelectedFriend(friend); setShowGifs(false); }}
+                        className={`w-full rounded-2xl border p-3 flex items-center gap-3 text-left transition-colors ${darkMode ? 'border-slate-800 bg-slate-950/50 hover:border-cyan-500/60' : 'border-slate-200 bg-white hover:border-cyan-400'}`}>
+                        <ChatAvatar profile={friend} />
+                        <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate">{friend.display_name}</div><div className={`font-mono text-[7px] truncate ${muted}`}>{friend.id}</div></div>
+                        <span className="text-cyan-400">›</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {(friends.outgoing || []).length > 0 && <div className="space-y-2">
+                    <div className={`text-[9px] font-black uppercase tracking-widest ${muted}`}>Sent requests</div>
+                    {friends.outgoing.map(request => (
+                      <div key={request.friendship_id} className={`rounded-xl px-3 py-2 flex items-center gap-2 text-xs ${darkMode ? 'bg-slate-950/40' : 'bg-slate-50'}`}>
+                        <span className="flex-1 truncate">{request.display_name}</span><span className={`text-[8px] ${muted}`}>Pending</span>
+                        <button onClick={() => changeFriendship(request, 'remove')} className={`text-[9px] font-black uppercase ${muted}`}>Cancel</button>
+                      </div>
+                    ))}
+                  </div>}
+                </>
+              )}
+            </div>
+          ) : status?.eligible ? (
+            <>
+              {selectedFriend && (
+                <div className={`px-3 py-2 flex items-center gap-2 border-b ${darkMode ? 'border-slate-800 bg-slate-950/50' : 'border-slate-100 bg-slate-50'}`}>
+                  <button onClick={() => { setSelectedFriend(null); setDirectMessages([]); setShowGifs(false); }} aria-label="Back to friends" className={`w-8 h-8 rounded-full ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-200'}`}>‹</button>
+                  <ChatAvatar profile={selectedFriend} size={30} />
+                  <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate">{selectedFriend.display_name}</div><div className={`font-mono text-[7px] truncate ${muted}`}>{selectedFriend.id}</div></div>
+                  <button onClick={() => changeFriendship(selectedFriend, 'remove')} className={`text-[8px] font-black uppercase tracking-widest ${muted}`}>Unfriend</button>
+                </div>
+              )}
+              <div ref={feedRef} data-testid={selectedFriend ? 'direct-message-feed' : 'world-chat-feed'}
+                className={`flex-1 min-h-0 overflow-y-auto p-3 space-y-4 ${darkMode ? 'bg-slate-950/35' : 'bg-slate-50/70'}`}>
+                {currentLoading ? (
+                  <div className={`h-full flex items-center justify-center text-xs ${muted}`}>Loading messages…</div>
+                ) : currentMessages.length === 0 ? (
+                  <div className={`h-full flex flex-col items-center justify-center text-center px-8 ${muted}`}><span className="text-3xl mb-3">👋</span><p className="text-xs">{selectedFriend ? `Start a conversation with ${selectedFriend.display_name}.` : 'World Chat is quiet. Say hello!'}</p></div>
+                ) : currentMessages.map(message => (
+                  <ChatMessage key={message.id} message={message} own={message.author?.id === userProfile?.id} darkMode={darkMode} />
+                ))}
+              </div>
+
+              {showGifs && (
+                <div className={`h-64 border-t flex flex-col ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <form onSubmit={event => { event.preventDefault(); loadGifs(gifQuery); }} className="p-2 flex gap-2">
+                    <input value={gifQuery} onChange={event => setGifQuery(event.target.value)} placeholder="Search GIPHY" maxLength="50"
+                      className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-xs outline-none focus:border-cyan-400 ${darkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`} />
+                    <button className="px-3 rounded-xl bg-cyan-500 text-slate-950 text-[9px] font-black uppercase">Search</button>
+                  </form>
+                  <div className="flex-1 overflow-y-auto px-2 pb-2">
+                    {gifsLoading ? <div className={`h-full flex items-center justify-center text-xs ${muted}`}>Finding GIFs…</div> : (
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {gifs.map(gif => <button key={gif.id} onClick={() => sendMessage('gif', gif.url)} disabled={sending} title={gif.title} className="aspect-square rounded-lg overflow-hidden bg-slate-800"><img src={gif.preview} alt={gif.title} className="w-full h-full object-cover" loading="lazy" /></button>)}
+                      </div>
+                    )}
+                  </div>
+                  <div className={`px-3 py-1 text-right text-[8px] font-black uppercase tracking-widest ${muted}`}>Powered by GIPHY</div>
+                </div>
+              )}
+
+              <form onSubmit={event => { event.preventDefault(); sendMessage('text', draft); }}
+                className={`p-2.5 border-t flex items-end gap-2 ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                <button type="button" onClick={openGifPicker} aria-label="Open GIPHY picker"
+                  className={`h-10 px-2.5 rounded-xl border text-[9px] font-black ${showGifs ? 'bg-cyan-500 text-slate-950 border-cyan-500' : darkMode ? 'border-slate-700 text-cyan-400' : 'border-slate-200 text-cyan-600'}`}>GIF</button>
+                <textarea value={draft} onChange={event => setDraft(event.target.value)} maxLength="500" rows="1" placeholder={selectedFriend ? `Message ${selectedFriend.display_name}` : 'Message World Chat'}
+                  onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage('text', draft); } }}
+                  className={`min-h-10 max-h-24 min-w-0 flex-1 resize-none rounded-xl border px-3 py-2.5 text-xs outline-none focus:border-cyan-400 ${darkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`} />
+                <button disabled={sending || !draft.trim()} aria-label="Send message" className="w-10 h-10 rounded-xl bg-cyan-500 text-slate-950 flex items-center justify-center disabled:opacity-40">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="m3 3 18 9-18 9 3-9-3-9Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M6 12h15" stroke="currentColor" strokeWidth="2"/></svg>
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className={`flex-1 flex items-center justify-center text-xs px-8 text-center ${muted}`}>{error || 'Messenger is unavailable.'}</div>
+          )}
+
+          {(error || notice) && (
+            <div aria-live="polite" className={`px-3 py-2 text-[10px] font-bold border-t ${error ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+              {error || notice}
+            </div>
+          )}
+        </section>
+      );
+    };
+
     const App = () => {
       const [activeTab, setActiveTab] = useState('search');
       const [evmAddr, setEvmAddr] = useState('');
@@ -311,9 +850,42 @@
       const [isResolving, setIsResolving] = useState(false);
       const [scanIssues, setScanIssues] = useState([]);
 
-      const [hiddenIds, setHiddenIds] = useState(() => JSON.parse(localStorage.getItem('hiddenAssets') || '[]'));
-      const [spamIds, setSpamIds] = useState(() => JSON.parse(localStorage.getItem('spamAssets') || '[]'));
+      // Canonical asset key → { s: 'h' hidden | 's' spam | 'a' restored, t: ms }.
+      // 'a' is a TOMBSTONE, not an absence: the wallet on another device still
+      // holds the older hide, and only a NEWER decision can outrank it. Dropping
+      // the key instead would let that device put the asset straight back.
+      const [filterEntries, setFilterEntries] = useState(loadStoredFilters);
       const [showManager, setShowManager] = useState(false);
+
+      const hiddenIds = useMemo(
+        () => Object.keys(filterEntries).filter(k => filterEntries[k].s === 'h'), [filterEntries]);
+      const spamIds = useMemo(
+        () => Object.keys(filterEntries).filter(k => filterEntries[k].s === 's'), [filterEntries]);
+
+      // Read by the debounced push, which fires long after the render that
+      // scheduled it — a ref is what stops it pushing a stale list.
+      const filterEntriesRef = useRef(filterEntries);
+      filterEntriesRef.current = filterEntries;
+      // Only a user decision should trigger a push. Without this, merging the
+      // server's reply would schedule another push of the same data, forever.
+      const filtersDirty = useRef(false);
+      const filterPushTimer = useRef(null);
+
+      // Every write goes through here, so local storage and the push stay in step.
+      const setFilterState = useCallback((assets, state) => {
+        const keys = (Array.isArray(assets) ? assets : [assets])
+          .map(a => (typeof a === 'string' ? a : assetKeyFor(a)))
+          .filter(Boolean);
+        if (keys.length === 0) return;
+        const t = Date.now();
+        filtersDirty.current = true;
+        setFilterEntries(prev => {
+          const next = Object.assign({}, prev);
+          keys.forEach(key => { next[key] = { s: state, t }; });
+          saveStoredFilters(next);
+          return next;
+        });
+      }, []);
 
       const [marketData, setMarketData] = useState(() => {
         try {
@@ -392,6 +964,8 @@
       const [showWallet, setShowWallet] = useState(false);
       const [showSimpleSwap, setShowSimpleSwap] = useState(false);
       const [simpleSwapLoaded, setSimpleSwapLoaded] = useState(false);
+      const [showChat, setShowChat] = useState(false);
+      const [copiedProfileId, setCopiedProfileId] = useState(false);
 
       const chainStyles = Object.fromEntries(DEFAULT_CHAINS.map(chain => [chain.id, chain]));
       // Static App Hub records used this alias before the scanner standardized it.
@@ -465,10 +1039,62 @@
         localStorage.setItem('darkMode', darkMode);
       }, [darkMode]);
 
+      // Merge the profile's list in on sign-in, then seed the profile with
+      // anything hidden while signed out. Merged, never assigned: a decision made
+      // signed-out is still newer than what the server holds, and must survive.
+      //
+      // A failed request is a no-op on purpose. `entries` missing from the reply
+      // means "no answer", which is NOT "nothing hidden" — treating them alike
+      // would show the user every scam airdrop they had already dismissed.
       useEffect(() => {
-        localStorage.setItem('hiddenAssets', JSON.stringify(hiddenIds));
-        localStorage.setItem('spamAssets', JSON.stringify(spamIds));
-      }, [hiddenIds, spamIds]);
+        if (!authToken) return;
+        let cancelled = false;
+        (async () => {
+          try {
+            const res = await fetch('/api/profile/filters', { headers: { Authorization: `Bearer ${authToken}` } });
+            if (!res.ok) return;
+            const body = await res.json();
+            if (cancelled || !body || !body.entries) return;
+            const merged = mergeFilterEntries(filterEntriesRef.current, body.entries);
+            filterEntriesRef.current = merged;
+            saveStoredFilters(merged);
+            setFilterEntries(merged);
+            await fetch('/api/profile/filters', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+              body: JSON.stringify({ entries: merged }),
+            });
+          } catch {}
+        })();
+        return () => { cancelled = true; };
+      }, [authToken]);
+
+      // Push after a user decision, debounced — hiding five scam tokens in a row
+      // is one request. What comes back is the server's merge with the other
+      // devices, so applying it is how a hide made in the wallet arrives here.
+      useEffect(() => {
+        if (!authToken || !filtersDirty.current) return;
+        filtersDirty.current = false;
+        if (filterPushTimer.current) clearTimeout(filterPushTimer.current);
+        filterPushTimer.current = setTimeout(async () => {
+          try {
+            const res = await fetch('/api/profile/filters', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+              body: JSON.stringify({ entries: filterEntriesRef.current }),
+            });
+            if (!res.ok) return;
+            const body = await res.json();
+            if (!body || !body.entries) return;
+            const merged = mergeFilterEntries(filterEntriesRef.current, body.entries);
+            filterEntriesRef.current = merged;
+            saveStoredFilters(merged);
+            setFilterEntries(merged);
+          } catch {}
+        }, 1200);
+      }, [filterEntries, authToken]);
+
+      useEffect(() => () => { if (filterPushTimer.current) clearTimeout(filterPushTimer.current); }, []);
 
       useEffect(() => {
         // Static app hub data (loaded from app-hub-data.js)
@@ -1546,8 +2172,11 @@
       const resetEverything = () => {
         if (confirm("Clear all results AND unhide all previously hidden assets?")) {
             clearAll();
-            setHiddenIds([]);
-            setSpamIds([]);
+            // Tombstones, not a wipe: this has to un-hide on the other devices
+            // too, and a device that still holds the hide would otherwise push it
+            // straight back. The pre-sync arrays are cleared as well so a
+            // downgrade doesn't resurrect the old list.
+            unhideAll();
             localStorage.removeItem('hiddenAssets');
             localStorage.removeItem('spamAssets');
         }
@@ -1581,16 +2210,15 @@
       // stay always-mounted (prevents images from reloading on tab switch)
       const baseVisible = useMemo(() => {
         return nfts.filter(nft => {
-          const rawId = nft.address || nft.id || nft.mint || nft.name;
-          const compositeKey = `${nft.chain.toLowerCase()}-${String(rawId).toLowerCase()}`;
-          if (hiddenIds.includes(compositeKey) || spamIds.includes(compositeKey)) return false;
+          const entry = filterEntries[assetKeyFor(nft)];
+          if (entry && (entry.s === 'h' || entry.s === 's')) return false;
           if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             return nft.name?.toLowerCase().includes(query) || nft.symbol?.toLowerCase().includes(query);
           }
           return true;
         });
-      }, [nfts, hiddenIds, spamIds, searchQuery]);
+      }, [nfts, filterEntries, searchQuery]);
 
       // NFT grid — always computed so its <img> elements stay mounted
       const nftAssets = useMemo(() =>
@@ -1613,17 +2241,11 @@
         return visibleAssets.reduce((sum, asset) => sum + (parseFloat(asset.totalValue) || 0), 0).toFixed(2);
       }, [visibleAssets]);
 
-      const hiddenList = useMemo(() => nfts.filter(nft => {
-        const rawId = nft.address || nft.id || nft.mint || nft.name;
-        const compositeKey = `${nft.chain.toLowerCase()}-${String(rawId).toLowerCase()}`;
-        return hiddenIds.includes(compositeKey);
-      }), [nfts, hiddenIds]);
+      const hiddenList = useMemo(
+        () => nfts.filter(nft => (filterEntries[assetKeyFor(nft)] || {}).s === 'h'), [nfts, filterEntries]);
 
-      const spamList = useMemo(() => nfts.filter(nft => {
-        const rawId = nft.address || nft.id || nft.mint || nft.name;
-        const compositeKey = `${nft.chain.toLowerCase()}-${String(rawId).toLowerCase()}`;
-        return spamIds.includes(compositeKey);
-      }), [nfts, spamIds]);
+      const spamList = useMemo(
+        () => nfts.filter(nft => (filterEntries[assetKeyFor(nft)] || {}).s === 's'), [nfts, filterEntries]);
 
       const appHubApps = useMemo(() => {
         const apps = appHubData?.apps || [];
@@ -1658,23 +2280,23 @@
         return [...(appHubData?.chainStats || [])].sort((a, b) => b.count - a.count).slice(0, 6);
       }, [appHubData]);
 
+      // Un-toggling writes 'a' (restored) rather than deleting the key: the
+      // wallet on another device still holds the hide, and only a newer decision
+      // outranks it. Deleting would let its next push re-hide the asset.
       const toggleHide = (e, nft) => {
         e.stopPropagation();
-        const rawId = nft.address || nft.id || nft.mint || nft.name;
-        const compositeKey = `${nft.chain.toLowerCase()}-${String(rawId).toLowerCase()}`;
-        setHiddenIds(prev => prev.includes(compositeKey) ? prev.filter(i => i !== compositeKey) : [...prev, compositeKey]);
+        const key = assetKeyFor(nft);
+        setFilterState(key, (filterEntries[key] || {}).s === 'h' ? 'a' : 'h');
       };
 
       const toggleSpam = (e, nft) => {
         e.stopPropagation();
-        const rawId = nft.address || nft.id || nft.mint || nft.name;
-        const compositeKey = `${nft.chain.toLowerCase()}-${String(rawId).toLowerCase()}`;
-        setSpamIds(prev => prev.includes(compositeKey) ? prev.filter(i => i !== compositeKey) : [...prev, compositeKey]);
+        const key = assetKeyFor(nft);
+        setFilterState(key, (filterEntries[key] || {}).s === 's' ? 'a' : 's');
       };
 
       const unhideAll = () => {
-        setHiddenIds([]);
-        setSpamIds([]);
+        setFilterState(Object.keys(filterEntries).filter(k => filterEntries[k].s !== 'a'), 'a');
       };
 
       const handleScanAll = async () => {
@@ -1914,17 +2536,22 @@
                       {userProfile && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-900"></span>}
                     </button>
                     <button
-                      onClick={() => { setShowDonate(v => !v); setShowWallet(false); setShowSimpleSwap(false); }}
+                      onClick={() => { setShowDonate(v => !v); setShowWallet(false); setShowSimpleSwap(false); setShowChat(false); }}
                       className={`md:hidden min-h-11 flex-shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${showDonate ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-cyan-400'}`}>
                       Donate
                     </button>
                     <button
-                      onClick={() => { setShowWallet(v => !v); setShowDonate(false); setShowSimpleSwap(false); }}
+                      onClick={() => { setShowWallet(v => !v); setShowDonate(false); setShowSimpleSwap(false); setShowChat(false); }}
                       className={`md:hidden min-h-11 flex-shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${showWallet ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-cyan-400'}`}>
                       Wallet
                     </button>
                     <button
-                      onClick={() => { setSimpleSwapLoaded(true); setShowSimpleSwap(v => !v); setShowDonate(false); setShowWallet(false); }}
+                      onClick={() => { setShowChat(v => !v); setShowSimpleSwap(false); setShowDonate(false); setShowWallet(false); }}
+                      className={`md:hidden min-h-11 flex-shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${showChat ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-cyan-400'}`}>
+                      Chat
+                    </button>
+                    <button
+                      onClick={() => { setSimpleSwapLoaded(true); setShowSimpleSwap(v => !v); setShowChat(false); setShowDonate(false); setShowWallet(false); }}
                       className={`md:hidden min-h-11 flex-shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${showSimpleSwap ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-emerald-400'}`}>
                       Simple Swap
                     </button>
@@ -2763,9 +3390,17 @@
                                   <span className={`text-[1px] opacity-0 group-hover:opacity-60 transition-opacity font-bold uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>✏ Edit</span>
                                 </div>
                               )}
-                              <p className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                                {userProfile.provider?.replace('_wallet','').replace('_',' ')} · {(userProfile.cl_wallets || []).length} wallet{(userProfile.cl_wallets || []).length !== 1 ? 's' : ''} linked
-                              </p>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(userProfile.id).catch(() => {});
+                                  setCopiedProfileId(true);
+                                  setTimeout(() => setCopiedProfileId(false), 1800);
+                                }}
+                                title="Copy ChainLens ID"
+                                className={`mt-1 flex max-w-full items-center gap-2 font-mono text-[10px] tracking-tight text-left transition-colors ${darkMode ? 'text-slate-500 hover:text-cyan-400' : 'text-slate-400 hover:text-cyan-600'}`}>
+                                <span className="break-all">{userProfile.id}</span>
+                                <span className="flex-shrink-0 font-sans text-[8px] font-black uppercase tracking-widest">{copiedProfileId ? 'Copied ✓' : 'Copy'}</span>
+                              </button>
                             </div>
                           </div>
 
@@ -3362,12 +3997,21 @@
             )}
 
           {/* ── Floating Widgets — fixed bottom corners, always visible ── */}
-          {(showDonate || showWallet || showSimpleSwap) && (
-            <div className="fixed inset-0 z-[69]" onClick={() => { setShowDonate(false); setShowWallet(false); setShowSimpleSwap(false); }} />
+          {(showDonate || showWallet || showSimpleSwap || showChat) && (
+            <div className="fixed inset-0 z-[69]" onClick={() => { setShowDonate(false); setShowWallet(false); setShowSimpleSwap(false); setShowChat(false); }} />
           )}
 
-          {/* SimpleSwap widget — fixed bottom-left, iframe remains mounted after first open */}
-          <div className={`fixed inset-x-4 bottom-4 z-[70] flex-col items-stretch gap-3 md:inset-x-auto md:bottom-6 md:left-6 md:max-w-[calc(100vw-3rem)] md:items-start ${showSimpleSwap ? 'flex' : 'hidden'} md:flex`}>
+          {/* Chat + SimpleSwap — stacked bottom-left, chat button directly above swap */}
+          <div className={`fixed inset-x-4 bottom-4 z-[70] flex-col items-stretch gap-3 md:inset-x-auto md:bottom-6 md:left-6 md:max-w-[calc(100vw-3rem)] md:items-start ${showSimpleSwap || showChat ? 'flex' : 'hidden'} md:flex`}>
+            <ChatWidget
+              open={showChat}
+              onClose={() => setShowChat(false)}
+              onOpenProfile={() => { setShowChat(false); setActiveTab('profile'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              darkMode={darkMode}
+              authToken={authToken}
+              userProfile={userProfile}
+            />
+
             {simpleSwapLoaded && (
               <div
                 className={`w-[min(calc(100vw-3rem),560px)] rounded-[1.5rem] border shadow-2xl backdrop-blur-xl p-3 transition-all duration-200 ${showSimpleSwap ? 'opacity-100 translate-y-0 pointer-events-auto visible' : 'opacity-0 translate-y-3 pointer-events-none invisible'} ${darkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}
@@ -3402,8 +4046,24 @@
 
             <button
               onClick={() => {
+                setShowChat(v => !v);
+                setShowSimpleSwap(false);
+                setShowDonate(false);
+                setShowWallet(false);
+              }}
+              data-testid="chat-trigger"
+              className={`hidden md:flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showChat
+                ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
+                : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-cyan-400 hover:text-cyan-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-600 backdrop-blur-md')}`}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 5.5h16v11H8l-4 3v-14Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M8 10h8M8 13h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+              Chat
+            </button>
+
+            <button
+              onClick={() => {
                 setSimpleSwapLoaded(true);
                 setShowSimpleSwap(v => !v);
+                setShowChat(false);
                 setShowDonate(false);
                 setShowWallet(false);
               }}
@@ -3561,7 +4221,7 @@
 
           {/* Wallet trigger button */}
           <button
-            onClick={() => { setShowWallet(v => !v); setShowDonate(false); setShowSimpleSwap(false); }}
+            onClick={() => { setShowWallet(v => !v); setShowDonate(false); setShowSimpleSwap(false); setShowChat(false); }}
             className={`hidden md:flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showWallet
               ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
               : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-500 backdrop-blur-md')}`}>
@@ -3635,7 +4295,7 @@
 
           {/* Donate Trigger button */}
           <button
-            onClick={() => { setShowDonate(v => !v); setShowWallet(false); setShowSimpleSwap(false); }}
+            onClick={() => { setShowDonate(v => !v); setShowWallet(false); setShowSimpleSwap(false); setShowChat(false); }}
             className={`hidden md:flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showDonate
               ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
               : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-cyan-500 hover:text-cyan-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-500 backdrop-blur-md')}`}>

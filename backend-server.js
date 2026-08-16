@@ -18,6 +18,7 @@ const {
   normalizeProfileWalletAddress,
 } = require('./public/chain-catalog');
 const { createNonEvmScanner } = require('./non-evm-scanner');
+const { isUuid, orderedFriendPair, normalizeChatContent } = require('./chat-service');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -274,6 +275,123 @@ const dbDeletePasskey = async (userId, id) => {
   const { error } = await supabase.from('cl_passkeys')
     .delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
+};
+
+// ─── ChainLens Messenger helpers ─────────────────────────────────────────────
+// Chat stays behind the existing ChainLens JWT boundary. The browser never
+// talks to these Supabase tables directly; the service-role client below is the
+// only database caller, and cl_chat.sql enables RLS with no client policies.
+const CHAT_PROFILE_COLUMNS = 'id, display_name, avatar_url';
+const CHAT_INITIAL_PAGE = 60;
+const CHAT_POLL_PAGE = 100;
+
+const dbGetChatEligibility = async (userId) => {
+  if (!supabase) return { eligible: false, walletLinked: false, socialLinked: false };
+  const [walletResult, socialResult] = await Promise.all([
+    supabase.from('cl_wallets')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('watch_only', false),
+    supabase.from('cl_linked_accounts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .in('provider', ['google', 'discord']),
+  ]);
+  if (walletResult.error) throw walletResult.error;
+  if (socialResult.error) throw socialResult.error;
+  const walletLinked = (walletResult.count || 0) > 0;
+  const socialLinked = (socialResult.count || 0) > 0;
+  return { eligible: walletLinked && socialLinked, walletLinked, socialLinked };
+};
+
+const dbHydrateChatMessages = async (rows) => {
+  const messages = Array.isArray(rows) ? rows : [];
+  const ids = [...new Set(messages.map(row => row.user_id || row.sender_id).filter(Boolean))];
+  let profiles = [];
+  if (ids.length) {
+    const result = await supabase.from('cl_users').select(CHAT_PROFILE_COLUMNS).in('id', ids);
+    if (result.error) throw result.error;
+    profiles = result.data || [];
+  }
+  const byId = new Map(profiles.map(profile => [profile.id, profile]));
+  return messages.map(row => ({
+    id: row.id,
+    message_type: row.message_type,
+    content: row.content,
+    created_at: row.created_at,
+    author: byId.get(row.user_id || row.sender_id) || {
+      id: row.user_id || row.sender_id,
+      display_name: 'ChainLens user',
+      avatar_url: null,
+    },
+  }));
+};
+
+const dbFindFriendship = async (userId, otherUserId) => {
+  const [userLow, userHigh] = orderedFriendPair(userId, otherUserId);
+  const { data, error } = await supabase.from('cl_friendships')
+    .select('*').eq('user_low', userLow).eq('user_high', userHigh).maybeSingle();
+  if (error) throw error;
+  return data;
+};
+
+const dbGetAcceptedFriendship = async (userId, otherUserId) => {
+  const friendship = await dbFindFriendship(userId, otherUserId);
+  return friendship?.status === 'accepted' ? friendship : null;
+};
+
+const parseChatCursor = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const cursor = Number(value);
+  if (!Number.isSafeInteger(cursor) || cursor < 0) throw new Error('Invalid message cursor');
+  return cursor;
+};
+
+const chatMessageWindows = new Map();
+const chatMessageAllowed = (userId) => {
+  const now = Date.now();
+  const recent = (chatMessageWindows.get(userId) || []).filter(time => now - time < 10_000);
+  if (recent.length >= 6) {
+    chatMessageWindows.set(userId, recent);
+    return false;
+  }
+  recent.push(now);
+  chatMessageWindows.set(userId, recent);
+  return true;
+};
+const chatRateCleanup = setInterval(() => {
+  const cutoff = Date.now() - 10_000;
+  for (const [userId, times] of chatMessageWindows) {
+    const recent = times.filter(time => time >= cutoff);
+    if (recent.length) chatMessageWindows.set(userId, recent);
+    else chatMessageWindows.delete(userId);
+  }
+}, 60_000);
+chatRateCleanup.unref();
+
+const chatDbFailure = (res, error, fallback = 'Chat is temporarily unavailable') => {
+  console.error('ChainLens chat database error:', error);
+  if (error?.code === '42P01') {
+    return res.status(503).json({ error: 'Chat is not configured yet. Run sql/cl_chat.sql.' });
+  }
+  return res.status(500).json({ error: fallback });
+};
+
+const requireChatAccess = async (req, res, next) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
+  try {
+    const access = await dbGetChatEligibility(req.user.sub);
+    if (!access.eligible) {
+      return res.status(403).json({
+        error: 'Link at least one verified wallet and Google or Discord to use chat.',
+        ...access,
+      });
+    }
+    req.chatAccess = access;
+    next();
+  } catch (error) {
+    chatDbFailure(res, error);
+  }
 };
 
 const app = express();
@@ -1442,6 +1560,340 @@ app.delete('/api/profile/wallet/:walletId', requireAuth, async (req, res) => {
   await supabase.from('cl_wallets')
     .delete().eq('id', req.params.walletId).eq('user_id', req.user.sub);
   res.json({ success: true });
+});
+
+// ── Hidden/spam asset list (cl_asset_filters) ────────────────────────────────
+//
+// The same list MagicMoney Wallet writes through its Cloudflare Worker, under
+// the same keys (public/asset-filter-key.js). Hide a scam airdrop in the wallet
+// and it is already hidden here; hide it here and it is hidden on every device
+// the wallet is signed in on.
+//
+// Both routes fail SOFT. The list is a convenience, and a 500 here must never
+// stop the portfolio rendering — the client keeps its localStorage copy, which
+// is what it renders from anyway.
+
+const FILTER_STATES = new Set(['h', 's', 'a']);
+const MAX_FILTER_ENTRIES = 2000;
+
+const sanitizeFilterEntries = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const out = {};
+  for (const [key, e] of Object.entries(value)) {
+    if (!key || key.length > 256) continue;
+    if (!e || typeof e !== 'object') continue;
+    if (!FILTER_STATES.has(e.s)) continue;
+    if (typeof e.t !== 'number' || !Number.isFinite(e.t)) continue;
+    out[key] = { s: e.s, t: e.t };
+  }
+  return out;
+};
+
+// Per-key last-write-wins union — ported from src/shared/asset-filter-key.ts in
+// the wallet repo, and byte-for-byte the merge the Worker runs. Clients push
+// their WHOLE list, so overwriting would let one device undo another's hide;
+// merging on the newer timestamp is also what lets a restore ('a') out-rank a
+// stale hide instead of being re-added by it.
+const mergeFilterEntries = (base, incoming) => {
+  const out = {};
+  for (const src of [sanitizeFilterEntries(base), sanitizeFilterEntries(incoming)]) {
+    for (const [key, e] of Object.entries(src)) {
+      if (!out[key] || e.t > out[key].t) out[key] = e;
+    }
+  }
+  const keys = Object.keys(out);
+  if (keys.length <= MAX_FILTER_ENTRIES) return out;
+  const kept = {};
+  for (const key of keys.sort((a, b) => out[b].t - out[a].t).slice(0, MAX_FILTER_ENTRIES)) {
+    kept[key] = out[key];
+  }
+  return kept;
+};
+
+// A missing table (operator hasn't run sql/cl_asset_filters.sql) reads as
+// "nothing hidden" rather than a 500, so deploying ahead of the SQL is safe.
+const dbReadFilters = async (userId) => {
+  if (!supabase) return {};
+  const { data } = await supabase
+    .from('cl_asset_filters').select('entries').eq('user_id', userId).maybeSingle();
+  return sanitizeFilterEntries(data?.entries);
+};
+
+app.get('/api/profile/filters', requireAuth, async (req, res) => {
+  if (!supabase) return res.json({ entries: {} });
+  try {
+    res.json({ entries: await dbReadFilters(req.user.sub) });
+  } catch {
+    res.json({ entries: {} });
+  }
+});
+
+app.put('/api/profile/filters', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
+  const incoming = sanitizeFilterEntries(req.body?.entries);
+  try {
+    // Read-merge-write. Two devices pushing in the same instant can still lose
+    // one side's newest decision; the user hides it again, which is not worth a
+    // transaction on a preferences list.
+    const merged = mergeFilterEntries(await dbReadFilters(req.user.sub), incoming);
+    const { error } = await supabase.from('cl_asset_filters')
+      .upsert({ user_id: req.user.sub, entries: merged, updated_at: new Date().toISOString() },
+              { onConflict: 'user_id' });
+    if (error) return res.status(500).json({ error: 'Failed to save hidden assets' });
+    res.json({ entries: merged });
+  } catch {
+    res.status(500).json({ error: 'Failed to save hidden assets' });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CHAINLENS MESSENGER
+//
+// Eligibility is checked on every route: a verified (non-watch-only) wallet and
+// at least one Google/Discord account are both required. IDs shown on the
+// profile are the exact UUIDs used to send friend requests.
+// ══════════════════════════════════════════════════════════════════════════════
+
+app.get('/api/chat/status', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
+  try {
+    const access = await dbGetChatEligibility(req.user.sub);
+    res.json({
+      ...access,
+      giphyApiKey: access.eligible ? (process.env.GIPHY_API_KEY || null) : null,
+    });
+  } catch (error) {
+    chatDbFailure(res, error);
+  }
+});
+
+app.get('/api/chat/world', requireAuth, requireChatAccess, async (req, res) => {
+  try {
+    const after = parseChatCursor(req.query.after);
+    let query = supabase.from('cl_world_messages')
+      .select('id, user_id, message_type, content, created_at');
+    if (after !== null) {
+      query = query.gt('id', after).order('id', { ascending: true }).limit(CHAT_POLL_PAGE);
+    } else {
+      query = query.order('id', { ascending: false }).limit(CHAT_INITIAL_PAGE);
+    }
+    const { data, error } = await query;
+    if (error) return chatDbFailure(res, error);
+    const rows = after === null ? [...(data || [])].reverse() : (data || []);
+    res.json({ messages: await dbHydrateChatMessages(rows) });
+  } catch (error) {
+    if (error.message === 'Invalid message cursor') return res.status(400).json({ error: error.message });
+    chatDbFailure(res, error);
+  }
+});
+
+app.post('/api/chat/world', requireAuth, requireChatAccess, async (req, res) => {
+  if (!chatMessageAllowed(req.user.sub)) {
+    return res.status(429).json({ error: 'You are sending messages too quickly. Try again in a moment.' });
+  }
+  let message;
+  try {
+    message = normalizeChatContent(req.body?.type, req.body?.content);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+  try {
+    const { data, error } = await supabase.from('cl_world_messages')
+      .insert({ user_id: req.user.sub, ...message })
+      .select('id, user_id, message_type, content, created_at').single();
+    if (error) return chatDbFailure(res, error, 'Could not send that message');
+    const [hydrated] = await dbHydrateChatMessages([data]);
+    res.status(201).json({ message: hydrated });
+  } catch (error) {
+    chatDbFailure(res, error, 'Could not send that message');
+  }
+});
+
+const dbListChatFriends = async (userId) => {
+  const { data, error } = await supabase.from('cl_friendships')
+    .select('*')
+    .or(`user_low.eq.${userId},user_high.eq.${userId}`)
+    .order('updated_at', { ascending: false });
+  if (error) throw error;
+  const rows = data || [];
+  const otherIds = [...new Set(rows.map(row => row.user_low === userId ? row.user_high : row.user_low))];
+  let profiles = [];
+  if (otherIds.length) {
+    const result = await supabase.from('cl_users').select(CHAT_PROFILE_COLUMNS).in('id', otherIds);
+    if (result.error) throw result.error;
+    profiles = result.data || [];
+  }
+  const byId = new Map(profiles.map(profile => [profile.id, profile]));
+  const summary = { friends: [], incoming: [], outgoing: [] };
+  for (const row of rows) {
+    const otherId = row.user_low === userId ? row.user_high : row.user_low;
+    const profile = byId.get(otherId);
+    if (!profile) continue;
+    const item = {
+      friendship_id: row.id,
+      ...profile,
+      created_at: row.created_at,
+      accepted_at: row.accepted_at,
+    };
+    if (row.status === 'accepted') summary.friends.push(item);
+    else if (row.requested_by === userId) summary.outgoing.push(item);
+    else summary.incoming.push(item);
+  }
+  return summary;
+};
+
+app.get('/api/chat/friends', requireAuth, requireChatAccess, async (req, res) => {
+  try {
+    res.json(await dbListChatFriends(req.user.sub));
+  } catch (error) {
+    chatDbFailure(res, error, 'Could not load friends');
+  }
+});
+
+app.post('/api/chat/friends', requireAuth, requireChatAccess, async (req, res) => {
+  const chainlensId = typeof req.body?.chainlens_id === 'string'
+    ? req.body.chainlens_id.trim().toLowerCase()
+    : '';
+  if (!isUuid(chainlensId)) return res.status(400).json({ error: 'Enter a valid ChainLens ID' });
+  let pair;
+  try {
+    pair = orderedFriendPair(req.user.sub, chainlensId);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+  try {
+    const { data: target, error: targetError } = await supabase.from('cl_users')
+      .select(CHAT_PROFILE_COLUMNS).eq('id', chainlensId).maybeSingle();
+    if (targetError) return chatDbFailure(res, targetError, 'Could not look up that ChainLens ID');
+    if (!target) return res.status(404).json({ error: 'No ChainLens account has that ID' });
+    const targetAccess = await dbGetChatEligibility(chainlensId);
+    if (!targetAccess.eligible) {
+      return res.status(409).json({ error: 'That account has not unlocked ChainLens chat yet' });
+    }
+
+    const existing = await dbFindFriendship(req.user.sub, chainlensId);
+    if (existing?.status === 'accepted') return res.status(409).json({ error: 'You are already friends' });
+    if (existing?.requested_by === req.user.sub) return res.status(409).json({ error: 'Friend request already sent' });
+    if (existing) return res.status(409).json({ error: 'This person already sent you a friend request' });
+
+    const now = new Date().toISOString();
+    const { data, error } = await supabase.from('cl_friendships').insert({
+      user_low: pair[0],
+      user_high: pair[1],
+      requested_by: req.user.sub,
+      status: 'pending',
+      updated_at: now,
+    }).select('id, created_at').single();
+    if (error?.code === '23505') return res.status(409).json({ error: 'A friend request already exists' });
+    if (error) return chatDbFailure(res, error, 'Could not send friend request');
+    res.status(201).json({
+      request: { friendship_id: data.id, ...target, created_at: data.created_at },
+    });
+  } catch (error) {
+    chatDbFailure(res, error, 'Could not send friend request');
+  }
+});
+
+app.post('/api/chat/friends/:friendshipId/accept', requireAuth, requireChatAccess, async (req, res) => {
+  const friendshipId = Number(req.params.friendshipId);
+  if (!Number.isSafeInteger(friendshipId) || friendshipId < 1) {
+    return res.status(400).json({ error: 'Invalid friend request' });
+  }
+  try {
+    const { data: friendship, error } = await supabase.from('cl_friendships')
+      .select('*').eq('id', friendshipId).maybeSingle();
+    if (error) return chatDbFailure(res, error, 'Could not accept friend request');
+    if (!friendship || (friendship.user_low !== req.user.sub && friendship.user_high !== req.user.sub)) {
+      return res.status(404).json({ error: 'Friend request not found' });
+    }
+    if (friendship.status !== 'pending') return res.status(409).json({ error: 'Friend request is no longer pending' });
+    if (friendship.requested_by === req.user.sub) {
+      return res.status(403).json({ error: 'The recipient must accept this request' });
+    }
+    const now = new Date().toISOString();
+    const result = await supabase.from('cl_friendships')
+      .update({ status: 'accepted', accepted_at: now, updated_at: now })
+      .eq('id', friendshipId).eq('status', 'pending');
+    if (result.error) return chatDbFailure(res, result.error, 'Could not accept friend request');
+    res.json({ success: true });
+  } catch (error) {
+    chatDbFailure(res, error, 'Could not accept friend request');
+  }
+});
+
+// Decline/cancel a pending request or remove an accepted friend. The participant
+// check keeps another user's numeric friendship id from becoming an IDOR.
+app.delete('/api/chat/friends/:friendshipId', requireAuth, requireChatAccess, async (req, res) => {
+  const friendshipId = Number(req.params.friendshipId);
+  if (!Number.isSafeInteger(friendshipId) || friendshipId < 1) {
+    return res.status(400).json({ error: 'Invalid friendship' });
+  }
+  try {
+    const { data: friendship, error } = await supabase.from('cl_friendships')
+      .select('id, user_low, user_high').eq('id', friendshipId).maybeSingle();
+    if (error) return chatDbFailure(res, error, 'Could not update friends');
+    if (!friendship || (friendship.user_low !== req.user.sub && friendship.user_high !== req.user.sub)) {
+      return res.status(404).json({ error: 'Friendship not found' });
+    }
+    const result = await supabase.from('cl_friendships').delete().eq('id', friendshipId);
+    if (result.error) return chatDbFailure(res, result.error, 'Could not update friends');
+    res.json({ success: true });
+  } catch (error) {
+    chatDbFailure(res, error, 'Could not update friends');
+  }
+});
+
+app.get('/api/chat/friends/:friendId/messages', requireAuth, requireChatAccess, async (req, res) => {
+  const friendId = String(req.params.friendId || '').toLowerCase();
+  if (!isUuid(friendId)) return res.status(400).json({ error: 'Invalid friend ID' });
+  try {
+    const friendship = await dbGetAcceptedFriendship(req.user.sub, friendId);
+    if (!friendship) return res.status(403).json({ error: 'Direct messages are only available between friends' });
+    const after = parseChatCursor(req.query.after);
+    let query = supabase.from('cl_direct_messages')
+      .select('id, sender_id, message_type, content, created_at')
+      .eq('friendship_id', friendship.id);
+    if (after !== null) {
+      query = query.gt('id', after).order('id', { ascending: true }).limit(CHAT_POLL_PAGE);
+    } else {
+      query = query.order('id', { ascending: false }).limit(CHAT_INITIAL_PAGE);
+    }
+    const { data, error } = await query;
+    if (error) return chatDbFailure(res, error, 'Could not load direct messages');
+    const rows = after === null ? [...(data || [])].reverse() : (data || []);
+    res.json({ messages: await dbHydrateChatMessages(rows) });
+  } catch (error) {
+    if (error.message === 'Invalid message cursor') return res.status(400).json({ error: error.message });
+    chatDbFailure(res, error, 'Could not load direct messages');
+  }
+});
+
+app.post('/api/chat/friends/:friendId/messages', requireAuth, requireChatAccess, async (req, res) => {
+  const friendId = String(req.params.friendId || '').toLowerCase();
+  if (!isUuid(friendId)) return res.status(400).json({ error: 'Invalid friend ID' });
+  if (!chatMessageAllowed(req.user.sub)) {
+    return res.status(429).json({ error: 'You are sending messages too quickly. Try again in a moment.' });
+  }
+  let message;
+  try {
+    message = normalizeChatContent(req.body?.type, req.body?.content);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+  try {
+    const friendship = await dbGetAcceptedFriendship(req.user.sub, friendId);
+    if (!friendship) return res.status(403).json({ error: 'Direct messages are only available between friends' });
+    const { data, error } = await supabase.from('cl_direct_messages').insert({
+      friendship_id: friendship.id,
+      sender_id: req.user.sub,
+      ...message,
+    }).select('id, sender_id, message_type, content, created_at').single();
+    if (error) return chatDbFailure(res, error, 'Could not send that direct message');
+    const [hydrated] = await dbHydrateChatMessages([data]);
+    res.status(201).json({ message: hydrated });
+  } catch (error) {
+    chatDbFailure(res, error, 'Could not send that direct message');
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

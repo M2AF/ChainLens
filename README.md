@@ -215,6 +215,7 @@ Dark/light mode is controlled by a `darkMode` boolean in React state (persisted 
 | **Uniswap API** | EVM swap widget |
 | **DexHunter** | Cardano swap widget |
 | **Supabase** | User profiles, linked wallets, auth records |
+| **GIPHY** | Trending/search GIFs in World Chat and direct messages (`GIPHY_API_KEY`) |
 
 ---
 
@@ -241,6 +242,20 @@ Dark/light mode is controlled by a `darkMode` boolean in React state (persisted 
 | `cl_users` | User records (provider, display_name, avatar_url) |
 | `cl_wallets` | Linked wallet addresses per user (chain, address, is_primary) |
 | `cl_linked_accounts` | Social OAuth accounts linked to a user |
+| `cl_friendships` | Pending/accepted friend relationships keyed by ChainLens user IDs |
+| `cl_world_messages` | World Chat text and GIPHY messages |
+| `cl_direct_messages` | Messages scoped to an accepted friendship |
+
+### Messenger setup
+
+Run `sql/cl_chat.sql` once against the Supabase project and configure a public
+GIPHY integration key as `GIPHY_API_KEY`. Messenger requires the signed-in
+profile to have at least one verified (non-watch-only) wallet and at least one
+linked Google or Discord account. Friend requests use the full `cl_users.id`
+UUID shown beneath the profile name; direct messages unlock only after the
+recipient accepts. The frontend polls cursor-based message endpoints, while the
+Express server owns authorization and is the only caller allowed to access the
+RLS-protected chat tables.
 
 ### localStorage (client-side)
 
