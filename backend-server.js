@@ -18,7 +18,11 @@ const {
   normalizeProfileWalletAddress,
 } = require('./public/chain-catalog');
 const { createNonEvmScanner } = require('./non-evm-scanner');
-const { isUuid, orderedFriendPair, normalizeChatContent } = require('./chat-service');
+const {
+  isUuid, orderedFriendPair, normalizeChatContent,
+  summarizeChatUnread, chatConversationKey, WORLD_CONVERSATION,
+} = require('./chat-service');
+const { resolveWalletSession } = require('./auth-session');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -351,6 +355,34 @@ const parseChatMessageId = (value) => {
   const messageId = Number(value);
   if (!Number.isSafeInteger(messageId) || messageId < 1) throw new Error('Invalid message ID');
   return messageId;
+};
+
+// ─── Read cursors ────────────────────────────────────────────────────────────
+// Unread state is server-side on purpose: the same account is signed in on the
+// website, the desktop wallet, the extension and mobile, and reading a thread
+// on one has to clear its badge on the rest.
+
+const dmConversation = (friendshipId) => chatConversationKey(friendshipId);
+
+const dbChatUnread = async (userId) => {
+  // Back-dates a brand-new account's cursors so months of history do not land
+  // as hundreds of unread on the first poll. No-ops after the first call — see
+  // cl_chat_seed_reads in sql/cl_chat.sql.
+  const seed = await supabase.rpc('cl_chat_seed_reads', { p_user_id: userId });
+  if (seed.error) throw seed.error;
+
+  const [unreadResult, pendingResult] = await Promise.all([
+    // One grouped join for every thread — see cl_chat_unread in sql/cl_chat.sql.
+    supabase.rpc('cl_chat_unread', { p_user_id: userId }),
+    supabase.from('cl_friendships')
+      .select('id', { count: 'exact', head: true })
+      .or(`user_low.eq.${userId},user_high.eq.${userId}`)
+      .eq('status', 'pending')
+      .neq('requested_by', userId),
+  ]);
+  if (unreadResult.error) throw unreadResult.error;
+  if (pendingResult.error) throw pendingResult.error;
+  return summarizeChatUnread(unreadResult.data, pendingResult.count);
 };
 
 const chatMessageWindows = new Map();
@@ -848,6 +880,13 @@ const fetchTokenImageByAddress = async (dsChain, address) => {
 // AUTH & PROFILE ROUTES
 // ══════════════════════════════════════════════════════════════════════════════
 
+// The exact string a wallet signs to prove address ownership. Shared by
+// /wallet-login and /wallet-session so the two can never drift apart, and
+// mirrored byte-for-byte in the MagicMoney wallet (src/main/chainlens-auth.ts —
+// `loginMessage`). Any change here reads as "signature mismatch" on the client
+// with nothing pointing at why, so it is not a string to edit casually.
+const loginMessage = (address, nonce) => `ChainLens login\nAddress: ${address}\nNonce: ${nonce}`;
+
 // ── Step 1: Generate a nonce for wallet signing (public, no auth) ─────────────
 app.post('/api/auth/nonce', (req, res) => {
   const { address } = req.body;
@@ -873,7 +912,7 @@ app.post('/api/auth/wallet-login', async (req, res) => {
     return res.status(400).json({ error: 'Invalid or expired nonce' });
   delete _authNonces[addrKey]; // consume
 
-  const message = `ChainLens login\nAddress: ${address}\nNonce: ${nonce}`;
+  const message = loginMessage(address, nonce);
 
   // ── Verify signature ──────────────────────────────────────────────────────
   if (chain === 'evm' && ethersVerify) {
@@ -963,6 +1002,69 @@ app.post('/api/auth/wallet-login', async (req, res) => {
         cl_wallets: [{ id: '1', chain, address, is_primary: true, label: null }]
       }
     });
+  }
+});
+
+// ── Step 2b: Session for an EXPLICITLY NAMED account ─────────────────────────
+//
+// What MagicMoney Wallet signs in with, and deliberately NOT /wallet-login.
+//
+// /wallet-login with no Authorization header upserts ('evm_wallet', <address>)
+// unconditionally. For anyone whose ChainLens account is keyed by something
+// else — a Solana wallet, a Google login — with the same EVM address linked to
+// it, that mints a SECOND account for one human. The wallet's own profile sync
+// resolves the address to the original account (cloudflare-worker/db.js picks
+// the oldest verified owner), so chat would have run as a parallel identity:
+// a different ChainLens ID than the one the wallet shows people to add, and no
+// social link, so permanently ineligible for chat it should have had.
+//
+// The fix is to stop guessing. The caller states which account it means, this
+// verifies the signing address is a PROVED (non-watch-only) wallet of exactly
+// that account, and the JWT names it. No creation, no linking, no merging, no
+// "closest match" — a mismatch is an error the user resolves in Profile.
+app.post('/api/auth/wallet-session', async (req, res) => {
+  if (!ethersVerify) return res.status(503).json({ error: 'Signature verification unavailable' });
+  if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
+  try {
+    // The verdict itself lives in auth-session.js so it can be tested without a
+    // server or a database — see test/auth-session.test.js.
+    const verdict = await resolveWalletSession(req.body, {
+      // Read AND consume in one step: a caller who gets past the nonce check has
+      // spent it, so the same body replayed cannot reach the lookups.
+      takeNonce: (addressKey) => {
+        const stored = _authNonces[addressKey] || null;
+        delete _authNonces[addressKey];
+        return stored;
+      },
+      recoverAddress: (message, signature) => ethersVerify(message, signature),
+      hasVerifiedWallet: async (userId, addressLower) => {
+        const { data, error } = await supabase.from('cl_wallets')
+          .select('id')
+          .eq('user_id', userId).eq('chain', 'evm')
+          .eq('address', addressLower).eq('watch_only', false)
+          .maybeSingle();
+        if (error) throw error;
+        return !!data;
+      },
+      accountExists: async (userId) => {
+        const { data } = await supabase.from('cl_users').select('id').eq('id', userId).maybeSingle();
+        return !!data;
+      },
+    });
+    if (!verdict.ok) {
+      const { ok, status, ...payload } = verdict;   // eslint-disable-line no-unused-vars
+      return res.status(status).json(payload);
+    }
+
+    const profile = await dbGetUserById(verdict.userId);
+    if (!profile) return res.status(404).json({ error: 'No ChainLens account has that ID. Open Profile and connect first.' });
+    // `sub` is the id the caller named and nothing else — that identity binding
+    // is the entire purpose of this route.
+    const token = jwt.sign({ sub: verdict.userId }, JWT_SECRET, { expiresIn: '30d' });
+    return res.json({ token, profile });
+  } catch (error) {
+    console.error('ChainLens wallet-session error:', error);
+    return res.status(500).json({ error: 'Could not start a ChainLens session' });
   }
 });
 
@@ -1951,6 +2053,56 @@ app.delete('/api/chat/friends/:friendId/messages/:messageId', requireAuth, requi
     res.json({ success: true, message_id: data.id });
   } catch (error) {
     chatDbFailure(res, error, 'Could not delete that direct message');
+  }
+});
+
+// ── Unread badge ─────────────────────────────────────────────────────────────
+//
+// The ONE aggregate a signed-in client polls in the background. World Chat is
+// deliberately absent: it is busy enough that a badge tied to it would never
+// clear, so its unseen-message state stays inside the Messenger as the
+// "Scroll to bottom" affordance and nothing else.
+app.get('/api/chat/unread', requireAuth, requireChatAccess, async (req, res) => {
+  try {
+    res.json(await dbChatUnread(req.user.sub));
+  } catch (error) {
+    chatDbFailure(res, error, 'Could not load unread counts');
+  }
+});
+
+// Mark a conversation read up to a message id. Callers send the newest id they
+// have actually displayed; the cursor only ever moves forward (the GREATEST in
+// cl_chat_mark_read), so a stale request overtaking a newer one is harmless.
+app.post('/api/chat/read', requireAuth, requireChatAccess, async (req, res) => {
+  const friendId = typeof req.body?.friend_id === 'string' ? req.body.friend_id.trim().toLowerCase() : '';
+  let lastReadId;
+  try {
+    lastReadId = parseChatCursor(req.body?.last_read_id);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+  if (lastReadId === null) return res.status(400).json({ error: 'last_read_id required' });
+
+  try {
+    let conversation = WORLD_CONVERSATION;
+    if (friendId) {
+      if (!isUuid(friendId)) return res.status(400).json({ error: 'Invalid friend ID' });
+      // The cursor names a friendship id, so it has to be one this user is
+      // actually in — otherwise any authenticated account could write cursors
+      // into other people's conversations.
+      const friendship = await dbGetAcceptedFriendship(req.user.sub, friendId);
+      if (!friendship) return res.status(403).json({ error: 'Direct messages are only available between friends' });
+      conversation = dmConversation(friendship.id);
+    }
+    const { data, error } = await supabase.rpc('cl_chat_mark_read', {
+      p_user_id: req.user.sub,
+      p_conversation: conversation,
+      p_last_read_id: lastReadId,
+    });
+    if (error) return chatDbFailure(res, error, 'Could not update read state');
+    res.json({ conversation, last_read_id: Number(data) || 0 });
+  } catch (error) {
+    chatDbFailure(res, error, 'Could not update read state');
   }
 });
 

@@ -45,4 +45,43 @@ const normalizeChatContent = (type, value, { allowLinks = true } = {}) => {
   return { message_type: messageType, content };
 };
 
-module.exports = { isUuid, orderedFriendPair, isGiphyMediaUrl, containsChatLink, normalizeChatContent };
+// ─── Read cursors ────────────────────────────────────────────────────────────
+// `conversation` is 'world' for World Chat and 'dm:<friendship_id>' for a direct
+// thread. The same keys the cl_chat_reads table stores (sql/cl_chat.sql).
+
+const WORLD_CONVERSATION = 'world';
+
+const chatConversationKey = (friendshipId) => {
+  if (friendshipId === undefined || friendshipId === null) return WORLD_CONVERSATION;
+  const id = Number(friendshipId);
+  if (!Number.isSafeInteger(id) || id < 1) throw new Error('Invalid conversation');
+  return `dm:${id}`;
+};
+
+/**
+ * Shape the cl_chat_unread rows into the badge payload.
+ *
+ * Threads with nothing unread are dropped rather than returned as zeroes: the
+ * client indexes this by friend id to badge its list, and a poll that carries
+ * one entry per friendship grows with the friend list for no benefit.
+ */
+const summarizeChatUnread = (rows, pendingRequests = 0) => {
+  const conversations = (Array.isArray(rows) ? rows : [])
+    .map(row => ({
+      friendship_id: Number(row.friendship_id),
+      friend_id: row.friend_id,
+      unread: Number(row.unread) || 0,
+    }))
+    .filter(row => Number.isSafeInteger(row.friendship_id) && row.friend_id && row.unread > 0);
+
+  return {
+    pending_requests: Math.max(0, Number(pendingRequests) || 0),
+    unread_direct: conversations.reduce((total, row) => total + row.unread, 0),
+    conversations,
+  };
+};
+
+module.exports = {
+  isUuid, orderedFriendPair, isGiphyMediaUrl, containsChatLink, normalizeChatContent,
+  WORLD_CONVERSATION, chatConversationKey, summarizeChatUnread,
+};

@@ -388,7 +388,7 @@
       );
     };
 
-    const ChatMessage = ({ message, own, darkMode, allowLinks, deleting, onDelete }) => (
+    const ChatMessage = ({ message, own, darkMode, allowLinks, deleting, onDelete, onMediaLoad }) => (
       <div className={`flex gap-2.5 ${own ? 'flex-row-reverse' : ''}`} data-message-id={message.id}>
         <ChatAvatar profile={message.author} size={30} />
         <div className={`min-w-0 max-w-[78%] ${own ? 'text-right' : ''}`}>
@@ -408,7 +408,7 @@
           {message.message_type === 'gif' ? (
             <div className={`overflow-hidden rounded-2xl border ${own ? 'rounded-tr-sm' : 'rounded-tl-sm'} ${darkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-slate-100'}`}>
               <img src={message.content} alt={`GIF from ${message.author?.display_name || 'ChainLens user'}`}
-                className="block max-h-52 w-full object-contain" loading="lazy" />
+                className="block max-h-52 w-full object-contain" loading="lazy" onLoad={onMediaLoad} />
             </div>
           ) : (
             <div className={`inline-block px-3 py-2 rounded-2xl text-left text-xs leading-relaxed whitespace-pre-wrap break-words ${own
@@ -424,7 +424,7 @@
       </div>
     );
 
-    const ChatWidget = ({ open, onClose, onOpenProfile, darkMode, authToken, userProfile }) => {
+    const ChatWidget = ({ open, onClose, onOpenProfile, darkMode, authToken, userProfile, unread, onUnreadRefresh }) => {
       const [tab, setTab] = useState('world');
       const [status, setStatus] = useState(null);
       const [statusLoading, setStatusLoading] = useState(false);
@@ -446,9 +446,16 @@
       const [gifQuery, setGifQuery] = useState('');
       const [gifs, setGifs] = useState([]);
       const [gifsLoading, setGifsLoading] = useState(false);
+      const [showScrollToBottom, setShowScrollToBottom] = useState(false);
       const worldCursor = useRef(0);
       const directCursor = useRef(0);
       const feedRef = useRef(null);
+      const shouldStickToBottom = useRef(true);
+      const scrollingToBottom = useRef(false);
+      const scrollSettleTimer = useRef(null);
+      // Highest id already reported read per conversation, so the mark-read POST
+      // does not re-fire on every 3s poll when nothing has changed.
+      const markedRead = useRef({});
 
       const api = useCallback(async (url, options = {}) => {
         const response = await fetch(url, {
@@ -464,6 +471,48 @@
         return body;
       }, [authToken]);
 
+      const feedIsNearBottom = useCallback(() => {
+        const feed = feedRef.current;
+        if (!feed) return true;
+        return feed.scrollHeight - feed.scrollTop - feed.clientHeight <= 56;
+      }, []);
+
+      const syncFeedScrollState = useCallback(() => {
+        const nearBottom = feedIsNearBottom();
+        if (scrollingToBottom.current && !nearBottom) return;
+        if (nearBottom) scrollingToBottom.current = false;
+        shouldStickToBottom.current = nearBottom;
+        setShowScrollToBottom(!nearBottom);
+      }, [feedIsNearBottom]);
+
+      const scrollToChatBottom = useCallback((behavior = 'auto') => {
+        const feed = feedRef.current;
+        if (!feed) return;
+        scrollingToBottom.current = true;
+        shouldStickToBottom.current = true;
+        setShowScrollToBottom(false);
+        const applyScroll = () => {
+          const currentFeed = feedRef.current;
+          if (currentFeed) currentFeed.scrollTo({ top: currentFeed.scrollHeight, behavior });
+        };
+        requestAnimationFrame(() => {
+          applyScroll();
+          if (behavior === 'auto') requestAnimationFrame(applyScroll);
+        });
+        if (scrollSettleTimer.current) clearTimeout(scrollSettleTimer.current);
+        scrollSettleTimer.current = setTimeout(() => {
+          scrollingToBottom.current = false;
+          const nearBottom = feedIsNearBottom();
+          shouldStickToBottom.current = nearBottom;
+          setShowScrollToBottom(!nearBottom);
+        }, behavior === 'smooth' ? 500 : 80);
+      }, [feedIsNearBottom]);
+
+      const handleChatMediaLoad = useCallback(() => {
+        if (shouldStickToBottom.current) scrollToChatBottom('auto');
+        else syncFeedScrollState();
+      }, [scrollToChatBottom, syncFeedScrollState]);
+
       const updateCursor = (cursorRef, rows) => {
         for (const row of rows || []) cursorRef.current = Math.max(cursorRef.current, Number(row.id) || 0);
       };
@@ -476,13 +525,14 @@
           const body = await api(`/api/chat/world${suffix}`);
           updateCursor(worldCursor, body.messages);
           setMessages(current => incremental ? mergeChatMessages(current, body.messages) : (body.messages || []));
+          if (!incremental && shouldStickToBottom.current) scrollToChatBottom('auto');
           setError('');
         } catch (requestError) {
           setError(requestError.message);
         } finally {
           if (!incremental && !quiet) setMessagesLoading(false);
         }
-      }, [api, authToken]);
+      }, [api, authToken, scrollToChatBottom]);
 
       const loadFriends = useCallback(async (quiet = false) => {
         if (!authToken) return;
@@ -507,22 +557,29 @@
           const body = await api(`/api/chat/friends/${encodeURIComponent(friend.id)}/messages${suffix}`);
           updateCursor(directCursor, body.messages);
           setDirectMessages(current => incremental ? mergeChatMessages(current, body.messages) : (body.messages || []));
+          if (!incremental && shouldStickToBottom.current) scrollToChatBottom('auto');
           setError('');
         } catch (requestError) {
           setError(requestError.message);
         } finally {
           if (!incremental && !quiet) setDirectLoading(false);
         }
-      }, [api, authToken]);
+      }, [api, authToken, scrollToChatBottom]);
 
       useEffect(() => {
         setStatus(null);
         setMessages([]);
         setDirectMessages([]);
         setSelectedFriend(null);
+        shouldStickToBottom.current = true;
+        setShowScrollToBottom(false);
         worldCursor.current = 0;
         directCursor.current = 0;
       }, [authToken]);
+
+      useEffect(() => () => {
+        if (scrollSettleTimer.current) clearTimeout(scrollSettleTimer.current);
+      }, []);
 
       useEffect(() => {
         if (!open || !authToken) return;
@@ -561,11 +618,42 @@
       }, [open, status?.eligible, selectedFriend?.id, loadDirect]);
 
       useEffect(() => {
+        if (!open) return;
+        shouldStickToBottom.current = true;
+        scrollingToBottom.current = false;
+        setShowScrollToBottom(false);
+        scrollToChatBottom('auto');
+      }, [open, selectedFriend?.id, tab, scrollToChatBottom]);
+
+      // Report the newest message as read — but ONLY while the panel is open and
+      // the user is actually at the bottom looking at it. Scrolled up, they have
+      // not seen it, and clearing the cursor here would clear the badge on their
+      // wallet for a message they never read.
+      const markConversationRead = useCallback(() => {
+        if (!open || !authToken || !status?.eligible) return;
+        if (!shouldStickToBottom.current) return;
+        const list = selectedFriend ? directMessages : messages;
+        const newest = list.length ? Number(list[list.length - 1].id) : 0;
+        if (!newest) return;
+        const key = selectedFriend ? selectedFriend.id : 'world';
+        if ((markedRead.current[key] || 0) >= newest) return;
+        markedRead.current[key] = newest;
+        api('/api/chat/read', {
+          method: 'POST',
+          body: JSON.stringify({ last_read_id: newest, ...(selectedFriend ? { friend_id: selectedFriend.id } : {}) }),
+        })
+          // World Chat is excluded from the badge, so only a DM needs a refresh.
+          .then(() => { if (selectedFriend) onUnreadRefresh?.(); })
+          .catch(() => { markedRead.current[key] = 0; });   // let a later tick retry
+      }, [open, authToken, status?.eligible, selectedFriend, directMessages, messages, api, onUnreadRefresh]);
+
+      useEffect(() => {
         if (!feedRef.current) return;
-        requestAnimationFrame(() => {
-          if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
-        });
-      }, [messages.length, directMessages.length, selectedFriend?.id, tab]);
+        if ((selectedFriend && directLoading) || (!selectedFriend && messagesLoading)) return;
+        if (shouldStickToBottom.current) scrollToChatBottom('auto');
+        else syncFeedScrollState();
+        markConversationRead();
+      }, [messages.length, directMessages.length, messagesLoading, directLoading, selectedFriend?.id, tab, scrollToChatBottom, syncFeedScrollState, markConversationRead]);
 
       const flashNotice = (value) => {
         setNotice(value);
@@ -585,6 +673,8 @@
             ? `/api/chat/friends/${encodeURIComponent(selectedFriend.id)}/messages`
             : '/api/chat/world';
           const body = await api(url, { method: 'POST', body: JSON.stringify({ type, content }) });
+          shouldStickToBottom.current = true;
+          setShowScrollToBottom(false);
           if (selectedFriend) {
             updateCursor(directCursor, [body.message]);
             setDirectMessages(current => mergeChatMessages(current, [body.message]));
@@ -707,6 +797,9 @@
       const muted = darkMode ? 'text-slate-500' : 'text-slate-400';
       const currentMessages = selectedFriend ? directMessages : messages;
       const currentLoading = selectedFriend ? directLoading : messagesLoading;
+      // Server-side unread, so these counts match the wallet's on the same account.
+      const unreadByFriend = new Map((unread?.conversations || []).map(row => [row.friend_id, row.unread]));
+      const friendsTabBadge = (friends.incoming?.length || 0) + (unread?.unread_direct || 0);
 
       return (
         <section aria-label="ChainLens Messenger" data-testid="chat-panel"
@@ -727,7 +820,7 @@
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${darkMode ? 'bg-slate-800 text-slate-400 hover:bg-red-500 hover:text-white' : 'bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white'}`}>×</button>
             </div>
             <div className="grid grid-cols-2 gap-1">
-              {[['world', 'World Chat'], ['friends', `Friends${friends.incoming?.length ? ` (${friends.incoming.length})` : ''}`]].map(([value, label]) => (
+              {[['world', 'World Chat'], ['friends', `Friends${friendsTabBadge ? ` (${friendsTabBadge})` : ''}`]].map(([value, label]) => (
                 <button key={value} onClick={() => { setTab(value); setSelectedFriend(null); setShowGifs(false); setError(''); }}
                   className={`py-2.5 rounded-t-xl text-[10px] font-black uppercase tracking-widest border-b-2 transition-colors ${tab === value ? 'border-cyan-400 text-cyan-400' : `border-transparent ${muted}`}`}>
                   {label}
@@ -792,14 +885,25 @@
                     <div className={`text-[9px] font-black uppercase tracking-widest ${muted}`}>Friends · {(friends.friends || []).length}</div>
                     {(friends.friends || []).length === 0 ? (
                       <div className={`rounded-2xl border border-dashed py-8 text-center text-xs ${darkMode ? 'border-slate-800 text-slate-600' : 'border-slate-200 text-slate-400'}`}>Add a friend by their ChainLens ID.</div>
-                    ) : friends.friends.map(friend => (
-                      <button key={friend.id} onClick={() => { setSelectedFriend(friend); setShowGifs(false); }}
-                        className={`w-full rounded-2xl border p-3 flex items-center gap-3 text-left transition-colors ${darkMode ? 'border-slate-800 bg-slate-950/50 hover:border-cyan-500/60' : 'border-slate-200 bg-white hover:border-cyan-400'}`}>
-                        <ChatAvatar profile={friend} />
-                        <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate">{friend.display_name}</div><div className={`font-mono text-[7px] truncate ${muted}`}>{friend.id}</div></div>
-                        <span className="text-cyan-400">›</span>
-                      </button>
-                    ))}
+                    ) : friends.friends.map(friend => {
+                      const friendUnread = unreadByFriend.get(friend.id) || 0;
+                      return (
+                        <button key={friend.id} onClick={() => { setSelectedFriend(friend); setShowGifs(false); }}
+                          aria-label={friendUnread
+                            ? `${friend.display_name}, ${friendUnread} unread message${friendUnread === 1 ? '' : 's'}`
+                            : friend.display_name}
+                          className={`w-full rounded-2xl border p-3 flex items-center gap-3 text-left transition-colors ${darkMode ? 'border-slate-800 bg-slate-950/50 hover:border-cyan-500/60' : 'border-slate-200 bg-white hover:border-cyan-400'}`}>
+                          <ChatAvatar profile={friend} />
+                          <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate">{friend.display_name}</div><div className={`font-mono text-[7px] truncate ${muted}`}>{friend.id}</div></div>
+                          {friendUnread > 0 && (
+                            <span aria-hidden="true" className="flex-shrink-0 min-w-[18px] rounded-full bg-cyan-500 px-1.5 text-center text-[9px] font-black leading-[18px] text-slate-950">
+                              {friendUnread > 99 ? '99+' : friendUnread}
+                            </span>
+                          )}
+                          <span className="text-cyan-400">›</span>
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {(friends.outgoing || []).length > 0 && <div className="space-y-2">
@@ -824,17 +928,26 @@
                   <button onClick={() => changeFriendship(selectedFriend, 'remove')} className={`text-[8px] font-black uppercase tracking-widest ${muted}`}>Unfriend</button>
                 </div>
               )}
-              <div ref={feedRef} data-testid={selectedFriend ? 'direct-message-feed' : 'world-chat-feed'}
-                className={`flex-1 min-h-0 overflow-y-auto p-3 space-y-4 ${darkMode ? 'bg-slate-950/35' : 'bg-slate-50/70'}`}>
-                {currentLoading ? (
-                  <div className={`h-full flex items-center justify-center text-xs ${muted}`}>Loading messages…</div>
-                ) : currentMessages.length === 0 ? (
-                  <div className={`h-full flex flex-col items-center justify-center text-center px-8 ${muted}`}><span className="text-3xl mb-3">👋</span><p className="text-xs">{selectedFriend ? `Start a conversation with ${selectedFriend.display_name}.` : 'World Chat is quiet. Say hello!'}</p></div>
-                ) : currentMessages.map(message => (
-                  <ChatMessage key={message.id} message={message} own={message.author?.id === userProfile?.id}
-                    darkMode={darkMode} allowLinks={Boolean(selectedFriend)}
-                    deleting={deletingMessageId === String(message.id)} onDelete={deleteMessage} />
-                ))}
+              <div className="relative flex-1 min-h-0">
+                <div ref={feedRef} data-testid={selectedFriend ? 'direct-message-feed' : 'world-chat-feed'} onScroll={syncFeedScrollState}
+                  className={`h-full overflow-y-auto p-3 space-y-4 ${darkMode ? 'bg-slate-950/35' : 'bg-slate-50/70'}`}>
+                  {currentLoading ? (
+                    <div className={`h-full flex items-center justify-center text-xs ${muted}`}>Loading messages…</div>
+                  ) : currentMessages.length === 0 ? (
+                    <div className={`h-full flex flex-col items-center justify-center text-center px-8 ${muted}`}><span className="text-3xl mb-3">👋</span><p className="text-xs">{selectedFriend ? `Start a conversation with ${selectedFriend.display_name}.` : 'World Chat is quiet. Say hello!'}</p></div>
+                  ) : currentMessages.map(message => (
+                    <ChatMessage key={message.id} message={message} own={message.author?.id === userProfile?.id}
+                      darkMode={darkMode} allowLinks={Boolean(selectedFriend)} onMediaLoad={handleChatMediaLoad}
+                      deleting={deletingMessageId === String(message.id)} onDelete={deleteMessage} />
+                  ))}
+                </div>
+                {showScrollToBottom && (
+                  <button type="button" onClick={() => scrollToChatBottom('smooth')} aria-label="Scroll to bottom"
+                    className={`absolute bottom-3 left-1/2 z-10 -translate-x-1/2 flex items-center gap-1.5 rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wider shadow-xl transition-all hover:-translate-y-0.5 ${darkMode ? 'border-cyan-400/40 bg-slate-900/95 text-cyan-300 shadow-black/30' : 'border-cyan-200 bg-white/95 text-cyan-700 shadow-slate-300/50'}`}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Scroll to bottom
+                  </button>
+                )}
               </div>
 
               {showGifs && (
@@ -1020,6 +1133,35 @@
       const [showSimpleSwap, setShowSimpleSwap] = useState(false);
       const [simpleSwapLoaded, setSimpleSwapLoaded] = useState(false);
       const [showChat, setShowChat] = useState(false);
+      // Messenger badge — pending friend requests + unread DMs, counted
+      // server-side (sql/cl_chat.sql) so this agrees with MagicMoney Wallet on
+      // the same account. World Chat is deliberately excluded: it is busy enough
+      // that a badge tied to it would never clear.
+      const [chatUnread, setChatUnread] = useState(null);
+      const refreshChatUnread = useCallback(() => {
+        if (!authToken) { setChatUnread(null); return; }
+        fetch('/api/chat/unread', { headers: { Authorization: `Bearer ${authToken}` } })
+          .then(response => (response.ok ? response.json() : null))
+          // Not eligible / not signed in / offline. A header dot is not worth an
+          // error surface; the widget itself explains what is missing.
+          .then(body => setChatUnread(body))
+          .catch(() => setChatUnread(null));
+      }, [authToken]);
+      useEffect(() => {
+        if (!authToken) { setChatUnread(null); return; }
+        refreshChatUnread();
+        // One lightweight aggregate, not a poll per conversation.
+        const interval = setInterval(refreshChatUnread, 20000);
+        return () => clearInterval(interval);
+      }, [authToken, refreshChatUnread]);
+      const chatBadge = (chatUnread?.pending_requests || 0) + (chatUnread?.unread_direct || 0);
+      // The visible badge is a bare number, so the accessible name has to carry
+      // what it counts. Kept prefixed with "Chat" so the control still reads as
+      // itself first and the state second.
+      const chatBadgeLabel = chatBadge === 0 ? 'Chat' : `Chat — ${[
+        chatUnread?.pending_requests ? `${chatUnread.pending_requests} friend request${chatUnread.pending_requests === 1 ? '' : 's'}` : '',
+        chatUnread?.unread_direct ? `${chatUnread.unread_direct} unread message${chatUnread.unread_direct === 1 ? '' : 's'}` : '',
+      ].filter(Boolean).join(', ')}`;
       const [copiedProfileId, setCopiedProfileId] = useState(false);
 
       const chainStyles = Object.fromEntries(DEFAULT_CHAINS.map(chain => [chain.id, chain]));
@@ -2602,8 +2744,14 @@
                     </button>
                     <button
                       onClick={() => { setShowChat(v => !v); setShowSimpleSwap(false); setShowDonate(false); setShowWallet(false); }}
-                      className={`md:hidden min-h-11 flex-shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${showChat ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-cyan-400'}`}>
+                      aria-label={chatBadgeLabel}
+                      className={`relative md:hidden min-h-11 flex-shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${showChat ? (darkMode ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-xl') : 'text-slate-400 hover:text-cyan-400'}`}>
                       Chat
+                      {chatBadge > 0 && (
+                        <span aria-hidden="true" className="absolute right-0.5 top-0.5 min-w-[16px] rounded-full bg-cyan-500 px-1 text-center text-[8px] font-black leading-4 text-slate-950">
+                          {chatBadge > 99 ? '99+' : chatBadge}
+                        </span>
+                      )}
                     </button>
                     <button
                       onClick={() => { setSimpleSwapLoaded(true); setShowSimpleSwap(v => !v); setShowChat(false); setShowDonate(false); setShowWallet(false); }}
@@ -4065,6 +4213,8 @@
               darkMode={darkMode}
               authToken={authToken}
               userProfile={userProfile}
+              unread={chatUnread}
+              onUnreadRefresh={refreshChatUnread}
             />
 
             {simpleSwapLoaded && (
@@ -4107,9 +4257,16 @@
                 setShowWallet(false);
               }}
               data-testid="chat-trigger"
-              className={`hidden md:flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showChat
+              aria-label={chatBadgeLabel}
+              className={`relative hidden md:flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${showChat
                 ? (darkMode ? 'bg-white text-slate-950 border-white shadow-white/10' : 'bg-slate-950 text-white border-slate-950')
                 : (darkMode ? 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-cyan-400 hover:text-cyan-400 backdrop-blur-md' : 'bg-white/90 border-slate-200 text-slate-600 hover:border-cyan-400 hover:text-cyan-600 backdrop-blur-md')}`}>
+              {chatBadge > 0 && (
+                <span aria-hidden="true" data-testid="chat-trigger-badge"
+                  className="absolute -right-1.5 -top-1.5 min-w-[18px] rounded-full bg-cyan-500 px-1.5 text-center text-[9px] font-black leading-[18px] text-slate-950 shadow-lg shadow-cyan-500/40">
+                  {chatBadge > 99 ? '99+' : chatBadge}
+                </span>
+              )}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 5.5h16v11H8l-4 3v-14Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M8 10h8M8 13h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
               Chat
             </button>
