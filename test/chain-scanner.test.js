@@ -21,11 +21,12 @@ const response = (body, ok = true, status = ok ? 200 : 500) => ({
 });
 
 test('matches Magic Money default-mainnet chain parity', () => {
-  assert.equal(DEFAULT_CHAINS.length, 23);
-  assert.equal(EVM_CHAINS.length, 17);
+  assert.equal(DEFAULT_CHAINS.length, 24);
+  assert.equal(EVM_CHAINS.length, 18);
   assert.deepEqual(ACCOUNT_CHAINS.map(chain => chain.id), ['solana', 'polkadot', 'tron']);
   assert.deepEqual(UTXO_CHAINS.map(chain => chain.id), ['cardano', 'bitcoin', 'dogecoin']);
   assert.ok(EVM_CHAINS.some(chain => chain.id === 'robinhood' && chain.alchemyNetwork === 'robinhood-mainnet'));
+  assert.ok(EVM_CHAINS.some(chain => chain.id === 'arc' && chain.alchemyNetwork === 'arc-mainnet' && chain.native === 'USDC'));
 });
 
 test('profile wallet types cover every scanner chain exactly once', () => {

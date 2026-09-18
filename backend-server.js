@@ -755,7 +755,8 @@ const NATIVE_CG_IDS = {
   AVAX: 'avalanche-2', RON: 'ronin', APE: 'apecoin',
   MON: 'monad', SOL: 'solana', ADA: 'cardano', BNB: 'binancecoin',
   XDAI: 'xdai', HYPE: 'hyperliquid', WLD: 'worldcoin-wld',
-  BTC: 'bitcoin', DOT: 'polkadot', TRX: 'tron', DOGE: 'dogecoin'
+  BTC: 'bitcoin', DOT: 'polkadot', TRX: 'tron', DOGE: 'dogecoin',
+  USDC: 'usd-coin'
 };
 
 // Simple price cache — 90s TTL
@@ -785,7 +786,7 @@ const DS_CHAIN = {
   ethereum:'ethereum', base:'base', polygon:'polygon', abstract:'abstract',
   monad:'monad', avalanche:'avalanche', optimism:'optimism', arbitrum:'arbitrum',
   blast:'blast', zora:'zora', apechain:'ape', soneium:'soneium',
-  ronin:'ronin', worldchain:'worldchain',
+  ronin:'ronin', worldchain:'worldchain', arc:'arc',
 };
 
 // DefiLlama chain slugs (free coins API — no key needed)
@@ -795,7 +796,7 @@ const LLAMA_CHAIN = {
   optimism:'optimism', arbitrum:'arbitrum', blast:'blast', zora:'zora',
   abstract:'abstract', apechain:'apechain', soneium:'soneium', ronin:'ronin',
   worldchain:'worldchain', gnosis:'xdai', hyperevm:'hyperliquid', monad:'monad',
-  solana:'solana', cardano:'cardano',
+  arc:'arc', solana:'solana', cardano:'cardano',
 };
 
 // Single DefiLlama token price lookup — used as fallback when DexScreener returns 0
@@ -2447,6 +2448,8 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
       gnosis:     { symbol:'xDAI', name:'Gnosis',     logo:'https://cryptologos.cc/logos/gnosis-gno-logo.png' },
       hyperevm:   { symbol:'HYPE', name:'HyperEVM',   logo:'https://assets.coingecko.com/coins/images/53805/small/Hyperliquid.png' },
       worldchain: { symbol:'WLD',  name:'Worldcoin',  logo:'https://cryptologos.cc/logos/worldcoin-org-wld-logo.png' },
+      // Arc's gas token is native USDC (18 decimals at the protocol level).
+      arc:        { symbol:'USDC', name:'USDC',       logo:'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' },
     };
     const { symbol: nativeSymbol, name: nativeName, logo: nativeLogo } =
       _nc[chainId] || { symbol:'ETH', name:'Ether', logo:'https://cryptologos.cc/logos/ethereum-eth-logo.png' };
@@ -2473,7 +2476,12 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
     }
 
     const balances = erc20Res.result?.tokenBalances || [];
-    const nonZero = balances.filter(t => parseInt(t.tokenBalance, 16) > 0).slice(0, 15);
+    // Arc exposes the native USDC balance a second time as the ERC-20 at
+    // 0x3600…0000 — skip it so the holding isn't listed (and valued) twice.
+    const nonZero = balances
+      .filter(t => parseInt(t.tokenBalance, 16) > 0)
+      .filter(t => !(chainId === 'arc' && t.contractAddress.toLowerCase() === '0x3600000000000000000000000000000000000000'))
+      .slice(0, 15);
 
     const erc20Results = await Promise.all(nonZero.map(async (token) => {
       try {
@@ -2518,7 +2526,7 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
               avalanche:'avalanche', optimism:'optimism', arbitrum:'arbitrum',
               abstract:'abstract', blast:'blast', zora:'zora', apechain:'ape',
               soneium:'soneium', gnosis:'xdai', ronin:'ronin', worldchain:'worldchain',
-              hyperevm:'hyperliquid' }[chainId];
+              hyperevm:'hyperliquid', arc:'arc' }[chainId];
             if (dsChainId) {
               const dexImg = await fetchTokenImageByAddress(dsChainId, token.contractAddress);
               if (dexImg) return dexImg;

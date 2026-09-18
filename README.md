@@ -223,7 +223,7 @@ and which one ChainLens wears is a per-install choice that never travels back.
 
 | Category | Chains |
 |---|---|
-| EVM | Ethereum, Arbitrum One, Optimism, Base, Polygon, Avalanche, Blast, Gnosis, Monad, Abstract, ApeChain, Robinhood Chain, Ronin, Soneium, WorldChain, Zora, HyperEVM |
+| EVM | Ethereum, Arbitrum One, Optimism, Base, Polygon, Avalanche, Blast, Gnosis, Monad, Abstract, ApeChain, Robinhood Chain, Arc, Ronin, Soneium, WorldChain, Zora, HyperEVM |
 | Account model | Solana, Polkadot, Tron |
 | UTXO / eUTXO | Cardano, Bitcoin, Dogecoin |
 

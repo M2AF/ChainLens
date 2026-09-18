@@ -20,6 +20,7 @@
     { id: 'abstract',  label: 'Abstract',        family: 'evm',     native: 'ETH',  coingeckoId: 'ethereum',                alchemyNetwork: 'abstract-mainnet',   background: 'linear-gradient(135deg, #00D4FF, #00FF85)', hex: '00D4FF', foreground: '#020617' },
     { id: 'apechain',  label: 'ApeChain',        family: 'evm',     native: 'APE',  coingeckoId: 'apecoin',                 alchemyNetwork: 'apechain-mainnet',   background: '#0144D0', hex: '0144D0' },
     { id: 'robinhood', label: 'Robinhood Chain', family: 'evm',     native: 'ETH',  coingeckoId: 'ethereum',                alchemyNetwork: 'robinhood-mainnet',  background: '#00C805', hex: '00C805', foreground: '#020617' },
+    { id: 'arc',       label: 'Arc',             family: 'evm',     native: 'USDC', coingeckoId: 'usd-coin',                alchemyNetwork: 'arc-mainnet',        background: '#3D6FB6', hex: '3D6FB6' },
     { id: 'ronin',     label: 'Ronin',           family: 'evm',     native: 'RON',  coingeckoId: 'ronin',                   alchemyNetwork: 'ronin-mainnet',      background: '#1273EA', hex: '1273EA' },
     { id: 'soneium',   label: 'Soneium',         family: 'evm',     native: 'ETH',  coingeckoId: 'ethereum',                alchemyNetwork: 'soneium-mainnet',    background: '#5B5EA6', hex: '5B5EA6' },
     { id: 'worldchain',label: 'WorldChain',      family: 'evm',     native: 'WLD',  coingeckoId: 'worldcoin-wld',           alchemyNetwork: 'worldchain-mainnet', background: 'linear-gradient(135deg, #3B82F6, #22C55E)', hex: '3D4EFF' },
@@ -42,7 +43,7 @@
   // every EVM network, while non-EVM addresses are stored per chain.
   const TRUST_WALLET_LOGO_BASE = 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains';
   const PROFILE_WALLET_TYPES = [
-    { id: 'evm',      label: 'EVM Chains', shortLabel: 'EVM',  family: 'evm',     logoUrl: `${TRUST_WALLET_LOGO_BASE}/ethereum/info/logo.png`, description: '17 networks · one 0x address', chainIds: EVM_CHAINS.map(chain => chain.id) },
+    { id: 'evm',      label: 'EVM Chains', shortLabel: 'EVM',  family: 'evm',     logoUrl: `${TRUST_WALLET_LOGO_BASE}/ethereum/info/logo.png`, description: `${EVM_CHAINS.length} networks · one 0x address`, chainIds: EVM_CHAINS.map(chain => chain.id) },
     { id: 'solana',   label: 'Solana',     shortLabel: 'SOL',  family: 'account', logoUrl: `${TRUST_WALLET_LOGO_BASE}/solana/info/logo.png`,   description: 'Solana account',              chainIds: ['solana'] },
     { id: 'polkadot', label: 'Polkadot',   shortLabel: 'DOT',  family: 'account', logoUrl: `${TRUST_WALLET_LOGO_BASE}/polkadot/info/logo.png`, description: 'Polkadot SS58 account',        chainIds: ['polkadot'] },
     { id: 'tron',     label: 'Tron',       shortLabel: 'TRX',  family: 'account', logoUrl: `${TRUST_WALLET_LOGO_BASE}/tron/info/logo.png`,     description: 'Tron account',                 chainIds: ['tron'] },
