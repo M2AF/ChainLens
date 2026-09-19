@@ -23,6 +23,7 @@ const {
   summarizeChatUnread, chatConversationKey, WORLD_CONVERSATION,
 } = require('./chat-service');
 const { resolveWalletSession } = require('./auth-session');
+const { createPrecompiledPage, COMPILED_PREFIX } = require('./precompile-page');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -443,6 +444,14 @@ app.use(cors());
 // or compact image data URLs. Keep the cap narrow enough to prevent oversized
 // requests while allowing the 2 MB client-side avatar limit plus base64 overhead.
 app.use(express.json({ limit: '3mb' }));
+// Homepage with its JSX compiled on the server, not by Babel in the visitor's
+// browser (see precompile-page.js). Registered before express.static, which
+// would otherwise answer '/' with the raw index.html. Falls back to that raw
+// file on its own if the compile ever fails.
+const precompiledPage = createPrecompiledPage(path.join(__dirname, 'public'));
+precompiledPage.current();   // compile at boot, not on the first visitor
+app.get(['/', '/index.html'], precompiledPage.sendPage);
+app.get(`${COMPILED_PREFIX}*`, precompiledPage.sendAsset);
 app.use(express.static(path.join(__dirname, 'public')));
 
 const searchRateLimit = (req, res, next) => {
@@ -4443,7 +4452,7 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
      .sendFile(path.join(__dirname, 'public', '.well-known', 'assetlinks.json'));
 });
 
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('*', precompiledPage.sendPage);
 // Validate critical API keys at startup
 if (!API_KEYS.alchemy) {
   console.error('⚠️  WARNING: ALCHEMY_KEY not found in .env file!');

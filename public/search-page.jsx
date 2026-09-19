@@ -14,6 +14,24 @@
     .slice(0, 2)
     .toUpperCase();
 
+  // Deep link: /search?q=… (Magic Money's address bar sends non-URL input here).
+  // Read once at load; later searches keep the address in sync via replaceState.
+  const readUrlQuery = () => {
+    try {
+      return String(new URLSearchParams(window.location.search).get('q') || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    } catch {
+      return '';
+    }
+  };
+  const INITIAL_URL_QUERY = readUrlQuery();
+  let initialQueryConsumed = false;
+
+  const writeUrlQuery = (value) => {
+    try {
+      window.history.replaceState(window.history.state, '', value ? `/search?q=${encodeURIComponent(value)}` : '/');
+    } catch { /* history unavailable */ }
+  };
+
   const SearchPage = ({ darkMode, apps = [], onOpenScanner, onOpenAppHub }) => {
     const [query, setQuery] = useState('');
     const [submittedQuery, setSubmittedQuery] = useState('');
@@ -37,6 +55,7 @@
       if (!value) return;
       setQuery(value);
       setSubmittedQuery(value);
+      writeUrlQuery(value);
       setWebResults([]);
       setError('');
       requestRef.current?.abort();
@@ -54,6 +73,19 @@
         if (requestRef.current === controller) setLoading(false);
       }
     };
+
+    // Run a deep-linked query once per page load; leaving the Search tab drops
+    // ?q so the address never names a search the page is no longer showing.
+    useEffect(() => {
+      if (INITIAL_URL_QUERY && !initialQueryConsumed) {
+        initialQueryConsumed = true;
+        submitSearch(null, INITIAL_URL_QUERY);
+      }
+      return () => {
+        if (new URLSearchParams(window.location.search).has('q')) writeUrlQuery('');
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const surface = darkMode
       ? 'bg-slate-900/55 border-slate-800'
