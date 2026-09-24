@@ -1,5 +1,5 @@
 /**
- * dex-swap.js — ChainLens's connected-wallet DEX swap page.
+ * dex-swap.js — ChainLens's connected-wallet Magic Swap mode.
  *
  *   search/quotes  /api/dex/* (swap-service.js; provider credentials stay there)
  *   judging        MagicMoneySwapCore (swap-core.js, generated from Magic Money)
@@ -13,6 +13,8 @@
  */
 (function () {
   'use strict';
+
+  function mount(root) {
 
   const core = window.MagicMoneySwapCore;
   const adapter = window.ChainLensSwapWallet;
@@ -34,7 +36,7 @@
   };
   const POLL_MS = 5000;
 
-  const $ = (sel) => document.querySelector(sel);
+  const $ = (sel) => root.querySelector(sel);
   // Token names/symbols come from open token lists and wallet names from
   // extensions: both are untrusted text and are escaped wherever HTML is built.
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -318,7 +320,7 @@
     btn.disabled = state.busy || left <= 0;
     btn.textContent = state.busy ? 'Waiting for your wallet…' : left > 0 ? `Swap (quote valid ${left}s)` : 'Quote expired — get a new quote';
   }
-  setInterval(tickExpiry, 1000);
+  const expiryTimer = setInterval(tickExpiry, 1000);
 
   // ── Chain reads through the connected EVM wallet's RPC ─────────────────────
 
@@ -513,11 +515,11 @@
       renderSwaps();
     }
   }
-  setInterval(poll, POLL_MS);
+  const pollTimer = setInterval(poll, POLL_MS);
 
   // ── Wiring ─────────────────────────────────────────────────────────────────
 
-  document.addEventListener('click', (e) => {
+  root.addEventListener('click', (e) => {
     const action = e.target.closest('[data-action]')?.dataset.action;
     if (action === 'connect-evm') connect('evm');
     if (action === 'connect-solana') connect('solana');
@@ -543,4 +545,15 @@
   renderWallets();
   renderSwaps();
   poll();
+  return () => {
+    clearInterval(expiryTimer);
+    clearInterval(pollTimer);
+    clearTimeout(searchTimer.from);
+    clearTimeout(searchTimer.to);
+    state.evm?.signer.dispose?.();
+    state.solana?.signer.dispose?.();
+  };
+  }
+
+  window.ChainLensDexSwap = { mount };
 }());

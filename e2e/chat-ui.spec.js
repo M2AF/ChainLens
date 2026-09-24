@@ -370,6 +370,7 @@ test('opening Chat on Magic Swap keeps Messenger fully inside the viewport', asy
   await page.goto('/');
 
   await page.getByTestId('magic-swap-trigger').click();
+  await page.getByTestId('exchange-swap-mode').click();
   await expect(page.locator('#simpleswap-frame')).toBeVisible();
   await page.getByTestId('chat-trigger').click();
 

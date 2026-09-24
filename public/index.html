@@ -21,6 +21,12 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/chain-catalog.js"></script>
   <script src="/wallet-providers.js"></script>
+  <script src="/swap-core.js"></script>
+  <script src="/swap-wallet-adapter.js"></script>
+  <script src="/dex-swap-store.js"></script>
+  <script src="/dex-swap-markup.js"></script>
+  <script src="/dex-swap.js"></script>
+  <link rel="stylesheet" href="/dex-swap.css">
   <script src="/asset-filter-key.js"></script>
   <script src="/theme-engine.js"></script>
   <script src="/app-hub-data.js"></script>
@@ -1270,9 +1276,20 @@
       );
     };
 
+    const DexSwapPanel = ({ darkMode }) => {
+      const rootRef = useRef(null);
+      useEffect(() => {
+        rootRef.current.innerHTML = window.ChainLensDexSwapMarkup;
+        const dispose = window.ChainLensDexSwap.mount(rootRef.current);
+        return () => dispose?.();
+      }, []);
+      return <div ref={rootRef} className="dex-swap max-w-2xl mx-auto" data-tone={darkMode ? 'dark' : 'light'} data-testid="dex-swap-panel" />;
+    };
+
     const App = () => {
       const [activeTab, setActiveTab] = useState(() => window.location.pathname === '/magic-swap' ? 'magic-swap' : 'search');
       const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+      const [swapMode, setSwapMode] = useState('wallet');
       useEffect(() => {
         const onPopState = () => setActiveTab(window.location.pathname === '/magic-swap' ? 'magic-swap' : 'search');
         window.addEventListener('popstate', onPopState);
@@ -3224,15 +3241,24 @@
 
             {activeTab === 'magic-swap' && (
               <section className="mx-auto max-w-5xl min-h-[70vh] py-10" data-testid="magic-swap-page">
-                <p className="text-xs font-black uppercase tracking-[.25em] text-cyan-400">Exchange crypto</p>
-                <h1 className="mt-2 mb-4 font-heading text-4xl md:text-6xl font-extrabold uppercase">Magic Swap</h1>
-                <p className={`mb-8 max-w-2xl ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Swap assets across chains using our exchange partner.</p>
-                <div className={`rounded-[2rem] border p-4 md:p-8 ${darkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200 shadow-xl'}`}>
-                  <iframe id="simpleswap-frame" title="Magic Swap" src="https://simpleswap.io/widget/e16a9606-7260-4926-a33d-e6c700b3de3b" className="w-full h-[560px] rounded-2xl" loading="lazy" />
+                <div className="max-w-2xl mx-auto">
+                  <p className="text-xs font-black uppercase tracking-[.25em] text-cyan-400">Swap crypto</p>
+                  <h1 className="mt-2 mb-4 font-heading text-4xl md:text-5xl font-extrabold uppercase">Magic Swap</h1>
+                  <div className={`mb-8 inline-flex w-full max-w-md gap-1 rounded-2xl border p-1 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`} role="group" aria-label="Magic Swap mode">
+                    <button type="button" data-testid="wallet-swap-mode" aria-pressed={swapMode === 'wallet'} onClick={() => setSwapMode('wallet')} className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${swapMode === 'wallet' ? 'bg-cyan-500 text-slate-950' : darkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Wallet swap</button>
+                    <button type="button" data-testid="exchange-swap-mode" aria-pressed={swapMode === 'exchange'} onClick={() => setSwapMode('exchange')} className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${swapMode === 'exchange' ? 'bg-cyan-500 text-slate-950' : darkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Exchange swap</button>
+                  </div>
                 </div>
-                <p className={`mt-4 text-sm ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                  Prefer to swap on-chain from your own wallet? <a href="/dex-swap" data-testid="dex-swap-link" className="font-bold text-cyan-400 hover:underline">Open DEX Swap →</a>
-                </p>
+                <div style={{ display: swapMode === 'wallet' ? 'block' : 'none' }}>
+                  <p className={`mb-6 max-w-2xl mx-auto ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Swap on-chain from your own wallet. Review each quote before signing.</p>
+                  <DexSwapPanel darkMode={darkMode} />
+                </div>
+                {swapMode === 'exchange' && <>
+                  <p className={`mb-8 max-w-2xl mx-auto ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Swap assets across chains using our exchange partner.</p>
+                  <div className={`rounded-[2rem] border p-4 md:p-8 ${darkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200 shadow-xl'}`}>
+                    <iframe id="simpleswap-frame" title="Magic Swap exchange" src="https://simpleswap.io/widget/e16a9606-7260-4926-a33d-e6c700b3de3b" className="w-full h-[560px] rounded-2xl" loading="lazy" />
+                  </div>
+                </>}
               </section>
             )}
 

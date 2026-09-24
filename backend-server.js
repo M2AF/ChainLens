@@ -453,9 +453,8 @@ const precompiledPage = createPrecompiledPage(path.join(__dirname, 'public'));
 precompiledPage.current();   // compile at boot, not on the first visitor
 app.get(['/', '/index.html', '/magic-swap'], precompiledPage.sendPage);
 app.get(`${COMPILED_PREFIX}*`, precompiledPage.sendAsset);
-// DEX swap with a connected wallet (Stage 5). A separate page, so the Magic Swap
-// tab's SimpleSwap widget is untouched.
-app.get('/dex-swap', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dex-swap.html')));
+// Keep old bookmarks working; both swap modes now live on Magic Swap.
+app.get(['/dex-swap', '/dex-swap.html'], (req, res) => res.redirect(302, '/magic-swap'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const searchRateLimit = (req, res, next) => {
@@ -2349,7 +2348,7 @@ app.get('/api/search/web', searchRateLimit, async (req, res) => {
 
 // --- SWAP INTEGRATIONS ---
 
-// DEX search, quotes and status for /dex-swap, through Magic Money's swap
+// DEX search, quotes and status for Magic Swap, through Magic Money's swap
 // service. The Worker client token stays in this process's environment.
 registerSwapRoutes(app, createSwapService({
   workerUrl: process.env.MM_SWAP_WORKER_URL,

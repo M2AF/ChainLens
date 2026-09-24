@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 /**
- * /dex-swap end to end, against fake wallets and mocked /api/dex routes.
+ * Magic Swap's connected-wallet mode, against fake wallets and mocked /api/dex routes.
  *
  * The wallets are injected before the page loads: an EIP-6963 EVM wallet whose
  * behaviour each test scripts (reject, switch accounts, confirm), and a Wallet
@@ -158,20 +158,40 @@ async function connectSolana(page) {
   await expect(page.getByTestId('solana-wallet')).toContainText(SOL_A);
 }
 
-test.describe('DEX swap page', () => {
+test.describe('Magic Swap wallet mode', () => {
   test.setTimeout(60_000);
 
-  test('SimpleSwap stays on Magic Swap, and the DEX page links back to it', async ({ page }) => {
+  test('wallet swap is the default and exchange swap shares the page', async ({ page }) => {
     await installWallets(page);
     await mockDex(page);
     await page.goto('/dex-swap');
-    await expect(page.getByRole('link', { name: /Magic Swap \(SimpleSwap exchange\)/ })).toHaveAttribute('href', '/magic-swap');
+    await expect(page).toHaveURL(/\/magic-swap$/);
+    await expect(page.locator('.cl-sidebar')).toBeVisible();
+    await expect(page.getByTestId('dex-swap-panel')).toBeVisible();
+    await expect(page.getByTestId('evm-wallet')).toBeVisible();
+    await expect(page.getByTestId('wallet-swap-mode')).toHaveAttribute('aria-pressed', 'true');
+    await connectEvm(page);
+    await page.screenshot({ path: 'test-results/magic-swap-wallet-light.png', fullPage: true });
+    await page.getByRole('switch', { name: 'Dark mode' }).click();
+    await expect(page.getByTestId('dex-swap-panel')).toHaveAttribute('data-tone', 'dark');
+    await page.screenshot({ path: 'test-results/magic-swap-wallet-dark.png', fullPage: true });
+    await page.getByTestId('exchange-swap-mode').click();
+    await expect(page.locator('#simpleswap-frame')).toBeVisible();
+    await expect(page.getByTestId('exchange-swap-mode')).toHaveAttribute('aria-pressed', 'true');
+    await page.getByTestId('wallet-swap-mode').click();
+    await expect(page.getByTestId('evm-wallet')).toContainText(EVM_A);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(300);
+    const mobilePanel = await page.getByTestId('dex-swap-panel').boundingBox();
+    expect(mobilePanel.x).toBeGreaterThanOrEqual(0);
+    expect(mobilePanel.x + mobilePanel.width).toBeLessThanOrEqual(390);
+    await page.screenshot({ path: 'test-results/magic-swap-wallet-mobile.png' });
   });
 
   test('approval, then swap, then completion tracked from the source receipt', async ({ page }) => {
     await installWallets(page);
     await mockDex(page);
-    await page.goto('/dex-swap');
+    await page.goto('/magic-swap');
     await connectEvm(page);
     await expect(page.getByTestId('evm-wallet')).toContainText(EVM_A);
     await quoteUsdcToEth(page);
@@ -187,7 +207,7 @@ test.describe('DEX swap page', () => {
   test('a rejected approval sends nothing and is recorded as not sent', async ({ page }) => {
     await installWallets(page);
     await mockDex(page);
-    await page.goto('/dex-swap');
+    await page.goto('/magic-swap');
     await page.evaluate(() => { window.__evm.reject = [true]; });
     await connectEvm(page);
     await quoteUsdcToEth(page);
@@ -200,7 +220,7 @@ test.describe('DEX swap page', () => {
   test('an account change while the approval confirms stops the swap; the approval is reported', async ({ page }) => {
     await installWallets(page);
     await mockDex(page);
-    await page.goto('/dex-swap');
+    await page.goto('/magic-swap');
     await page.evaluate((b) => {
       window.__evm.afterSend = (n) => { if (n === 1) { window.__evm.account = b; window.__evm.emit('accountsChanged', [b]); } };
     }, EVM_B);
@@ -217,7 +237,7 @@ test.describe('DEX swap page', () => {
   test('an allowance already in place skips the approval', async ({ page }) => {
     await installWallets(page);
     await mockDex(page);
-    await page.goto('/dex-swap');
+    await page.goto('/magic-swap');
     await page.evaluate(() => { window.__evm.allowance = '0x' + (10n ** 12n).toString(16); });
     await connectEvm(page);
     await quoteUsdcToEth(page);
@@ -235,7 +255,7 @@ test.describe('DEX swap page', () => {
         receivedTokenDecimals: 6, receivedTokenChain: '1151111081099710', receivedAmountRaw: '1000000', destTxHash: '5xyz',
       }),
     });
-    await page.goto('/dex-swap');
+    await page.goto('/magic-swap');
     await connectEvm(page);
     await page.getByTestId('to-chain').selectOption('solana');
     await expect(page.getByTestId('recipient')).toContainText('connect a Solana wallet');
@@ -264,7 +284,7 @@ test.describe('DEX swap page', () => {
         ? { providerStatus: 'DONE', providerSubstatus: 'REFUNDED', receivedTokenAddress: NATIVE, receivedTokenChain: '8453' }
         : { providerStatus: 'PENDING', providerSubstatus: 'WAIT_DESTINATION_TRANSACTION' }),
     });
-    await page.goto('/dex-swap');
+    await page.goto('/magic-swap');
     await connectEvm(page);
     await page.getByTestId('to-chain').selectOption('solana');
     await connectSolana(page);

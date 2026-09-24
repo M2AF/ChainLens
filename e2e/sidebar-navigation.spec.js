@@ -13,9 +13,12 @@ test('desktop sidebar opens Magic Swap as a page and centers utility dialogs', a
   await nav.getByRole('button', { name: 'Magic Swap' }).click();
   await expect(page).toHaveURL(/\/magic-swap$/);
   await expect(page.getByTestId('magic-swap-page')).toBeVisible();
-  await expect(page.locator('#simpleswap-frame')).toHaveAttribute('title', 'Magic Swap');
+  await expect(page.getByTestId('evm-wallet')).toBeVisible();
+  await page.getByTestId('exchange-swap-mode').click();
+  await expect(page.locator('#simpleswap-frame')).toHaveAttribute('title', 'Magic Swap exchange');
   await page.reload();
   await expect(page.getByTestId('magic-swap-page')).toBeVisible();
+  await expect(page.getByTestId('evm-wallet')).toBeVisible();
 
   for (const [label, testId, close] of [
     ['Wallet', 'wallet-dialog', 'Close wallet'],
