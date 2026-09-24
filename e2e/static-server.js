@@ -5,6 +5,7 @@ const app = express();
 const root = path.resolve(__dirname, '..');
 
 app.use(express.static(path.join(root, 'public')));
+app.get('/docs', (_req, res) => res.sendFile(path.join(root, 'public', 'docs.html')));
 app.get('/app-hub-data.js', (_req, res) => res.sendFile(path.join(root, 'app-hub-data.js')));
 app.get(['/dex-swap', '/dex-swap.html'], (_req, res) => res.redirect(302, '/magic-swap'));
 app.get('*', (_req, res) => res.sendFile(path.join(root, 'public', 'index.html')));

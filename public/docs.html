@@ -82,6 +82,7 @@
     }
 
     .sidebar-logo { display: block; padding: 28px 28px 24px; }
+    .sidebar-close { display: none; }
     .sidebar-logo img { display: block; width: 230px; max-width: 100%; height: 96px; object-fit: contain; }
     .site-nav { overflow-y: auto; padding: 0 20px 24px; }
     .site-nav a { display: flex; align-items: center; gap: 16px; min-height: 58px; padding: 0 24px; border-radius: 14px; color: var(--soft); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
@@ -204,14 +205,18 @@
     .theme-dialog h2 { font-size: 1.3rem; margin-bottom: 20px; }
     .theme-dialog label { display: block; margin: 12px 0; color: var(--soft); font-size: 12px; font-weight: 700; }
     .theme-dialog input[type="text"] { width: 100%; margin-top: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); font: inherit; }
-    .theme-dialog input[type="color"] { display: block; width: 100%; height: 42px; margin-top: 6px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+    .theme-color-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+    .theme-dialog .theme-color-row input[type="color"] { width: 42px; height: 42px; flex: none; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); cursor: pointer; }
+    .theme-dialog .theme-color-row input[type="text"] { margin: 0; font-family: ui-monospace, monospace; }
+    .theme-preview { margin-top: 12px; padding: 15px; border: 1px solid; border-radius: 12px; }
+    .theme-preview span { display: inline-block; margin-top: 9px; padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; }
     .theme-dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
     .theme-dialog-actions button { padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
     .theme-dialog-actions button[type="submit"] { background: var(--cyan); color: var(--bg); }
     .theme-error { color: var(--rose); font-size: 12px; }
 
     .hero {
-      padding: 64px 0 38px;
+      padding: 48px 0 30px;
       display: grid;
       grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
       gap: 34px;
@@ -243,8 +248,8 @@
       margin: 0;
       max-width: 820px;
       font-family: "Syne", sans-serif;
-      font-size: clamp(2.5rem, 8vw, 6.8rem);
-      line-height: 0.88;
+      font-size: clamp(2.5rem, 5.5vw, 5rem);
+      line-height: 0.96;
       letter-spacing: 0;
       text-transform: uppercase;
     }
@@ -564,6 +569,7 @@
     @media (max-width: 900px) {
       .site-sidebar { width: min(298px, 85vw); transform: translateX(-100%); transition: transform .25s ease; }
       .site-sidebar.open { transform: translateX(0); }
+      .sidebar-close { display: block; position: absolute; top: 28px; right: 12px; border: 0; background: none; color: var(--text); font-size: 24px; cursor: pointer; }
       .docs-main { margin-left: 0; }
       .menu-button { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; margin-right: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); font-size: 22px; cursor: pointer; }
       .menu-backdrop.open { display: block; position: fixed; inset: 0; z-index: 45; border: 0; background: rgba(2, 6, 23, .7); }
@@ -608,6 +614,7 @@
   </svg>
   <button class="menu-backdrop" id="menuBackdrop" aria-label="Close menu"></button>
   <aside class="site-sidebar" id="siteSidebar" aria-label="ChainLens navigation">
+    <button class="sidebar-close" id="sidebarClose" type="button" aria-label="Close menu">×</button>
     <a class="sidebar-logo" href="/?tab=search"><img id="sidebarLogo" src="/ChainLens (dark).png" alt="ChainLens"></a>
     <nav class="site-nav" aria-label="Main navigation">
       <a href="/?tab=search"><svg><use href="#icon-search"/></svg>Search</a>
@@ -675,6 +682,7 @@
         <a href="#solana">Solana Provider</a>
         <a href="#cardano">Cardano CIP-30</a>
         <a href="#bitcoin">Bitcoin Provider</a>
+        <a href="#more-providers">More Providers</a>
         <a href="#walletconnect">WalletConnect</a>
         <a href="#networks">Networks</a>
         <a href="#platforms">Platforms</a>
@@ -710,6 +718,16 @@
               <span>Bitcoin</span>
               <strong>UniSat + WBIP</strong>
               <p>Connect payment and ordinals addresses, sign messages, sign PSBTs, broadcast, and send BTC.</p>
+            </div>
+            <div class="mini-card">
+              <span>Polkadot</span>
+              <strong>Injected Web3</strong>
+              <p>Discover <code>window.injectedWeb3.magicmoney</code> for accounts and signer requests.</p>
+            </div>
+            <div class="mini-card">
+              <span>Midnight</span>
+              <strong>DApp Connector</strong>
+              <p>Discover Magic Money in the Midnight provider registry for account state and supported signing flows.</p>
             </div>
           </div>
         </section>
@@ -1024,6 +1042,13 @@ const psbtResult = await provider.request("signPsbt", {
           </div>
         </section>
 
+        <section id="more-providers">
+          <h2>More Providers</h2>
+          <p>Polkadot dApps can call <code>window.injectedWeb3.magicmoney.enable(appName)</code>, then use the returned <code>accounts.get()</code> and <code>signer.signPayload()</code> or <code>signer.signRaw()</code> methods. Wait for the user to approve access before reading accounts.</p>
+          <p>Midnight dApps should discover Magic Money through <code>window.midnight</code>. The wallet exposes a registered provider for current connector integrations and <code>window.midnight.magicmoney</code> for legacy clients. Use the connector's own capability methods and prompt flow; do not treat a visible address as signing approval.</p>
+          <p>Passkey creation and recovery use the site's standard WebAuthn APIs where supported. They are separate from wallet connection and never replace the dApp's normal signature approval step.</p>
+        </section>
+
         <section id="walletconnect">
           <h2>WalletConnect</h2>
           <p>
@@ -1172,9 +1197,11 @@ npm test</code></pre>
     <form id="themeForm" aria-label="Edit theme">
       <h2 id="themeDialogTitle">Create theme</h2>
       <label>Name<input id="themeName" type="text" maxlength="24" required></label>
-      <label>Background<input id="themeBg" type="color"></label>
-      <label>Accent<input id="themeAccent" type="color"></label>
-      <label>Text<input id="themeText" type="color"></label>
+      <label>Background<div class="theme-color-row"><input id="themeBg" type="color" aria-label="Background color picker"><input id="themeBgHex" type="text" maxlength="7" aria-label="Background hex"></div></label>
+      <label>Accent<div class="theme-color-row"><input id="themeAccent" type="color" aria-label="Accent color picker"><input id="themeAccentHex" type="text" maxlength="7" aria-label="Accent hex"></div></label>
+      <label>Text<div class="theme-color-row"><input id="themeText" type="color" aria-label="Text color picker"><input id="themeTextHex" type="text" maxlength="7" aria-label="Text hex"></div></label>
+      <p id="themeContrast"></p>
+      <div class="theme-preview" id="themePreview"><strong>Theme preview</strong><br><span id="themePreviewAccent">Accent</span></div>
       <p class="theme-error" id="themeError" role="alert"></p>
       <div class="theme-dialog-actions">
         <button type="submit" id="themeSave">Save theme</button>
@@ -1184,34 +1211,7 @@ npm test</code></pre>
     </form>
   </div>
 
-  <script>
-    const root = document.documentElement;
-    const themeToggle = document.getElementById("themeToggle");
-    const storedTheme = localStorage.getItem("mm_docs_theme");
-    const defaultTheme = storedTheme || "dark";
-
-    function setTheme(theme) {
-      root.dataset.theme = theme;
-      localStorage.setItem("mm_docs_theme", theme);
-      themeToggle.textContent = theme === "dark" ? "Dark" : "Light";
-    }
-
-    setTheme(defaultTheme);
-
-    themeToggle.addEventListener("click", () => {
-      setTheme(root.dataset.theme === "dark" ? "light" : "dark");
-    });
-
-    document.querySelectorAll("[data-copy]").forEach((button) => {
-      button.addEventListener("click", async () => {
-        const target = document.getElementById(button.dataset.copy);
-        if (!target) return;
-        await navigator.clipboard.writeText(target.textContent);
-        const old = button.textContent;
-        button.textContent = "Copied";
-        setTimeout(() => { button.textContent = old; }, 1200);
-      });
-    });
-  </script>
+  <script src="/theme-engine.js"></script>
+  <script src="/docs-ui.js"></script>
 </body>
 </html>
