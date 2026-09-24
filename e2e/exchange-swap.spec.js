@@ -1,5 +1,11 @@
 const { test, expect } = require('@playwright/test');
 
+/** Choose an asset in the logo picker (it replaced the native <select>). */
+async function pickAsset(page, name, key) {
+  await page.getByRole('button', { name }).click();
+  await page.locator(`[role="listbox"][aria-label="${name}"] [data-key="${key}"]`).click();
+}
+
 test('native Exchange Swap quotes, creates, resumes and polls without embedding provider widget', async ({ page }) => {
   let created = 0;
   await page.route('**/api/exchange/quote?**', route => route.fulfill({ json: {
@@ -25,8 +31,8 @@ test('native Exchange Swap quotes, creates, resumes and polls without embedding 
   await page.getByTestId('exchange-swap-mode').click();
   await expect(page.getByTestId('exchange-panel')).toBeVisible();
   await expect(page.locator('#simpleswap-frame')).toHaveCount(0);
-  await page.getByLabel('Send asset').selectOption('sol:sol');
-  await page.getByLabel('Receive asset').selectOption('eth:eth');
+  await pickAsset(page, 'Send asset', 'sol:sol');
+  await pickAsset(page, 'Receive asset', 'eth:eth');
   await page.getByLabel('Amount to send').fill('1');
   await page.getByTestId('exchange-get-quote').click();
   await expect(page.getByTestId('exchange-quote')).toContainText('SimpleSwap');
@@ -85,4 +91,53 @@ test('changing an amount discards a quote that arrives late', async ({ page }) =
   answer();
   await expect(page.getByTestId('exchange-quote')).toHaveCount(0);
   await expect(page.getByTestId('exchange-get-quote')).toBeEnabled();
+});
+
+test('destination and refund auto-fill from profile wallets, verified before watch-only', async ({ page }) => {
+  const EVM = '0x01faf6dfc230d755141d84d7cb980dd68f5efe13';
+  const SOL = '3noTuHnQdHkat2w5rBx18vAACMzFUvB5LodEe5vMN98d';
+  const BTC = 'bc1qt6cx7977r8xttn5rg42d2ulnlc7agspycd600w';
+  await page.addInitScript(() => localStorage.setItem('cl_token', 'playwright-exchange-token'));
+  await page.route('**/api/profile', route => route.fulfill({ json: {
+    id: 'u1', display_name: 'tester', cl_linked_accounts: [],
+    cl_wallets: [
+      { id: 'w1', chain: 'solana', address: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU', watch_only: true, is_primary: false, label: 'Whale I follow' },
+      { id: 'w2', chain: 'solana', address: SOL, watch_only: false, is_primary: false, label: 'My Phantom' },
+      { id: 'w3', chain: 'bitcoin', address: BTC, watch_only: true, is_primary: true, label: null },
+      { id: 'w4', chain: 'evm', address: EVM, watch_only: false, is_primary: true, label: 'Main' },
+    ] } }));
+  await page.route('**/api/profile/**', route => route.fulfill({ json: { entries: {} } }));
+  await page.route('**/api/chat/**', route => route.fulfill({ json: {} }));
+  await page.goto('/magic-swap');
+  await page.getByTestId('exchange-swap-mode').click();
+  // SOL -> BTC: the signed-in Solana wallet refunds; the only BTC wallet is watch-only and says so.
+  await expect(page.locator('#exchange-refund')).toHaveValue(SOL);
+  await expect(page.getByTestId('exchange-panel')).toContainText('Auto-filled from your profile: My Phantom');
+  await expect(page.locator('#exchange-destination')).toHaveValue(BTC);
+  await expect(page.getByTestId('exchange-panel')).toContainText('watch only, make sure you control it');
+  // An asset no profile wallet can hold is left for the user to paste.
+  await pickAsset(page, 'Receive asset', 'xrp:xrp');
+  await expect(page.locator('#exchange-destination')).toHaveValue('');
+  await pickAsset(page, 'Receive asset', 'usdc:eth');
+  await expect(page.locator('#exchange-destination')).toHaveValue(EVM);
+  // A typed address wins and survives a pair change.
+  await page.locator('#exchange-destination').fill('0x000000000000000000000000000000000000dEaD');
+  await pickAsset(page, 'Receive asset', 'eth:eth');
+  await expect(page.locator('#exchange-destination')).toHaveValue('0x000000000000000000000000000000000000dEaD');
+  // Flipping re-derives both sides from the profile.
+  await page.getByRole('button', { name: 'Flip exchange direction' }).click();
+  await expect(page.locator('#exchange-destination')).toHaveValue(SOL);
+  await expect(page.locator('#exchange-refund')).toHaveValue(EVM);
+});
+
+test('the asset picker shows logos and filters by name', async ({ page }) => {
+  await page.goto('/magic-swap');
+  await page.getByTestId('exchange-swap-mode').click();
+  await page.getByRole('button', { name: 'Send asset' }).click();
+  const list = page.locator('[role="listbox"][aria-label="Send asset"]');
+  await expect(list.locator('[data-key="btc:btc"] img')).toHaveAttribute('src', /trustwallet\/assets\/master\/blockchains\/bitcoin/);
+  await page.getByLabel('Search send asset').fill('tether');
+  await expect(list.getByRole('option')).toHaveCount(1);
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Send asset' })).toContainText('USDT');
 });

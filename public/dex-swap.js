@@ -185,11 +185,71 @@
     return core.curatedTokensForChain(chain).map(t => ({ ...t, logoUri: null, verified: true, source: 'curated' }));
   }
 
+  // Logos seen in discovery, by chain-qualified asset key, as in Magic Money's
+  // TokenPicker: curated entries carry none, so they borrow one from here.
+  const logoCache = new Map();
+  const assetKey = (chain, address) => core.swapAssetKey(chain, address);
+  function rememberLogos(chain, tokens) {
+    for (const t of tokens || []) if (t.logoUri) logoCache.set(assetKey(chain, t.address), t.logoUri);
+  }
+  const logoOf = (chain, t) => t.logoUri || logoCache.get(assetKey(chain, t.address)) || null;
+
+  /** Token logo, or a letter tile. logoUri is https-only (sanitised server-side) but untrusted. */
+  function tokenLogo(chain, t, size) {
+    const tile = () => {
+      const span = document.createElement('span');
+      span.className = 'logo tile';
+      span.style.width = span.style.height = `${size}px`;
+      span.style.fontSize = `${Math.round(size * 0.42)}px`;
+      span.textContent = String(t.symbol || '?').slice(0, 1).toUpperCase();
+      return span;
+    };
+    const uri = logoOf(chain, t);
+    if (!uri) return tile();
+    const img = document.createElement('img');
+    img.className = 'logo';
+    img.alt = '';
+    img.width = img.height = size;
+    img.loading = 'lazy';
+    img.referrerPolicy = 'no-referrer';
+    img.addEventListener('error', () => img.replaceWith(tile()), { once: true });
+    img.src = uri;
+    return img;
+  }
+
+  // A chain's suggestions carry the native coin and the majors, with logos.
+  // Cached for the session here (and for 60 s by the server).
+  const suggestions = new Map();
+  function suggestionsFor(chain) {
+    if (!suggestions.has(chain)) {
+      suggestions.set(chain, fetch(`/api/dex/tokens?chain=${encodeURIComponent(chain)}&limit=30`)
+        .then(r => r.json())
+        .then(b => { rememberLogos(chain, b.tokens); return b.tokens || []; })
+        .catch(() => { suggestions.delete(chain); return []; }));
+    }
+    return suggestions.get(chain);
+  }
+
   function renderToken(side) {
     const t = state[side].token;
-    $(`[data-testid="${side}-token"]`).textContent = t
-      ? `${t.symbol} · ${t.name} · ${t.isNative ? 'native' : t.address}${t.verified ? '' : ' · unverified: check the address'}`
-      : '';
+    const chain = state[side].chain;
+    const box = $(`[data-testid="${side}-token"]`);
+    box.replaceChildren();
+    if (!t) return;
+    const text = document.createElement('span');
+    text.textContent = `${t.symbol} · ${t.name} · ${t.isNative ? 'native' : t.address}${t.verified ? '' : ' · unverified: check the address'}`;
+    box.append(tokenLogo(chain, t, 18), text);
+    if (logoOf(chain, t)) return;
+    // No logo yet: try the chain's suggestions, then an exact lookup.
+    suggestionsFor(chain).then(async () => {
+      if (!logoOf(chain, t) && !t.isNative) {
+        try {
+          const r = await fetch(`/api/dex/tokens?chain=${encodeURIComponent(chain)}&address=${encodeURIComponent(t.address)}&limit=1`);
+          rememberLogos(chain, (await r.json()).tokens);
+        } catch { /* the letter tile stays */ }
+      }
+      if (state[side].token === t && logoOf(chain, t)) renderToken(side);
+    });
   }
 
   function chooseToken(side, token) {
@@ -200,40 +260,69 @@
     invalidateQuote();
   }
 
-  function showResults(side, tokens) {
+  function showResults(side, tokens, hint) {
+    const chain = state[side].chain;
     const box = $(`[data-testid="${side}-results"]`);
+    rememberLogos(chain, tokens);
     box.innerHTML = '';
-    for (const t of tokens.slice(0, 20)) {
+    for (const t of tokens.slice(0, 30)) {
       const b = document.createElement('button');
       b.type = 'button';
       b.setAttribute('role', 'option');
       b.dataset.address = t.address;
-      b.innerHTML = `<span>${esc(t.symbol)} <span style="opacity:.6">${esc(t.name)}</span>${t.verified ? ' ✓' : ''}</span><small>${t.isNative ? 'native' : esc(short(t.address))}</small>`;
+      // Unverified tokens are shown and labelled, never hidden (as in the wallet).
+      const unverified = t.verified !== true && !t.isNative;
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.innerHTML = `<span class="sym">${esc(t.symbol)}${unverified ? ' <em class="badge">UNVERIFIED</em>' : ''}</span>`
+        + `<small>${esc(t.name)}${t.isNative ? ' · native' : ` · ${esc(short(t.address))}`}</small>`;
+      b.append(tokenLogo(chain, t, 28), meta);
       b.addEventListener('click', () => chooseToken(side, t));
       box.appendChild(b);
     }
-    box.classList.toggle('hidden', tokens.length === 0);
+    if (hint) {
+      const note = document.createElement('p');
+      note.className = 'hint';
+      note.textContent = hint;
+      box.appendChild(note);
+    }
+    box.classList.toggle('hidden', tokens.length === 0 && !hint);
   }
 
   let searchTimer = {};
+  const searchSeq = { from: 0, to: 0 };
   function onSearch(side) {
     clearTimeout(searchTimer[side]);
+    const id = ++searchSeq[side];
+    const current = () => searchSeq[side] === id;   // a newer search supersedes this one
     const chain = state[side].chain;
     const q = $(`#${side}-search`).value.trim();
-    if (!q) { showResults(side, curated(chain)); return; }
+    if (!q) {
+      // Empty box: curated at once, then the chain's suggestions with logos.
+      showResults(side, curated(chain));
+      suggestionsFor(chain).then(list => {
+        if (current()) showResults(side, core.mergeDiscoveredTokens(curated(chain), list));
+      });
+      return;
+    }
+    const isAddress = core.looksLikeSwapAddress(chain, q);
     searchTimer[side] = setTimeout(async () => {
-      const local = curated(chain).filter(t => t.symbol.toLowerCase().includes(q.toLowerCase()));
-      const param = core.looksLikeSwapAddress(chain, q) ? 'address' : 'q';
+      const lower = q.toLowerCase();
+      const local = curated(chain).filter(t => t.symbol.toLowerCase().includes(lower)
+        || t.name.toLowerCase().includes(lower) || t.address.toLowerCase() === lower);
       try {
-        const res = await fetch(`/api/dex/tokens?chain=${encodeURIComponent(chain)}&${param}=${encodeURIComponent(q)}&limit=20`);
+        const res = await fetch(`/api/dex/tokens?chain=${encodeURIComponent(chain)}&${isAddress ? 'address' : 'q'}=${encodeURIComponent(q)}&limit=30`);
         const body = await res.json();
-        if ($(`#${side}-search`).value.trim() !== q) return;   // a newer search is in flight
-        showResults(side, core.mergeDiscoveredTokens(local, body.tokens || []));
+        if (!current()) return;
+        const merged = core.mergeDiscoveredTokens(local, body.tokens || []);
+        // Only an exact-address miss is a definite "no such token".
+        showResults(side, merged, merged.length === 0 && isAddress
+          ? `No token found at that ${chain === 'solana' ? 'mint' : 'contract address'} on ${chainName(chain)}.` : '');
         if (body.error) formMsg(body.error, 'warn');
       } catch {
-        showResults(side, local);
+        if (current()) showResults(side, local);
       }
-    }, 250);
+    }, isAddress ? 0 : 250);   // a pasted address is intentional: resolve it at once
   }
 
   // ── Quote ──────────────────────────────────────────────────────────────────

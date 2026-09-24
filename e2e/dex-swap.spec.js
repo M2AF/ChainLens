@@ -161,7 +161,7 @@ async function connectSolana(page) {
 test.describe('Magic Swap wallet mode', () => {
   test.setTimeout(60_000);
 
-  test('wallet swap is the default and exchange swap shares the page', async ({ page }) => {
+  test('DEX Swap is the default and Cross-Chain shares the page', async ({ page }) => {
     await installWallets(page);
     await mockDex(page);
     await page.goto('/dex-swap');
@@ -381,5 +381,31 @@ test.describe('Magic Swap wallet mode: confirmation and controls', () => {
     await page.goto('/magic-swap');
     await expect(page.getByTestId('evm-wallet')).toBeVisible();
     expect(await page.evaluate(() => window.MagicMoneySwapCore.isSettlementTrackingActive())).toBe(true);
+  });
+});
+
+test.describe('Magic Swap DEX token picker', () => {
+  test('suggestions bring logos, unverified tokens are labelled, and the chosen token keeps its logo', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+    const logo = 'https://assets.example.test/usdc.png';
+    await page.route('**/api/dex/tokens**', route => {
+      const q = new URL(route.request().url()).searchParams;
+      if (q.get('q') === 'emo') {
+        return route.fulfill({ json: { error: null, tokens: [{ chain: 'base', symbol: 'EMO', name: 'emonad', address: '0x81a224f8a62f52bde942dbf23a56df77a10b7777', decimals: 18, isNative: false, verified: false, logoUri: null }] } });
+      }
+      return route.fulfill({ json: { error: null, tokens: [{ chain: 'base', symbol: 'USDC', name: 'USD Coin', address: USDC, decimals: 6, isNative: false, verified: true, logoUri: logo }] } });
+    });
+    await page.route(logo, route => route.fulfill({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><circle cx="4" cy="4" r="4" fill="#2775ca"/></svg>' }));
+    await page.goto('/magic-swap');
+    await page.getByTestId('from-search').focus();
+    const results = page.getByTestId('from-results');
+    await expect(results.locator(`[data-address="${USDC}"] img`)).toHaveAttribute('src', logo);
+    await page.getByTestId('from-search').fill('emo');
+    await expect(results.getByRole('option').filter({ hasText: 'EMO' })).toContainText('UNVERIFIED');
+    await page.getByTestId('from-search').fill('');
+    await results.locator(`[data-address="${USDC}"]`).click();
+    await expect(page.getByTestId('from-token').locator('img')).toHaveAttribute('src', logo);
   });
 });

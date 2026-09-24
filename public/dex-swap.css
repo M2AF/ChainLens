@@ -65,3 +65,14 @@
 .dex-swap .spinner { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ds-border); border-top-color: var(--ds-accent); animation: ds-spin .8s linear infinite; }
 @keyframes ds-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .dex-swap .spinner { animation: none; } }
+
+/* Token logos and badges, as in Magic Money's TokenPicker */
+.dex-swap .results { max-height: 340px; }
+.dex-swap .results button { justify-content: flex-start; align-items: center; gap: 10px; padding-top: 8px; padding-bottom: 8px; }
+.dex-swap .results .meta { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.dex-swap .results .sym { font-weight: 700; }
+.dex-swap .results .badge { font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: .06em; padding: 1px 5px; margin-left: 6px; border: 1px solid currentColor; border-radius: 6px; color: #f59e0b; }
+.dex-swap .results .hint { margin: 0; padding: 10px 12px; font-size: 12px; color: var(--ds-muted); }
+.dex-swap .logo { border-radius: 50%; flex-shrink: 0; object-fit: cover; }
+.dex-swap .logo.tile { display: inline-flex; align-items: center; justify-content: center; font-weight: 700; background: var(--ds-field); color: var(--ds-accent); }
+.dex-swap .token { display: flex; align-items: center; gap: 8px; }

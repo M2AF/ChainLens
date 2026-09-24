@@ -24,7 +24,74 @@
     return body;
   };
 
-  function ExchangeSwapPanel() {
+  function AssetLogo({ asset: a, size = 24 }) {
+    const [failed, setFailed] = React.useState(false);
+    React.useEffect(() => setFailed(false), [a?.logoUrl]);
+    if (!a?.logoUrl || failed) {
+      return <span aria-hidden="true" style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
+        className="inline-flex shrink-0 items-center justify-center rounded-full bg-slate-700 font-bold text-cyan-300">{(a?.label || '?').slice(0, 1)}</span>;
+    }
+    return <img src={a.logoUrl} alt="" width={size} height={size} loading="lazy" referrerPolicy="no-referrer"
+      onError={() => setFailed(true)} className="shrink-0 rounded-full object-contain" style={{ width: size, height: size }} />;
+  }
+
+  /** Searchable asset list with logos (a native <select> cannot show images). */
+  function AssetPicker({ id, label: name, value, onChange }) {
+    const [open, setOpen] = React.useState(false);
+    const [query, setQuery] = React.useState('');
+    const [cursor, setCursor] = React.useState(0);
+    const rootRef = React.useRef(null);
+    const selectedAsset = asset(value);
+    const term = query.trim().toLowerCase();
+    const shown = term ? A.filter(a => a.label.toLowerCase().includes(term) || a.name.toLowerCase().includes(term) || a.ticker.includes(term)) : A;
+    React.useEffect(() => {
+      if (!open) return;
+      const away = e => { if (!rootRef.current?.contains(e.target)) setOpen(false); };
+      document.addEventListener('mousedown', away);
+      return () => document.removeEventListener('mousedown', away);
+    }, [open]);
+    React.useEffect(() => setCursor(0), [query, open]);
+    const choose = a => { onChange(a.key); setOpen(false); setQuery(''); };
+    const onKeyDown = e => {
+      if (e.key === 'Escape') setOpen(false);
+      else if (e.key === 'ArrowDown') { e.preventDefault(); setCursor(c => Math.min(c + 1, shown.length - 1)); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setCursor(c => Math.max(c - 1, 0)); }
+      else if (e.key === 'Enter' && shown[cursor]) { e.preventDefault(); choose(shown[cursor]); }
+    };
+    return <div ref={rootRef} className="relative">
+      <button type="button" id={id} aria-label={name} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(o => !o)}
+        className={`${field} flex items-center gap-2 text-left`}>
+        <AssetLogo asset={selectedAsset} size={22} />
+        <span className="min-w-0 flex-1 truncate"><strong>{selectedAsset?.label}</strong> <span className="text-slate-400">· {selectedAsset?.name}</span></span>
+        <span aria-hidden="true" className="text-slate-400">▾</span>
+      </button>
+      {open && <div className="absolute left-0 right-0 z-30 mt-2 rounded-xl border border-slate-600 bg-slate-900 p-2 shadow-2xl" onKeyDown={onKeyDown}>
+        <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Search name or symbol" aria-label={`Search ${name.toLowerCase()}`}
+          className={`${field} mb-2 py-2`} autoComplete="off" spellCheck={false} />
+        <div role="listbox" aria-label={name} className="max-h-72 overflow-y-auto">
+          {shown.map((a, i) => <button key={a.key} type="button" role="option" aria-selected={a.key === value} data-key={a.key}
+            onMouseEnter={() => setCursor(i)} onClick={() => choose(a)}
+            className={`flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm ${i === cursor ? 'bg-slate-800' : ''}`}>
+            <AssetLogo asset={a} size={28} />
+            <span className="min-w-0 flex-1"><span className="block font-bold text-white">{a.label}</span><span className="block truncate text-xs text-slate-400">{a.name}</span></span>
+            {a.key === value && <span className="text-cyan-300">✓</span>}
+          </button>)}
+          {shown.length === 0 && <p className="px-2 py-3 text-xs text-slate-400">No matches.</p>}
+        </div>
+      </div>}
+    </div>;
+  }
+
+  // The profile wallet that should receive or refund an asset: a signed-in wallet
+  // before a watch-only one, the primary first. Mirrors the wallet's addrKey autofill.
+  const walletFor = (wallets, a) => {
+    if (!a?.wallet) return null;
+    const rank = w => (w.watch_only ? 2 : 0) + (w.is_primary ? 0 : 1);
+    return (wallets || []).filter(w => w && w.chain === a.wallet && w.address).sort((x, y) => rank(x) - rank(y))[0] || null;
+  };
+  const walletName = w => w.label || `${w.address.slice(0, 6)}…${w.address.slice(-4)}`;
+
+  function ExchangeSwapPanel({ wallets = [] }) {
     const [from, setFrom] = React.useState('sol:sol');
     const [to, setTo] = React.useState('btc:btc');
     const [amount, setAmount] = React.useState('');
@@ -43,9 +110,22 @@
     const createLock = React.useRef(false);
     const quoteRequest = React.useRef(0);
 
+    const [destTouched, setDestTouched] = React.useState(false);
+    const [refundTouched, setRefundTouched] = React.useState(false);
+
     const current = orders.find(o => o.id === selected) || null;
     const fromAsset = asset(from);
     const toAsset = asset(to);
+    const destWallet = walletFor(wallets, toAsset);
+    const refundWallet = walletFor(wallets, fromAsset);
+
+    // Auto-fill from the profile when the pair (or the profile) changes, until the
+    // user edits the field themselves, as the wallet does with its own addresses.
+    React.useEffect(() => { if (!destTouched) setDestination(destWallet?.address || ''); }, [to, destWallet?.address, destTouched]);
+    React.useEffect(() => { if (!refundTouched) setRefund(refundWallet?.address || ''); }, [from, refundWallet?.address, refundTouched]);
+    const autoNote = (w, value, touched) => !touched && w && value === w.address
+      ? <p className="mt-1 text-xs text-slate-400">✓ Auto-filled from your profile: {walletName(w)}{w.watch_only ? <span className="text-amber-300"> · watch only, make sure you control it</span> : ''}</p>
+      : null;
     const invalidAmount = !/^(?:0|[1-9]\d{0,17})(?:\.\d{1,18})?$/.test(amount) || !(Number(amount) > 0);
     const quoteExpired = quote && clock >= quote.expiresAt;
     const belowMin = !!(quote && quote.min && Number(amount) < Number(quote.min));
@@ -117,8 +197,8 @@
       try { await navigator.clipboard.writeText(value); setCopied(kind); setTimeout(() => setCopied(''), 1800); }
       catch { setError('Copy failed. Select and copy the value manually.'); }
     };
-    const startNew = () => { setSelected(''); invalidate(); };
-    const option = a => <option key={a.key} value={a.key}>{a.label} · {a.name}</option>;
+    const startNew = () => { setSelected(''); setDestTouched(false); setRefundTouched(false); invalidate(); };
+    const flip = () => { setFrom(to); setTo(from); setDestTouched(false); setRefundTouched(false); invalidate(); };
 
     return <div data-testid="exchange-panel" className="mx-auto max-w-2xl space-y-5 text-slate-100">
       {orders.length > 0 && <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -169,27 +249,29 @@
           <label className={label} htmlFor="exchange-from">You send</label>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1.2fr]">
             <input id="exchange-amount" aria-label="Amount to send" inputMode="decimal" placeholder="0.0" value={amount} onChange={e => { setAmount(e.target.value); invalidate(); }} className={field} />
-            <select id="exchange-from" aria-label="Send asset" value={from} onChange={e => { setFrom(e.target.value); invalidate(); }} className={field}>{A.map(option)}</select>
+            <AssetPicker id="exchange-from" label="Send asset" value={from} onChange={key => { setFrom(key); invalidate(); }} />
           </div>
         </div>
-        <div className="flex justify-center"><button type="button" aria-label="Flip exchange direction" onClick={() => { setFrom(to); setTo(from); setDestination(''); setRefund(''); invalidate(); }} className={`${btn} rounded-full border border-slate-600 px-4 py-2 text-cyan-300`}>⇅</button></div>
+        <div className="flex justify-center"><button type="button" aria-label="Flip exchange direction" onClick={flip} className={`${btn} rounded-full border border-slate-600 px-4 py-2 text-cyan-300`}>⇅</button></div>
         <div className={card}>
           <label className={label} htmlFor="exchange-to">You receive</label>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1.2fr]">
             <div data-testid="exchange-estimate" className={`${field} flex items-center text-lg font-bold`}>{quote ? `≈ ${quote.estimatedAmount}` : '—'}</div>
-            <select id="exchange-to" aria-label="Receive asset" value={to} onChange={e => { setTo(e.target.value); invalidate(); }} className={field}>{A.map(option)}</select>
+            <AssetPicker id="exchange-to" label="Receive asset" value={to} onChange={key => { setTo(key); invalidate(); }} />
           </div>
         </div>
         <div className={card}>
           <label className={label} htmlFor="exchange-destination">Destination address · {toAsset?.name} (required)</label>
-          <input id="exchange-destination" value={destination} onChange={e => setDestination(e.target.value)} placeholder={`Paste a ${toAsset?.label} address on ${toAsset?.name}`} className={field} autoComplete="off" />
+          <input id="exchange-destination" value={destination} onChange={e => { setDestination(e.target.value); setDestTouched(true); }} placeholder={`Paste a ${toAsset?.label} address on ${toAsset?.name}`} className={field} autoComplete="off" />
+          {autoNote(destWallet, destination, destTouched)}
           <label className={`${label} mt-4`} htmlFor="exchange-dest-memo">Destination memo / tag (if required)</label>
           <input id="exchange-dest-memo" value={destinationMemo} onChange={e => setDestinationMemo(e.target.value)} placeholder="Only if your destination requires one" className={field} autoComplete="off" />
           <label className={`${label} mt-4`} htmlFor="exchange-refund">Refund address · {fromAsset?.name} (recommended)</label>
-          <input id="exchange-refund" value={refund} onChange={e => setRefund(e.target.value)} placeholder={`Your ${fromAsset?.label} address on ${fromAsset?.name}`} className={field} autoComplete="off" />
+          <input id="exchange-refund" value={refund} onChange={e => { setRefund(e.target.value); setRefundTouched(true); }} placeholder={`Your ${fromAsset?.label} address on ${fromAsset?.name}`} className={field} autoComplete="off" />
+          {autoNote(refundWallet, refund, refundTouched)}
+          <p className="mt-1 text-xs text-slate-400">Used if the exchange fails.</p>
           <label className={`${label} mt-4`} htmlFor="exchange-refund-memo">Refund memo / tag (if required)</label>
           <input id="exchange-refund-memo" value={refundMemo} onChange={e => setRefundMemo(e.target.value)} placeholder="Only if your refund address requires one" className={field} autoComplete="off" />
-          <p className="mt-3 text-xs text-amber-300">Addresses are not autofilled: a linked or watch-only ChainLens profile does not prove control of the receiving account. Verify them before creating an order.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm"><span className="mr-2 text-slate-400">Rate type</span>
           {[false, true].map(value => <button type="button" key={String(value)} onClick={() => { setFixed(value); invalidate(); }} aria-pressed={fixed === value}
