@@ -3296,10 +3296,11 @@
       };
 
       const primaryNavigation = [
-        ['search', 'Search'], ['portfolio', 'Scanner'], ['swap', 'App Hub'], ['market', 'Market'], ['profile', 'Profile'],
+        ['search', 'Search'], ['portfolio', 'Scanner'], ['magic-swap', 'Magic Swap'], ['swap', 'App Hub'],
+        ['market', 'Market'], ['chat', 'Chat'], ['profile', 'Profile'],
       ];
       const utilityNavigation = [
-        ['chat', 'Chat'], ['magic-swap', 'Magic Swap'], ['docs', 'Docs'], ['wallet', 'Wallet'], ['donate', 'Donate'],
+        ['docs', 'Docs'], ['wallet', 'Wallet'], ['donate', 'Donate'],
       ];
 
       return (
@@ -3312,20 +3313,22 @@
             </div>
             <nav aria-label="Main navigation" data-testid="primary-nav-scroll" className="flex-1 overflow-y-auto px-5 pb-6">
               {primaryNavigation.map(([tab, label]) => (
-                <button key={tab} onClick={() => navigateTo(tab)} aria-current={activeTab === tab ? 'page' : undefined}
+                <button key={tab} onClick={() => tab === 'chat' ? openUtility('chat') : navigateTo(tab)}
+                  data-testid={tab === 'chat' || tab === 'magic-swap' ? `${tab}-trigger` : undefined}
+                  aria-label={tab === 'chat' ? chatBadgeLabel : undefined}
+                  aria-current={activeTab === tab ? 'page' : undefined}
                   className={`cl-nav-item ${activeTab === tab ? 'active' : ''}`}><NavIcon name={tab}/><span>{label}</span>
-                  {tab === 'profile' && userProfile && <span className="ml-auto h-2.5 w-2.5 rounded-full bg-emerald-400"/>}</button>
+                  {tab === 'profile' && userProfile && <span className="ml-auto h-2.5 w-2.5 rounded-full bg-emerald-400"/>}
+                  {tab === 'chat' && chatBadge > 0 && <span data-testid="chat-trigger-badge" className="ml-auto rounded-full bg-cyan-500 px-2 py-0.5 text-[10px] text-slate-950">{chatBadge > 99 ? '99+' : chatBadge}</span>}</button>
               ))}
               <div className={`my-8 mx-2 border-t ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}/>
               {utilityNavigation.map(([item, label]) => item === 'docs' ? (
                 <a key={item} href="/docs" className="cl-nav-item"><NavIcon name={item}/><span>{label}</span></a>
               ) : (
                 <button key={item} data-testid={`${item}-trigger`}
-                  onClick={() => item === 'magic-swap' ? navigateTo(item) : openUtility(item)}
-                  aria-label={item === 'chat' ? chatBadgeLabel : undefined}
+                  onClick={() => openUtility(item)}
                   aria-current={activeTab === item ? 'page' : undefined}
-                  className={`cl-nav-item ${activeTab === item ? 'active' : ''}`}><NavIcon name={item}/><span>{label}</span>
-                  {item === 'chat' && chatBadge > 0 && <span data-testid="chat-trigger-badge" className="ml-auto rounded-full bg-cyan-500 px-2 py-0.5 text-[10px] text-slate-950">{chatBadge > 99 ? '99+' : chatBadge}</span>}</button>
+                  className={`cl-nav-item ${activeTab === item ? 'active' : ''}`}><NavIcon name={item}/><span>{label}</span></button>
               ))}
             </nav>
           </aside>

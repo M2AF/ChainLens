@@ -7,6 +7,9 @@ test('developer docs use the site sidebar and theme picker', async ({ page }) =>
   await page.goto('/docs');
 
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
+  await expect(nav.locator('a')).toHaveText([
+    'Search', 'Scanner', 'Magic Swap', 'App Hub', 'Market', 'Chat', 'Profile', 'Docs', 'Wallet', 'Donate',
+  ]);
   await expect(nav.getByRole('link', { name: 'Docs' })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('navigation', { name: 'Docs actions' }).getByRole('link')).toHaveText(['GitHub', 'Audit']);
   await expect(page.getByRole('button', { name: 'Choose theme' })).toBeVisible();

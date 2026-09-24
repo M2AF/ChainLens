@@ -6,6 +6,9 @@ test('desktop sidebar opens Magic Swap as a page and centers utility dialogs', a
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
+  await expect(nav.locator('.cl-nav-item > span:first-of-type')).toHaveText([
+    'Search', 'Scanner', 'Magic Swap', 'App Hub', 'Market', 'Chat', 'Profile', 'Docs', 'Wallet', 'Donate',
+  ]);
   await expect(nav.getByRole('button', { name: 'Magic Swap' })).toBeVisible();
   await expect(page.getByPlaceholder('Search anything, an app, or a wallet...')).toBeVisible();
   expect(await page.locator('.cl-primary-content').evaluate(el => parseFloat(getComputedStyle(el).paddingTop))).toBe(80);
