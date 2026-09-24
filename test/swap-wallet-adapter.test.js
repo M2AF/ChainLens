@@ -270,3 +270,59 @@ test('base58 matches the standard alphabet', () => {
   assert.equal(base58Encode(Buffer.from('Hello World!')), '2NEpo7TZRRrLZSi2U');
   assert.equal(base58Encode(new Uint8Array([0, 0, 0])), '111');
 });
+
+test('the shared checks run again immediately before EVERY signature', async () => {
+  const wallet = new FakeEvmWallet();
+  wallet.onSend = (hash) => wallet.receipts.set(hash, { status: '0x1' });
+  let calls = 0;
+  const plan = planSwap(evmQuote(), { sourceAccount: EVM_A, destinationAccount: EVM_A, evmChainId: 8453, validateQuote: () => { calls += 1; }, now });
+  await executePlan(plan, createEvmSigner({ provider: wallet }), { ...fastWait, now });
+  // once when planning, then once per signature (approval, swap)
+  assert.equal(calls, 3);
+});
+
+test('a refusal from the shared checks between steps stops the swap and reports the approval', async () => {
+  const wallet = new FakeEvmWallet();
+  wallet.onSend = (hash) => wallet.receipts.set(hash, { status: '0x1' });
+  let calls = 0;
+  const plan = planSwap(evmQuote(), {
+    sourceAccount: EVM_A, destinationAccount: EVM_A, evmChainId: 8453, now,
+    validateQuote: () => { calls += 1; if (calls === 3) throw new Error('The minimum you would receive is lower than the one you approved.'); },
+  });
+  await assert.rejects(executePlan(plan, createEvmSigner({ provider: wallet }), { ...fastWait, now }), err => {
+    assert.equal(err.code, 'refused');
+    assert.match(err.message, /minimum you would receive/);
+    assert.deepEqual(err.sent.map(s => s.kind), ['approval']);
+    return true;
+  });
+  assert.equal(wallet.sent.length, 1);
+});
+
+test('beforeStep can skip an approval that is not needed, or require a zero-reset first', async () => {
+  const skip = new FakeEvmWallet();
+  skip.onSend = (hash) => skip.receipts.set(hash, { status: '0x1' });
+  const plan = planSwap(evmQuote(), { sourceAccount: EVM_A, destinationAccount: EVM_A, evmChainId: 8453, validateQuote: accept, now });
+  const skipped = await executePlan(plan, createEvmSigner({ provider: skip }), {
+    ...fastWait, now, beforeStep: (step) => (step.kind === 'approval' ? 'skip' : 'send'),
+  });
+  assert.deepEqual(skipped.sent.map(s => s.kind), ['swap']);
+
+  const reset = new FakeEvmWallet();
+  reset.onSend = (hash) => reset.receipts.set(hash, { status: '0x1' });
+  const withReset = await executePlan(plan, createEvmSigner({ provider: reset }), {
+    ...fastWait, now, beforeStep: (step) => (step.kind === 'approval' ? 'reset-then-send' : 'send'),
+  });
+  assert.deepEqual(withReset.sent.map(s => s.kind), ['allowance-reset', 'approval', 'swap']);
+  assert.match(reset.sent[0].data, /^0x095ea7b3/);
+  assert.ok(reset.sent[0].data.endsWith('0'.repeat(64)), 'the reset approves zero');
+  assert.equal(reset.sent[0].to, TOKEN);
+});
+
+test('a beforeStep refusal (insufficient balance, failed simulation) sends nothing further', async () => {
+  const wallet = new FakeEvmWallet();
+  const plan = planSwap(evmQuote({ approvalTx: null }), { sourceAccount: EVM_A, destinationAccount: EVM_A, evmChainId: 8453, validateQuote: accept, now });
+  await assert.rejects(executePlan(plan, createEvmSigner({ provider: wallet }), {
+    ...fastWait, now, beforeStep: () => { throw new Error('This swap would fail on-chain.'); },
+  }), err => err.code === 'refused' && err.sent.length === 0);
+  assert.equal(wallet.sent, undefined);
+});

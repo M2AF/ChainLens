@@ -126,10 +126,14 @@ test('a synced theme renders from the colours the wallet wrote', async ({ page }
   await installThemeMocks(page, { themes: ELIGIBLE });
   await page.goto('/');
 
+  const sidebar = page.locator('.cl-sidebar');
+  await expect(sidebar).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+
   await page.getByTestId('theme-picker-button').click();
   await page.getByTestId('theme-option-custom-cherry').click();
 
   await expect(shell(page)).toHaveCSS('background-color', 'rgb(42, 5, 18)');
+  await expect(sidebar).toHaveCSS('background-color', 'rgb(54, 6, 23)');
   await expect(page.getByTestId('theme-picker-button')).toContainText('Cherry');
 });
 

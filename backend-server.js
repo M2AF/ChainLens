@@ -24,6 +24,7 @@ const {
 } = require('./chat-service');
 const { resolveWalletSession } = require('./auth-session');
 const { createPrecompiledPage, COMPILED_PREFIX } = require('./precompile-page');
+const { createSwapService, registerSwapRoutes } = require('./swap-service');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -452,6 +453,9 @@ const precompiledPage = createPrecompiledPage(path.join(__dirname, 'public'));
 precompiledPage.current();   // compile at boot, not on the first visitor
 app.get(['/', '/index.html', '/magic-swap'], precompiledPage.sendPage);
 app.get(`${COMPILED_PREFIX}*`, precompiledPage.sendAsset);
+// DEX swap with a connected wallet (Stage 5). A separate page, so the Magic Swap
+// tab's SimpleSwap widget is untouched.
+app.get('/dex-swap', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dex-swap.html')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const searchRateLimit = (req, res, next) => {
@@ -2344,6 +2348,14 @@ app.get('/api/search/web', searchRateLimit, async (req, res) => {
 });
 
 // --- SWAP INTEGRATIONS ---
+
+// DEX search, quotes and status for /dex-swap, through Magic Money's swap
+// service. The Worker client token stays in this process's environment.
+registerSwapRoutes(app, createSwapService({
+  workerUrl: process.env.MM_SWAP_WORKER_URL,
+  clientToken: process.env.MM_SWAP_CLIENT_TOKEN,
+  jupiterFee: process.env.CHAINLENS_JUPITER_FEE !== 'off',
+}));
 
 // 1. Cardano (DexHunter)
 app.get('/api/swap/cardano/quote', async (req, res) => {

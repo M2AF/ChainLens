@@ -1,0 +1,25 @@
+{
+  "generator": "magicmoney-wallet/scripts/build-swap-core.mjs",
+  "entry": "src/shared/swap-core-browser.ts",
+  "esbuildVersion": "0.25.12",
+  "sources": {
+    "src/shared/solana-transaction.ts": "49110ec2122f6c94836c025be6b4930f67c8cbd1034838d1440b4ae284d9d0c5",
+    "src/shared/solana-upfront-cost.ts": "1c0e4c8403be2d4128aa792aea5290d199fedc38f36c5b655252afa59c9f1b33",
+    "src/shared/swap-candidates.ts": "87f1ecfdb24ce23dcf42af54daeee08c603a511a07a59cd0408547d97c02d915",
+    "src/shared/swap-core-browser.ts": "ed16c15fec99d1a6930ef09e283003c4479a240dbb26bf90127259c479380e0b",
+    "src/shared/swap-curated-tokens.ts": "51f77865c4a489df3c0cac1243bbc88f0fc4a0bd4c26cf95ea976a27b5d264fc",
+    "src/shared/swap-destination.ts": "7217517c0c54af8008e590a47b7f36f86a1582209b7bf342bf9e8eeb7a57a4d3",
+    "src/shared/swap-execution-checks.ts": "979690fe87b43e7201cb8e8db1fca8f98ab74846eca65f9294d81669284578aa",
+    "src/shared/swap-fee-checks.ts": "56b6e8ceabfc669c01460144125caaa197f42fd2d284997db73c47bf3d7c8d6d",
+    "src/shared/swap-fee-policy.ts": "0825fd451c867f87d219ac8be805a5bebfe85cb4bc9a1ad0e32aeb006dbed295",
+    "src/shared/swap-lifecycle.ts": "e18b50c6293af61e8f3bc29e90f30225e3bee25a1df9ab0dadede52e73126182",
+    "src/shared/swap-networks.ts": "595c0f502ff964595dc236ad85fa4752affb4a0a957670bf605e2dc86e2f7244",
+    "src/shared/swap-policy-checks.ts": "09365ac903d621942ed4b4d57859e98ef92dda9cfd1a14821eaebc5316666e29",
+    "src/shared/swap-routing-policy.ts": "346e2477ee88599f80ed44d6280550f79f38763a3b702656c81826326e74bcc9",
+    "src/shared/swap-session.ts": "c2cc5508d2b69039c66ec904030bfe17d7269f7ff1838c351bdeff9d2482e460",
+    "src/shared/swap-settlement.ts": "31b1c833323007cffda4642229eec429628798ee9000f18a677b4c96168b3577",
+    "src/shared/swap-signing-checks.ts": "50d0fbaf7d0b3ac6ceaaeb8d6980f5eaee3678610eaab3cb2708876200543f8a",
+    "src/shared/swap-token-identity.ts": "9cc9ec9ab053ad8d944edf6321aac9f614abd82dee7f66aae39147dd7f36727e"
+  },
+  "bundleSha256": "9af5db20b994b73e1993fb2e89205c4eb370d0fa36e32503e72294a409630df5"
+}

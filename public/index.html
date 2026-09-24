@@ -245,6 +245,7 @@
 
   <script src="/search-intent.js"></script>
   <script src="/search-activity.js"></script>
+  <script src="/market-candles.js"></script>
   <script type="text/babel" src="/search-page.jsx"></script>
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef, useCallback } = React;
@@ -522,6 +523,13 @@
         donate: <path d="M12 21S3 15 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 7-9 13-9 13Z"/>,
       };
       return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
+    };
+
+    const formatMarketChartPrice = value => {
+      const number = Number(value);
+      const magnitude = Math.abs(number);
+      const digits = magnitude >= 1 || magnitude === 0 ? 2 : magnitude >= 0.01 ? 4 : magnitude >= 0.0001 ? 6 : magnitude >= 0.000001 ? 8 : 12;
+      return '$' + number.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
     };
 
     const ChatWidget = ({ open, onClose, onOpenProfile, darkMode, authToken, userProfile, unread, onUnreadRefresh, pinned, onTogglePin }) => {
@@ -1357,6 +1365,22 @@
       const [chartData, setChartData] = useState(null);
       const [loadingChart, setLoadingChart] = useState(false);
       const [chartTimeframe, setChartTimeframe] = useState('7d'); // 1d, 7d, 1m, 1y, all
+      const [chartKind, setChartKind] = useState(() => {
+        try { return localStorage.getItem('cl.market.chartKind') === 'candle' ? 'candle' : 'line'; }
+        catch { return 'line'; }
+      });
+      const [hoveredCandleIndex, setHoveredCandleIndex] = useState(null);
+      const changeChartKind = (kind) => {
+        setChartKind(kind);
+        setHoveredCandleIndex(null);
+        try { localStorage.setItem('cl.market.chartKind', kind); } catch {}
+      };
+      const chartCandles = useMemo(() => chartData?.prices
+        ? window.ChainLensMarketCandles.buildCandles(chartData.prices, chartData.timeframe)
+        : [], [chartData]);
+      const displayedCandle = chartKind === 'candle' && chartCandles.length
+        ? chartCandles[hoveredCandleIndex ?? chartCandles.length - 1] || chartCandles[chartCandles.length - 1]
+        : null;
       const [nativePrices, setNativePrices] = useState({}); // { ETH: 3000, SOL: 85, ADA: 0.72, MON: 0.02 }
       const [convCoin, setConvCoin] = useState('');   // coin amount input
       const [convUsd, setConvUsd] = useState('');     // usd amount input
@@ -2488,6 +2512,7 @@
         setLoadingChart(true);
         setChartData(null);
         setChartTimeframe(timeframe);
+        setHoveredCandleIndex(null);
         setConvCoin('');
         setConvUsd('');
         
@@ -2593,6 +2618,11 @@
         
         if (chartData && chartData.prices && showChart) {
           console.log('  ✅ All conditions met, rendering chart...');
+          if (chartKind === 'candle' && chartCandles.length === 0) {
+            chartInstanceRef.current?.destroy();
+            chartInstanceRef.current = null;
+            return;
+          }
           const ctx = document.getElementById('priceChart');
           
           if (!ctx) {
@@ -2616,10 +2646,13 @@
             }
             
             console.log('  🎨 Creating new chart with', chartData.prices.length, 'data points');
+            const isCandle = chartKind === 'candle' && chartCandles.length > 0;
+            const series = isCandle ? chartCandles.map(c => ({ time: c.time, price: c.close })) : chartData.prices;
+            const candleColor = candle => candle.close >= candle.open ? '#22c55e' : '#ef4444';
             
             // Determine label frequency based on data length
             const getLabelFrequency = () => {
-              const length = chartData.prices.length;
+              const length = series.length;
               if (length <= 100) return 10; // Show every 10th point for 1D
               if (length <= 200) return 20; // Show every 20th point for 7D
               if (length <= 365) return 30; // Show every 30th point for 1M
@@ -2627,13 +2660,37 @@
             };
             
             const labelFreq = getLabelFrequency();
+            const candlePlugin = {
+              id: 'marketCandles',
+              afterDatasetsDraw(chart) {
+                if (!isCandle) return;
+                const { ctx, scales: { x, y } } = chart;
+                const slot = (x.right - x.left) / chartCandles.length;
+                const bodyWidth = Math.max(3, Math.min(18, slot * 0.62));
+                ctx.save();
+                ctx.lineWidth = 1;
+                chartCandles.forEach((candle, index) => {
+                  const center = x.getPixelForValue(index);
+                  const top = y.getPixelForValue(Math.max(candle.open, candle.close));
+                  const bottom = y.getPixelForValue(Math.min(candle.open, candle.close));
+                  ctx.strokeStyle = candleColor(candle);
+                  ctx.fillStyle = candleColor(candle);
+                  ctx.beginPath();
+                  ctx.moveTo(center, y.getPixelForValue(candle.high));
+                  ctx.lineTo(center, y.getPixelForValue(candle.low));
+                  ctx.stroke();
+                  ctx.fillRect(center - bodyWidth / 2, top, bodyWidth, Math.max(1, bottom - top));
+                });
+                ctx.restore();
+              }
+            };
             
             // Create new chart
             chartInstanceRef.current = new Chart(ctx, {
               type: 'line',
               data: {
-                labels: chartData.prices.map((p, i) => {
-                  if (i % labelFreq === 0 || i === chartData.prices.length - 1) {
+                labels: series.map((p, i) => {
+                  if (i % labelFreq === 0 || i === series.length - 1) {
                     const date = new Date(p.time);
                     // Show time for 1D, date for others
                     if (chartData.timeframe === '1d') {
@@ -2650,11 +2707,12 @@
                 }),
                 datasets: [{
                   label: `${chartData.name} Price (USD)`,
-                  data: chartData.prices.map(p => p.price),
-                  borderColor: chartData.change_24h >= 0 ? '#10b981' : '#ef4444',
+                  data: series.map(p => p.price),
+                  borderColor: isCandle ? 'transparent' : chartData.change_24h >= 0 ? '#10b981' : '#ef4444',
                   backgroundColor: chartData.change_24h >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
                   borderWidth: 2,
-                  fill: true,
+                  fill: !isCandle,
+                  showLine: !isCandle,
                   tension: 0.4,
                   pointRadius: 0,
                   pointHoverRadius: 6,
@@ -2663,9 +2721,11 @@
                   pointHoverBorderWidth: 2
                 }]
               },
+              plugins: [candlePlugin],
               options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                onHover: (_event, elements) => setHoveredCandleIndex(isCandle ? elements[0]?.index ?? null : null),
                 interaction: {
                   mode: 'index',
                   intersect: false
@@ -2681,22 +2741,31 @@
                     padding: 12,
                     displayColors: false,
                     callbacks: {
+                      title: contexts => contexts.length ? new Date(series[contexts[0].dataIndex].time).toLocaleString() : '',
                       label: function(context) {
-                        return '$' + context.parsed.y.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 6});
+                        if (isCandle) {
+                          const candle = chartCandles[context.dataIndex];
+                          return [`O ${formatMarketChartPrice(candle.open)}`, `H ${formatMarketChartPrice(candle.high)}`, `L ${formatMarketChartPrice(candle.low)}`, `C ${formatMarketChartPrice(candle.close)}`];
+                        }
+                        return formatMarketChartPrice(context.parsed.y);
                       }
                     }
                   }
                 },
                 scales: {
                   x: {
+                    offset: isCandle,
                     grid: { display: false },
                     ticks: { maxTicksLimit: 8 }
                   },
                   y: {
+                    suggestedMin: isCandle ? Math.min(...chartCandles.map(c => c.low)) : undefined,
+                    suggestedMax: isCandle ? Math.max(...chartCandles.map(c => c.high)) : undefined,
+                    grace: '5%',
                     grid: { color: 'rgba(255, 255, 255, 0.05)' },
                     ticks: {
                       callback: function(value) {
-                        return '$' + value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2});
+                        return formatMarketChartPrice(value);
                       }
                     }
                   }
@@ -2714,7 +2783,7 @@
           if (!chartData?.prices) console.log('  ⏸️ No prices in chartData');
           if (!showChart) console.log('  ⏸️ Modal not shown');
         }
-      }, [chartData, showChart]);
+      }, [chartData, showChart, chartKind, darkMode, chartCandles]);
 
       const closeChart = useCallback(() => {
         setShowChart(false);
@@ -3092,7 +3161,7 @@
       return (
         <div className={`min-h-screen transition-colors duration-500 ${darkMode ? 'bg-slate-950 text-white dark-scroll' : 'bg-slate-50 text-slate-900'}`}>
           {mobileMenuOpen && <button aria-label="Close menu" className="fixed inset-0 z-[88] bg-slate-950/70 min-[901px]:hidden" onClick={() => setMobileMenuOpen(false)} />}
-          <aside className={`cl-sidebar fixed inset-y-0 left-0 z-[90] flex flex-col border-r ${mobileMenuOpen ? 'open' : ''} ${darkMode ? 'bg-[#0d1423] border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+          <aside className={`cl-sidebar fixed inset-y-0 left-0 z-[90] flex flex-col border-r ${mobileMenuOpen ? 'open' : ''} ${darkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
             <div className="flex items-center justify-between px-7 pt-7 pb-6">
               <img src={darkMode ? '/ChainLens (dark).png' : '/ChainLens (light).png'} alt="ChainLens" className="h-24 w-full max-w-[230px] object-contain" />
               <button aria-label="Close menu" onClick={() => setMobileMenuOpen(false)} className="min-[901px]:hidden text-2xl">×</button>
@@ -3161,6 +3230,9 @@
                 <div className={`rounded-[2rem] border p-4 md:p-8 ${darkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200 shadow-xl'}`}>
                   <iframe id="simpleswap-frame" title="Magic Swap" src="https://simpleswap.io/widget/e16a9606-7260-4926-a33d-e6c700b3de3b" className="w-full h-[560px] rounded-2xl" loading="lazy" />
                 </div>
+                <p className={`mt-4 text-sm ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Prefer to swap on-chain from your own wallet? <a href="/dex-swap" data-testid="dex-swap-link" className="font-bold text-cyan-400 hover:underline">Open DEX Swap →</a>
+                </p>
               </section>
             )}
 
@@ -4294,7 +4366,7 @@
                         </div>
 
                         {/* Timeframe Selector */}
-                        <div className="flex justify-center gap-1.5 md:gap-2 mb-4 md:mb-6">
+                        <div className="flex flex-wrap items-center justify-center gap-1.5 md:gap-2 mb-4 md:mb-6">
                             {[
                                 { value: '1d', label: '1D' },
                                 { value: '7d', label: '7D' },
@@ -4317,6 +4389,19 @@
                                     {tf.label}
                                 </button>
                             ))}
+                            <span className={`hidden sm:block h-7 border-l mx-1 ${darkMode ? 'border-slate-700' : 'border-slate-200'}`} aria-hidden="true" />
+                            {[
+                              { kind: 'line', label: 'Line chart', icon: <polyline points="2 16 8 9 13 12 21 4" /> },
+                              { kind: 'candle', label: 'Candlestick chart', icon: <><path d="M7 3v18M17 2v18"/><rect x="4" y="8" width="6" height="8"/><rect x="14" y="5" width="6" height="9"/></> },
+                            ].map(view => (
+                              <button key={view.kind} type="button" title={view.label} aria-label={view.label} aria-pressed={chartKind === view.kind}
+                                onClick={() => changeChartKind(view.kind)}
+                                className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-colors ${chartKind === view.kind
+                                  ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                                  : darkMode ? 'border-slate-700 text-slate-400 hover:text-white' : 'border-slate-200 text-slate-500 hover:text-slate-900'}`}>
+                                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{view.icon}</svg>
+                              </button>
+                            ))}
                         </div>
 
                         {loadingChart ? (
@@ -4332,12 +4417,24 @@
                             </div>
                         ) : chartData?.prices ? (
                             <div>
-                              {/* Canvas — fills container width on all screens */}
-                              <div className="relative w-full" style={{height: '280px'}}>
-                                <canvas id="priceChart" style={{width: '100%', height: '100%', display: 'block'}}></canvas>
-                              </div>
+                              {chartKind === 'candle' && chartCandles.length === 0 ? (
+                                <div className="py-20 text-center text-sm opacity-60">Not enough price samples for candlesticks.</div>
+                              ) : (
+                                <div className="relative w-full" style={{height: '280px'}}>
+                                  <canvas id="priceChart" onMouseLeave={() => setHoveredCandleIndex(null)} onTouchEnd={() => setHoveredCandleIndex(null)} style={{width: '100%', height: '100%', display: 'block'}}></canvas>
+                                </div>
+                              )}
+                                {displayedCandle && (
+                                  <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[11px] font-mono opacity-70" data-testid="market-ohlc">
+                                    <span className="uppercase tracking-widest">Sampled OHLC</span>
+                                    {[
+                                      ['O', displayedCandle.open], ['H', displayedCandle.high],
+                                      ['L', displayedCandle.low], ['C', displayedCandle.close],
+                                    ].map(([label, value]) => <span key={label}>{label} {formatMarketChartPrice(value)}</span>)}
+                                  </div>
+                                )}
                                 <p className="text-xs opacity-30 mt-2 text-center">
-                                    {chartData.prices.length} data points · {chartData.source || 'Unknown'} API
+                                    {chartKind === 'candle' ? `${chartCandles.length} candles` : `${chartData.prices.length} data points`} · {chartData.source || 'Unknown'} API
                                 </p>
 
                                 {/* Converter */}

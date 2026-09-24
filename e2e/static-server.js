@@ -6,6 +6,7 @@ const root = path.resolve(__dirname, '..');
 
 app.use(express.static(path.join(root, 'public')));
 app.get('/app-hub-data.js', (_req, res) => res.sendFile(path.join(root, 'app-hub-data.js')));
+app.get('/dex-swap', (_req, res) => res.sendFile(path.join(root, 'public', 'dex-swap.html')));
 app.get('*', (_req, res) => res.sendFile(path.join(root, 'public', 'index.html')));
 
 app.listen(10777, '127.0.0.1', () => {

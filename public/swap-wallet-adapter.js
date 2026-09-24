@@ -16,8 +16,12 @@
  *   - Solana signing through Wallet Standard serialized bytes (no web3.js).
  *
  * What it deliberately does NOT own: judging the quote itself (fee terms,
- * minimum received, spender/target rules, simulation). That is the shared swap
- * core's job, injected as `validateQuote`; without it no plan is produced.
+ * minimum received, spender/target rules). That is the shared swap core's job
+ * (public/swap-core.js, generated from Magic Money), injected as `validateQuote`
+ * and re-run immediately before EVERY signature; without it no plan is produced.
+ * Chain reads the wallet's RPC must answer (allowance, balance, simulation) are
+ * the host's `beforeStep` hook, which can also skip an approval that is not
+ * needed or require a zero-reset first, as Magic Money's executor does.
  *
  * Input records are the ones public/wallet-providers.js discovers
  * ({ kind: 'evm-eip6963' | 'evm-legacy' | 'solana-standard' | 'solana-legacy', provider }).
@@ -35,7 +39,7 @@
 
   class SwapWalletError extends Error {
     /**
-     * @param {'validator-required'|'invalid-plan'|'expired'|'wrong-account'|'wrong-network'|
+     * @param {'validator-required'|'invalid-plan'|'refused'|'expired'|'wrong-account'|'wrong-network'|
      *   'network-missing'|'account-changed'|'rejected'|'step-failed'|'not-confirmed'|'unsupported-wallet'} code
      * @param {string} message
      * @param {{ sent?: Array<{ kind: string, hash: string }> }} [extra]
@@ -79,6 +83,9 @@
   const ecosystemOf = chain => (chain === 'solana' ? 'solana' : 'evm');
   const sameAccount = (ecosystem, a, b) => (ecosystem === 'evm' ? sameEvm(a, b) : isSolanaAddress(a) && a === b);
   const validAccount = (ecosystem, v) => (ecosystem === 'evm' ? isEvmAddress(v) : isSolanaAddress(v));
+
+  const approveCalldata = (spender, amount) =>
+    '0x095ea7b3' + spender.slice(2).toLowerCase().padStart(64, '0') + amount.toString(16).padStart(64, '0');
 
   const toHexQuantity = (value) => {
     const s = String(value ?? '0');
@@ -136,6 +143,7 @@
       return Object.freeze({
         ecosystem: 'solana', sourceAccount, destinationAccount, chainId: null, expiresAt: quote.expiresAt,
         steps: Object.freeze([Object.freeze({ kind: 'swap', bytes: base64ToBytes(txData.swapTransaction) })]),
+        revalidate: () => validateQuote(quote),
       });
     }
 
@@ -158,6 +166,8 @@
     return Object.freeze({
       ecosystem: 'evm', sourceAccount, destinationAccount, chainId: evmChainId, expiresAt: quote.expiresAt,
       steps: Object.freeze(steps),
+      tokenAddress: quote.fromTokenAddress,
+      revalidate: () => validateQuote(quote),
     });
   }
 
@@ -242,7 +252,7 @@
   }
 
   async function executeEvmPlan(plan, signer, opts = {}) {
-    const { onStep, now = Date.now } = opts;
+    const { onStep, beforeStep, now = Date.now } = opts;
     const sent = [];
     const fail = (code, message) => new SwapWalletError(code, message, { sent: sent.slice() });
 
@@ -260,6 +270,43 @@
       if (now() >= plan.expiresAt) throw fail('expired', 'The quote expired before this step. Refresh it and try again.');
       if (!sameEvm(await signer.currentAccount(), plan.sourceAccount)) throw fail('wrong-account', 'Your wallet switched accounts. Nothing further was sent.');
       if (await signer.currentChainId() !== plan.chainId) throw fail('wrong-network', 'Your wallet switched networks. Nothing further was sent.');
+      // The shared swap checks, again, for THIS signature.
+      try {
+        plan.revalidate();
+      } catch (err) {
+        throw fail('refused', err?.message || String(err));
+      }
+      let decision = 'send';
+      if (beforeStep) {
+        try {
+          decision = (await beforeStep(step, signer)) || 'send';
+        } catch (err) {
+          throw fail('refused', err?.message || String(err));
+        }
+      }
+      if (decision === 'skip') {
+        onStep?.({ kind: step.kind, status: 'skipped' });
+        continue;
+      }
+      if (decision === 'reset-then-send') {
+        // Some tokens (USDT) revert when raising a non-zero allowance directly.
+        const spender = '0x' + step.tx.data.toLowerCase().slice(34, 74);
+        const reset = { from: step.tx.from, to: step.tx.to, data: approveCalldata(spender, 0n), value: '0x0' };
+        onStep?.({ kind: 'allowance-reset', status: 'signing' });
+        let resetHash;
+        try {
+          resetHash = await signer.sendTransaction(reset);
+        } catch (err) {
+          if (err?.code === USER_REJECTED) throw fail('rejected', 'The allowance reset was declined in your wallet.');
+          throw fail('step-failed', `The wallet could not send the allowance reset: ${err?.message || err}`);
+        }
+        sent.push({ kind: 'allowance-reset', hash: resetHash });
+        const resetReceipt = await waitForReceipt(signer, resetHash, opts);
+        if (!resetReceipt || (String(resetReceipt.status) !== '0x1' && resetReceipt.status !== 1)) {
+          throw fail('step-failed', 'The allowance reset did not confirm, so nothing further was sent.');
+        }
+        if (signer.generation !== started) throw fail('account-changed', 'Your wallet account or network changed during the swap. Nothing further was sent.');
+      }
 
       onStep?.({ kind: step.kind, status: 'signing' });
       let hash;
@@ -340,6 +387,11 @@
     }
     if (now() >= plan.expiresAt) throw new SwapWalletError('expired', 'This quote has expired. Refresh it and try again.');
     if (signer.generation !== started) throw new SwapWalletError('account-changed', 'Your wallet account changed. Nothing was sent.');
+    try {
+      plan.revalidate();
+    } catch (err) {
+      throw new SwapWalletError('refused', err?.message || String(err));
+    }
     onStep?.({ kind: 'swap', status: 'signing' });
     let signature;
     try {
@@ -369,5 +421,6 @@
     executePlan,
     waitForReceipt,
     base58Encode,
+    approveCalldata,
   };
 }));
