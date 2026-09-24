@@ -450,7 +450,7 @@ app.use(express.json({ limit: '3mb' }));
 // file on its own if the compile ever fails.
 const precompiledPage = createPrecompiledPage(path.join(__dirname, 'public'));
 precompiledPage.current();   // compile at boot, not on the first visitor
-app.get(['/', '/index.html'], precompiledPage.sendPage);
+app.get(['/', '/index.html', '/magic-swap'], precompiledPage.sendPage);
 app.get(`${COMPILED_PREFIX}*`, precompiledPage.sendAsset);
 app.use(express.static(path.join(__dirname, 'public')));
 

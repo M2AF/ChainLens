@@ -361,7 +361,7 @@ test('World Chat, friend acceptance, DMs, GIPHY, and profile ID work together', 
   expect(pageErrors).toEqual([]);
 });
 
-test('opening Chat after SimpleSwap keeps Messenger fully inside the viewport', async ({ page }) => {
+test('opening Chat on Magic Swap keeps Messenger fully inside the viewport', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await installChatMocks(page);
@@ -369,14 +369,15 @@ test('opening Chat after SimpleSwap keeps Messenger fully inside the viewport', 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
 
-  await page.getByTestId('simpleswap-trigger').click();
+  await page.getByTestId('magic-swap-trigger').click();
   await expect(page.locator('#simpleswap-frame')).toBeVisible();
   await page.getByTestId('chat-trigger').click();
 
   const panel = page.getByTestId('chat-panel');
   await expect(panel).toBeVisible();
   await expect(panel.getByRole('heading', { name: 'Messenger' })).toBeVisible();
-  await expect(page.locator('#simpleswap-frame')).toBeHidden();
+  await expect(page).toHaveURL(/\/magic-swap$/);
+  await expect(page.locator('#simpleswap-frame')).toBeVisible();
   const box = await panel.boundingBox();
   expect(box.y).toBeGreaterThanOrEqual(0);
   expect(box.y + box.height).toBeLessThanOrEqual(900);
@@ -390,8 +391,8 @@ test('mobile chat panel fits the viewport and retains both tabs', async ({ page 
   await installChatMocks(page, { worldMessageCount: 30 });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
-  // Name is "Chat", or "Chat — N friend requests…" once the badge has counts.
-  await page.locator('nav').getByRole('button', { name: /^Chat($| —)/ }).click();
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Chat' }).click();
   const panel = page.getByTestId('chat-panel');
   await expect(panel).toBeVisible();
   await expect(panel.getByRole('button', { name: 'World Chat' })).toBeVisible();
