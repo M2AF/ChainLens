@@ -47,6 +47,32 @@ const EVM_RECEIPT_RPC = {
   zora: 'alchemy/zora-mainnet', monad: 'tatum/monad', hyperevm: 'tatum/hyperevm',
 };
 
+// Keyless public RPCs (mirrors Magic Money's chain-config PUBLIC_RPCS / MONAD_RPCS
+// / SOLANA_RPCS). Used for source-transaction status when the Worker's RPC route
+// cannot answer — e.g. MM_SWAP_CLIENT_TOKEN unset, which the Worker's /rpc routes
+// require. Status reads only; nothing is ever sent through these.
+const PUBLIC_RPCS = {
+  ethereum: ['https://ethereum-rpc.publicnode.com', 'https://eth.drpc.org', 'https://1rpc.io/eth'],
+  arbitrum: ['https://arb1.arbitrum.io/rpc'],
+  optimism: ['https://mainnet.optimism.io'],
+  base: ['https://mainnet.base.org'],
+  polygon: ['https://polygon-bor-rpc.publicnode.com', 'https://polygon.drpc.org'],
+  avalanche: ['https://api.avax.network/ext/bc/C/rpc'],
+  blast: ['https://rpc.blast.io'],
+  gnosis: ['https://rpc.gnosischain.com'],
+  abstract: ['https://api.mainnet.abs.xyz'],
+  apechain: ['https://rpc.apechain.com/http'],
+  robinhood: ['https://rpc.mainnet.chain.robinhood.com'],
+  arc: ['https://rpc.mainnet.arc.io', 'https://arc-rpc.publicnode.com'],
+  ronin: ['https://api.roninchain.com/rpc'],
+  soneium: ['https://rpc.soneium.org'],
+  worldchain: ['https://worldchain-mainnet.g.alchemy.com/public'],
+  zora: ['https://rpc.zora.energy'],
+  hyperevm: ['https://rpc.hyperliquid.xyz/evm', 'https://public.1rpc.io/hyperliquid'],
+  monad: ['https://rpc.monad.xyz', 'https://rpc1.monad.xyz', 'https://rpc2.monad.xyz', 'https://rpc-mainnet.monadinfra.com'],
+  solana: ['https://api.mainnet-beta.solana.com', 'https://solana-rpc.publicnode.com'],
+};
+
 class SwapInputError extends Error {}
 
 // ── Solana address helpers (no web3.js on this server) ───────────────────────
@@ -206,6 +232,36 @@ function createSwapService(options = {}) {
     return body.result;
   }
 
+  async function publicRpc(chain, method, params) {
+    let lastError = null;
+    for (const url of PUBLIC_RPCS[chain] || []) {
+      try {
+        const res = await fetchImpl(url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', accept: 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+          signal: AbortSignal.timeout(8000),
+        });
+        const body = await res.json().catch(() => null);
+        if (res.ok && body && !body.error) return body.result;
+        lastError = new Error(body?.error?.message || `RPC ${res.status}`);
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError || new Error(`No public RPC for ${chain}`);
+  }
+
+  /** The Worker's keyed RPC first, then keyless public RPCs. */
+  async function statusRpc(chain, workerRoute, method, params) {
+    if (workerRoute) {
+      try {
+        return { result: await rpc(workerRoute, method, params), source: 'worker' };
+      } catch { /* fall through to public RPCs */ }
+    }
+    return { result: await publicRpc(chain, method, params), source: 'public' };
+  }
+
   async function tokens(query) {
     const chain = String(query.chain || '').trim().toLowerCase();
     if (!core.swapCapability(chain)) return { tokens: [], error: `Swaps are not available on ${chain || 'that network'}.` };
@@ -315,18 +371,20 @@ function createSwapService(options = {}) {
       if (!core.isValidSwapAddress('solana', hash) && !/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(hash)) {
         throw new SwapInputError('Invalid transaction signature.');
       }
-      const result = await rpc('helius', 'getSignatureStatuses', [[hash], { searchTransactionHistory: true }]);
+      const { result, source } = await statusRpc('solana', 'helius', 'getSignatureStatuses', [[hash], { searchTransactionHistory: true }]);
       const s = result?.value?.[0];
-      if (!s) return { state: 'pending' };
-      if (s.err) return { state: 'failed' };
-      return { state: s.confirmationStatus === 'finalized' || s.confirmationStatus === 'confirmed' ? 'confirmed' : 'pending' };
+      if (!s) return { state: 'pending', source };
+      if (s.err) return { state: 'failed', source };
+      const finality = s.confirmationStatus || null;
+      return { state: finality === 'finalized' || finality === 'confirmed' ? 'confirmed' : 'pending', finality, source };
     }
     if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) throw new SwapInputError('Invalid transaction hash.');
-    const route = EVM_RECEIPT_RPC[chain];
-    if (!route) return { state: 'unknown' };
-    const receipt = await rpc(route, 'eth_getTransactionReceipt', [hash]);
-    if (!receipt || receipt.status == null) return { state: 'pending' };
-    return { state: receipt.status === '0x1' ? 'confirmed' : 'failed' };
+    const route = EVM_RECEIPT_RPC[chain] || null;
+    if (!route && !PUBLIC_RPCS[chain]) return { state: 'unknown' };
+    const { result: receipt, source } = await statusRpc(chain, route, 'eth_getTransactionReceipt', [hash]);
+    if (!receipt || receipt.status == null) return { state: 'pending', source };
+    const blockNumber = receipt.blockNumber ? Number.parseInt(receipt.blockNumber, 16) : null;
+    return { state: receipt.status === '0x1' ? 'confirmed' : 'failed', blockNumber, source };
   }
 
   return { tokens, quote, status, txStatus, resolveJupiterFeeAccount };

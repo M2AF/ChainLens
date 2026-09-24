@@ -158,3 +158,9 @@ test('Relay payout evidence is attached when the provider publishes it', () => {
   });
   assert.ok(s.fee.payout, 'payout evidence recorded');
 });
+
+test('storageWorks: tracking is only claimed where the record can persist', () => {
+  const { storageWorks } = require('../public/dex-swap-store');
+  assert.equal(storageWorks(new MemoryStorage()), true);
+  assert.equal(storageWorks({ setItem() { throw new Error('QuotaExceeded'); }, getItem() { return null; } }), false);
+});

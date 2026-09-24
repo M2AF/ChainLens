@@ -371,14 +371,14 @@ test('opening Chat on Magic Swap keeps Messenger fully inside the viewport', asy
 
   await page.getByTestId('magic-swap-trigger').click();
   await page.getByTestId('exchange-swap-mode').click();
-  await expect(page.locator('#simpleswap-frame')).toBeVisible();
+  await expect(page.getByTestId('exchange-panel')).toBeVisible();
   await page.getByTestId('chat-trigger').click();
 
   const panel = page.getByTestId('chat-panel');
   await expect(panel).toBeVisible();
   await expect(panel.getByRole('heading', { name: 'Messenger' })).toBeVisible();
   await expect(page).toHaveURL(/\/magic-swap$/);
-  await expect(page.locator('#simpleswap-frame')).toBeVisible();
+  await expect(page.getByTestId('exchange-panel')).toBeVisible();
   const box = await panel.boundingBox();
   expect(box.y).toBeGreaterThanOrEqual(0);
   expect(box.y + box.height).toBeLessThanOrEqual(900);

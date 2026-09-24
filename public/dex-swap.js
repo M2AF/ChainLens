@@ -20,6 +20,11 @@
   const adapter = window.ChainLensSwapWallet;
   const providers = window.ChainLensWalletProviders;
   const store = window.ChainLensDexSwapStore.createStore(core, window.localStorage);
+  // The shared policy admits broad cross-chain routes only where a partial
+  // delivery or refund cannot go unreported. This page persists and polls every
+  // swap it starts (reloads included), so tracking is active: but only while
+  // this browser actually lets it persist.
+  core.setSettlementTrackingActive(window.ChainLensDexSwapStore.storageWorks(window.localStorage));
 
   const EXPLORER_TX = {
     ethereum: 'https://etherscan.io/tx/', arbitrum: 'https://arbiscan.io/tx/', optimism: 'https://optimistic.etherscan.io/tx/',
@@ -464,6 +469,33 @@
     return ` · ${text}${payout}`;
   }
 
+  /** Last source-transaction check per session (this page load only). */
+  const checks = {};
+
+  function timeText(t) {
+    return new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  /**
+   * The source transaction's on-chain state, shown on every row: waiting (with
+   * when it was last checked, and why a check failed), confirmed (with block or
+   * Solana finality), or failed on-chain.
+   */
+  function confirmationBadge(s) {
+    if (!s.sourceTxHash || s.sourceTxState === 'not-sent') return '';
+    const c = checks[s.id];
+    if (s.sourceTxState === 'reverted') return '<span class="badge bad" data-testid="tx-badge">✕ Failed on-chain</span>';
+    if (s.sourceTxState === 'confirmed') {
+      const detail = c?.finality === 'finalized' ? ' · finalized'
+        : c?.blockNumber ? ` · block ${esc(c.blockNumber.toLocaleString())}` : '';
+      return `<span class="badge good" data-testid="tx-badge">✓ Confirmed on ${esc(chainName(s.fromChain))}${detail}</span>`;
+    }
+    const checked = c?.at ? ` · checked ${timeText(c.at)}` : '';
+    const problem = c?.error ? ` <span class="warn-text">${esc(c.error)}</span>` : '';
+    return `<span class="badge pending" data-testid="tx-badge"><span class="spinner" aria-hidden="true"></span>Waiting for confirmation${checked}</span>${problem}`
+      + ' <button type="button" class="link" data-action="check-now">Check now</button>';
+  }
+
   function renderSwaps() {
     const box = $('[data-testid="swaps"]');
     const list = store.list();
@@ -483,10 +515,44 @@
       const link = s.sourceTxHash
         ? ` · <a href="${esc(explorerLink(s.fromChain, s.sourceTxHash) || '#')}" target="_blank" rel="noopener" class="mono">${esc(short(s.sourceTxHash))}</a>`
         : '';
-      div.innerHTML = `<div><span class="state ${esc(s.state)}">${esc(label)}</span> · ${fromRaw(s.sellAmountRaw, s.fromTokenDecimals)} ${esc(s.fromTokenSymbol)} (${esc(chainName(s.fromChain))}) → ${esc(s.toTokenSymbol)} (${esc(chainName(s.toChain))})${link}</div>`
+      div.innerHTML = `<div class="badges">${confirmationBadge(s)}</div><div><span class="state ${esc(s.state)}">${esc(label)}</span> · ${fromRaw(s.sellAmountRaw, s.fromTokenDecimals)} ${esc(s.fromTokenSymbol)} (${esc(chainName(s.fromChain))}) → ${esc(s.toTokenSymbol)} (${esc(chainName(s.toChain))})${link}</div>`
         + `<div class="note" style="margin:2px 0 0">${`${esc(s.message || '')}${delivered}${fee}`.replace(/^ · /, '')}</div>`;
       box.appendChild(div);
     }
+  }
+
+  /**
+   * Source-transaction status: ChainLens's server first (keyed RPC, then public
+   * RPCs), then the connected EVM wallet's own RPC when it is on that chain.
+   */
+  async function sourceTxStatus(s) {
+    let serverError = null;
+    try {
+      const res = await fetch(`/api/dex/tx-status?chain=${encodeURIComponent(s.fromChain)}&hash=${encodeURIComponent(s.sourceTxHash)}`);
+      const body = await res.json().catch(() => null);
+      if (res.ok && body && ['confirmed', 'failed', 'pending'].includes(body.state)) return { ...body, error: null };
+      serverError = body?.error || `status service ${res.status}`;
+    } catch {
+      serverError = 'status service unreachable';
+    }
+    const wallet = state.evm;
+    const chainId = evmChainIdOf(s.fromChain);
+    if (wallet && chainId != null) {
+      try {
+        if (await wallet.signer.currentChainId() === chainId) {
+          const receipt = await wallet.record.provider.request({ method: 'eth_getTransactionReceipt', params: [s.sourceTxHash] });
+          if (receipt && receipt.status != null) {
+            return {
+              state: String(receipt.status) === '0x1' || receipt.status === 1 ? 'confirmed' : 'failed',
+              blockNumber: receipt.blockNumber ? Number.parseInt(receipt.blockNumber, 16) : null,
+              source: 'wallet', error: null,
+            };
+          }
+          return { state: 'pending', source: 'wallet', error: null };
+        }
+      } catch { /* fall through to the server's error */ }
+    }
+    return { state: 'pending', error: `Could not check the status (${serverError}), retrying.` };
   }
 
   let polling = false;
@@ -498,10 +564,10 @@
       for (const s of store.pending()) {
         if (!s.sourceTxHash) continue;
         if (s.sourceTxState === 'submitted') {
-          const r = await fetch(`/api/dex/tx-status?chain=${encodeURIComponent(s.fromChain)}&hash=${encodeURIComponent(s.sourceTxHash)}`)
-            .then(x => x.json()).catch(() => null);
-          if (r?.state === 'confirmed') store.noteReceipt(s.id, s.sourceTxHash, true);
-          else if (r?.state === 'failed') store.noteReceipt(s.id, s.sourceTxHash, false);
+          const r = await sourceTxStatus(s);
+          checks[s.id] = { ...r, at: Date.now() };
+          if (r.state === 'confirmed') store.noteReceipt(s.id, s.sourceTxHash, true);
+          else if (r.state === 'failed') store.noteReceipt(s.id, s.sourceTxHash, false);
         } else if (s.isCrossChain) {
           const params = new URLSearchParams({ provider: s.provider, txHash: s.sourceTxHash, fromChain: s.fromChain, toChain: s.toChain });
           if (s.bridgeTool) params.set('bridge', s.bridgeTool);
@@ -525,7 +591,24 @@
     if (action === 'connect-solana') connect('solana');
     if (action === 'quote') getQuote();
     if (action === 'swap') swap();
+    if (action === 'check-now') poll();
+    if (action === 'flip') flip();
   });
+
+  /** Swap the pay and receive sides (network and token), as on Magic Money's swap screen. */
+  function flip() {
+    const from = state.from;
+    state.from = state.to;
+    state.to = from;
+    $('#from-chain').value = state.from.chain;
+    $('#to-chain').value = state.to.chain;
+    for (const side of ['from', 'to']) {
+      $(`#${side}-search`).value = state[side].token ? state[side].token.symbol : '';
+      renderToken(side);
+    }
+    renderRecipient();
+    invalidateQuote();
+  }
   for (const side of ['from', 'to']) {
     $(`#${side}-chain`).addEventListener('change', (e) => {
       state[side].chain = e.target.value;

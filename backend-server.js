@@ -25,6 +25,7 @@ const {
 const { resolveWalletSession } = require('./auth-session');
 const { createPrecompiledPage, COMPILED_PREFIX } = require('./precompile-page');
 const { createSwapService, registerSwapRoutes } = require('./swap-service');
+const { createExchangeService, registerExchangeRoutes } = require('./exchange-service');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -1775,10 +1776,8 @@ app.put('/api/profile/filters', requireAuth, async (req, res) => {
 
 // ── Custom themes (cl_themes) ────────────────────────────────────────────────
 //
-// The themes the user built in MagicMoney Wallet, which the wallet pushes to
-// this account through its Cloudflare Worker (src/main/theme-sync.ts). ChainLens
-// only READS them: a theme is made and edited in the wallet, and wearing one
-// here is a per-install choice that never travels back.
+// Custom themes are shared by ChainLens and MagicMoney Wallet through this
+// account. Both writers merge by timestamp and retain deletion tombstones.
 //
 // Gated on exactly what chat is gated on — a verified wallet AND a Google or
 // Discord account — because that is the rule the product states for everything
@@ -1857,6 +1856,30 @@ app.get('/api/profile/themes', requireAuth, async (req, res) => {
     // answers no, the same way requireChatAccess refuses a chat it cannot check.
     console.error('ChainLens theme eligibility check failed:', error);
     res.json(denied);
+  }
+});
+
+app.put('/api/profile/themes', requireAuth, async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Theme sync is unavailable' });
+  try {
+    const access = await dbGetChatEligibility(req.user.sub);
+    if (!access.eligible) return res.status(403).json({ error: 'Theme access requires a verified wallet and linked social account' });
+    const incoming = sanitizeThemeEntries(req.body?.entries);
+    const { data, error: readError } = await supabase.from('cl_themes')
+      .select('entries').eq('user_id', req.user.sub).maybeSingle();
+    if (readError) throw readError;
+    const merged = sanitizeThemeEntries(data?.entries);
+    for (const [id, entry] of Object.entries(incoming)) {
+      if (!merged[id] || entry.t >= merged[id].t) merged[id] = entry;
+    }
+    const { error: writeError } = await supabase.from('cl_themes')
+      .upsert({ user_id: req.user.sub, entries: merged, updated_at: new Date().toISOString() },
+              { onConflict: 'user_id' });
+    if (writeError) throw writeError;
+    res.json({ entries: merged });
+  } catch (error) {
+    console.error('ChainLens theme save failed:', error);
+    res.status(500).json({ error: 'Could not save themes' });
   }
 });
 
@@ -2354,6 +2377,12 @@ registerSwapRoutes(app, createSwapService({
   workerUrl: process.env.MM_SWAP_WORKER_URL,
   clientToken: process.env.MM_SWAP_CLIENT_TOKEN,
   jupiterFee: process.env.CHAINLENS_JUPITER_FEE !== 'off',
+}));
+// Deposit-address exchange, separate from wallet-signed DEX routes. Provider
+// keys remain in the Magic Money Worker; the browser only calls this API.
+registerExchangeRoutes(app, createExchangeService({
+  workerUrl: process.env.MM_SWAP_WORKER_URL,
+  clientToken: process.env.MM_SWAP_CLIENT_TOKEN,
 }));
 
 // 1. Cardano (DexHunter)

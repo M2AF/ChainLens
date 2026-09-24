@@ -124,7 +124,29 @@ test('source-transaction status: Solana signature statuses and EVM receipts', as
     '/rpc/alchemy/base-mainnet': () => ({ body: { result: { status: '0x0' } } }),
   });
   const svc = createSwapService({ fetchImpl });
-  assert.deepEqual(await svc.txStatus({ chain: 'solana', hash: '5'.repeat(88) }), { state: 'confirmed' });
-  assert.deepEqual(await svc.txStatus({ chain: 'base', hash: `0x${'a'.repeat(64)}` }), { state: 'failed' });
+  assert.deepEqual(await svc.txStatus({ chain: 'solana', hash: '5'.repeat(88) }), { state: 'confirmed', finality: 'confirmed', source: 'worker' });
+  assert.deepEqual(await svc.txStatus({ chain: 'base', hash: `0x${'a'.repeat(64)}` }), { state: 'failed', blockNumber: null, source: 'worker' });
   await assert.rejects(svc.txStatus({ chain: 'base', hash: 'nope' }), SwapInputError);
+});
+
+test('source-transaction status falls back to public RPCs when the Worker route refuses', async () => {
+  const seen = [];
+  const fetchImpl = async (url, init = {}) => {
+    seen.push(url);
+    if (url.startsWith('https://worker.test/rpc/')) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    if (url === 'https://rpc.monad.xyz') return new Response('bad gateway', { status: 502 });
+    if (url === 'https://rpc1.monad.xyz') {
+      return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { status: '0x1', blockNumber: '0x663a2b7' } }));
+    }
+    return new Response('{}', { status: 404 });
+  };
+  const svc = createSwapService({ fetchImpl, workerUrl: 'https://worker.test' });
+  const out = await svc.txStatus({ chain: 'monad', hash: `0x${'b'.repeat(64)}` });
+  assert.deepEqual(out, { state: 'confirmed', blockNumber: 0x663a2b7, source: 'public' });
+  assert.deepEqual(seen, ['https://worker.test/rpc/tatum/monad', 'https://rpc.monad.xyz', 'https://rpc1.monad.xyz']);
+});
+
+test('source-transaction status: every source down is an error, not "pending"', async () => {
+  const fetchImpl = async () => new Response('down', { status: 503 });
+  await assert.rejects(createSwapService({ fetchImpl }).txStatus({ chain: 'base', hash: `0x${'c'.repeat(64)}` }));
 });

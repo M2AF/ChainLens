@@ -26,6 +26,8 @@
   <script src="/dex-swap-store.js"></script>
   <script src="/dex-swap-markup.js"></script>
   <script src="/dex-swap.js"></script>
+  <script src="/exchange-assets.js"></script>
+  <script type="text/babel" src="/exchange-swap.jsx"></script>
   <link rel="stylesheet" href="/dex-swap.css">
   <script src="/asset-filter-key.js"></script>
   <script src="/theme-engine.js"></script>
@@ -147,7 +149,8 @@
     .cl-nav-item:hover { background: rgb(var(--cl-cyan-500) / .1); color: rgb(var(--cl-cyan-300)); }
     .cl-nav-item.active { background: rgb(var(--cl-cyan-500) / .12); color: rgb(var(--cl-cyan-300)); box-shadow: inset 4px 0 rgb(var(--cl-cyan-400)); }
     .cl-main-logo { display: none; }
-    @media (min-width: 901px) { .cl-main .cl-search-content { padding-top: 180px; } }
+    /* Keep the four primary panels below the fixed theme control, at one level. */
+    @media (min-width: 901px) { .cl-main .cl-primary-content { padding-top: 80px; } }
     @media (max-width: 900px) {
       .cl-sidebar { width: min(298px, 85vw); transform: translateX(-100%); transition: transform .25s ease; }
       .cl-sidebar.open { transform: translateX(0); }
@@ -1190,7 +1193,7 @@
      * markup. With one, it opens the twelve themes MagicMoney ships plus
      * whatever the wallet has synced to the account.
      */
-    const ThemePicker = ({ activeTheme, darkMode, eligible, builtins, customs, onSelect }) => {
+    const ThemePicker = ({ activeTheme, darkMode, eligible, builtins, customs, onSelect, onEdit }) => {
       const [open, setOpen] = useState(false);
       const boxRef = useRef(null);
 
@@ -1231,15 +1234,20 @@
       const row = (theme) => {
         const selected = theme.id === activeTheme.id;
         return (
-          <button key={theme.id} onClick={() => { onSelect(theme.id); setOpen(false); }}
+          <div key={theme.id} className="flex items-center">
+          <button onClick={() => { onSelect(theme.id); setOpen(false); }}
                   data-testid={`theme-option-${theme.id}`} aria-current={selected ? 'true' : undefined}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors ${selected
+                  className={`flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors ${selected
                     ? (darkMode ? 'bg-slate-800' : 'bg-slate-100')
                     : (darkMode ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50')}`}>
             <ThemeSwatch colors={theme.colors} />
             <span className="flex-1 truncate text-[11px] font-bold">{theme.name}</span>
             {selected && <span className="text-cyan-400 text-xs leading-none">✓</span>}
           </button>
+          {!isBaseMode(theme.id) && <button type="button" aria-label={`Edit ${theme.name}`} data-testid={`theme-edit-${theme.id}`}
+            onClick={() => { onEdit(theme); setOpen(false); }}
+            className="shrink-0 px-2 py-2 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800/40">✎</button>}
+          </div>
         );
       };
 
@@ -1267,8 +1275,15 @@
               {heading('Your themes')}
               {customs.length > 0 ? customs.map(row) : (
                 <p className={`px-3 pb-3 pt-1 text-[10px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                  Themes you build in MagicMoney Wallet appear here.
+                  Your themes will sync with MagicMoney Wallet.
                 </p>
+              )}
+              {customs.length < window.chainlensThemes.MAX_SYNCED_THEMES && (
+                <button type="button" data-testid="theme-create" onClick={() => { onEdit(null); setOpen(false); }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-[11px] font-bold transition-colors ${darkMode ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50'}`}>
+                  <span className="w-4 h-4 rounded-full border border-cyan-400 text-cyan-400 flex items-center justify-center text-sm leading-none" aria-hidden="true">+</span>
+                  <span>Create New</span>
+                </button>
               )}
             </div>
           )}
@@ -1284,6 +1299,61 @@
         return () => dispose?.();
       }, []);
       return <div ref={rootRef} className="dex-swap max-w-2xl mx-auto" data-tone={darkMode ? 'dark' : 'light'} data-testid="dex-swap-panel" />;
+    };
+
+    const ThemeEditor = ({ theme, onClose, onSave, busy, error }) => {
+      const builtin = theme && !theme.id.startsWith('custom-');
+      const [name, setName] = useState(theme?.name || 'My theme');
+      const [colors, setColors] = useState(theme?.colors || { bg: '#0a0f1e', accent: '#00aaff', text: '#e8f4ff' });
+      const [confirmDelete, setConfirmDelete] = useState(false);
+      const valid = ['bg', 'accent', 'text'].every(key => /^#[0-9a-f]{6}$/i.test(colors[key]));
+      const engine = window.chainlensThemes;
+      const ratio = valid ? engine.contrastRatio(engine.parseHex(colors.text), engine.parseHex(colors.bg)) : null;
+      return (
+        <div className="fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+          <form role="dialog" aria-modal="true" aria-label={theme ? 'Edit theme' : 'Create theme'} data-testid="theme-editor"
+            onSubmit={e => { e.preventDefault(); if (valid) onSave({ id: theme?.id, builtin, name, colors }); }}
+            className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 text-slate-100 shadow-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-black">{builtin ? `Recolour ${theme.name}` : theme ? 'Edit theme' : 'Create theme'}</h2>
+              <button type="button" onClick={onClose} aria-label="Close editor" className="text-slate-400 hover:text-white text-xl">×</button>
+            </div>
+            {!builtin && <label className="block text-xs font-bold">Name
+              <input aria-label="Theme name" maxLength="24" value={name} onChange={e => setName(e.target.value)}
+                className="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm" />
+            </label>}
+            {[
+              ['bg', 'Background', 'The page behind everything'],
+              ['accent', 'Accent', 'Buttons, highlights and borders'],
+              ['text', 'Text', 'Body text and labels'],
+            ].map(([key, label, hint]) => (
+              <label key={key} className="flex items-center gap-3 text-xs font-bold">
+                <input type="color" aria-label={`${label} color picker`} value={/^#[0-9a-f]{6}$/i.test(colors[key]) ? colors[key] : '#000000'}
+                  onChange={e => setColors(c => ({ ...c, [key]: e.target.value }))} className="w-10 h-10 cursor-pointer rounded-lg border border-slate-600 bg-transparent" />
+                <span className="flex-1"><span className="block">{label}</span><span className="block text-[10px] font-normal text-slate-400">{hint}</span></span>
+                <input aria-label={`${label} hex`} value={colors[key]} maxLength="7" onChange={e => setColors(c => ({ ...c, [key]: e.target.value }))}
+                  className="w-24 rounded-lg border border-slate-600 bg-slate-800 px-2 py-1.5 font-mono text-xs" />
+              </label>
+            ))}
+            {ratio !== null && <p className="text-xs text-slate-300">Text contrast: {ratio.toFixed(1)}:1 · {ratio >= 4.5 ? 'Good contrast' : 'Low contrast'}</p>}
+            <div className="rounded-xl p-4 border" style={{ background: valid ? colors.bg : '#0a0f1e', color: valid ? colors.text : '#e8f4ff', borderColor: valid ? colors.accent : '#00aaff' }}>
+              <span className="text-sm font-bold">Theme preview</span>
+              <span className="block text-xs mt-1">Background, accent and text together.</span>
+              <span className="inline-block rounded-lg px-3 py-1 mt-3 text-xs font-bold" style={{ background: valid ? colors.accent : '#00aaff', color: valid ? colors.bg : '#0a0f1e' }}>Accent</span>
+            </div>
+            {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
+            <div className="flex gap-2">
+              <button disabled={busy || !valid} className="flex-1 rounded-xl bg-cyan-500 px-4 py-2 text-slate-950 text-xs font-black disabled:opacity-50">{busy ? 'Saving…' : builtin ? 'Save colours' : theme ? 'Save changes' : 'Create theme'}</button>
+              <button type="button" onClick={onClose} className="rounded-xl border border-slate-600 px-4 py-2 text-xs font-bold">Cancel</button>
+            </div>
+            {theme && (builtin ? (
+              <button type="button" disabled={busy || !theme.edited} onClick={() => onSave({ id: theme.id, builtin: true, delete: true })}
+                className="text-xs font-bold text-slate-300 disabled:opacity-40">Revert to default</button>
+            ) : <button type="button" disabled={busy} onClick={() => confirmDelete ? onSave({ id: theme.id, delete: true }) : setConfirmDelete(true)}
+              className="text-xs font-bold text-red-400">{confirmDelete ? 'Click again to delete' : 'Delete theme'}</button>)}
+          </form>
+        </div>
+      );
     };
 
     const App = () => {
@@ -1315,6 +1385,9 @@
       // Whether this account may use themes at all, and which ones MagicMoney
       // has synced to it. One request answers both.
       const [themeAccess, setThemeAccess] = useState({ eligible: false, entries: {} });
+      const [themeEditor, setThemeEditor] = useState(null);
+      const [themeSaveBusy, setThemeSaveBusy] = useState(false);
+      const [themeSaveError, setThemeSaveError] = useState('');
       const [selectedAsset, setSelectedAsset] = useState(null);
       const [tokenMode, setTokenMode] = useState(false);
       const [viewMode, setViewMode] = useState('nfts'); // 'nfts', 'tokens', 'transactions'
@@ -1592,11 +1665,60 @@
         return engine.liveThemes(themeAccess.entries);
       }, [themeAccess]);
 
+      const builtinThemes = useMemo(() => {
+        const engine = window.chainlensThemes;
+        if (!engine) return [];
+        const entries = engine.sanitizeEntries(themeAccess.entries);
+        return engine.BUILTIN_THEMES.map(theme => {
+          const override = entries[`custom-builtin-${theme.id}`];
+          return override && override.d !== 1
+            ? { ...theme, colors: override.c, edited: true }
+            : theme;
+        });
+      }, [themeAccess.entries]);
+
+      const saveTheme = async (change) => {
+        if (!authToken || !themeAccess.eligible || themeSaveBusy) return;
+        const engine = window.chainlensThemes;
+        const id = change.builtin ? `custom-builtin-${change.id}` : change.id || `custom-${crypto.randomUUID()}`;
+        if (!change.builtin && !change.id && customThemes.length >= engine.MAX_SYNCED_THEMES) {
+          setThemeSaveError('All six custom theme slots are used.');
+          return;
+        }
+        const previous = themeAccess.entries[id];
+        const t = Math.max(Date.now(), (previous?.t || 0) + 1);
+        const revertingBuiltin = change.builtin && !change.delete && ['bg', 'accent', 'text'].every(
+          key => change.colors[key].toLowerCase() === engine.builtinById(change.id).colors[key]
+        );
+        const entry = change.delete || revertingBuiltin
+          ? { n: '', c: { bg: '', accent: '', text: '' }, t, d: 1 }
+          : { n: change.builtin ? engine.builtinById(change.id).name : change.name.trim().slice(0, 24) || 'Custom', c: change.colors, t };
+        setThemeSaveBusy(true);
+        setThemeSaveError('');
+        try {
+          const res = await fetch('/api/profile/themes', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+            body: JSON.stringify({ entries: { [id]: entry } }),
+          });
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok || !body.entries) throw new Error(body.error || 'Could not save theme');
+          setThemeAccess(current => ({ ...current, entries: engine.sanitizeEntries(body.entries) }));
+          if (change.delete && !change.builtin && themeId === id) setThemeId('dark');
+          if (!change.delete) setThemeId(change.builtin ? change.id : id);
+          setThemeEditor(null);
+        } catch (error) {
+          setThemeSaveError(error.message || 'Could not save theme');
+        } finally {
+          setThemeSaveBusy(false);
+        }
+      };
+
       const themeById = useCallback((id) => {
         const engine = window.chainlensThemes;
         if (!engine || isBaseMode(id)) return null;
-        return engine.builtinById(id) || customThemes.find(theme => theme.id === id) || null;
-      }, [customThemes]);
+        return builtinThemes.find(theme => theme.id === id) || customThemes.find(theme => theme.id === id) || null;
+      }, [builtinThemes, customThemes]);
 
       // What is actually WORN, which is not always what is stored. A theme needs
       // an eligible account behind it, so when that is missing — signed out, or
@@ -3204,7 +3326,7 @@
           </aside>
           <div className="cl-main min-h-screen">
           <button aria-label="Open menu" onClick={() => setMobileMenuOpen(true)} className={`fixed left-4 top-4 z-[60] min-[901px]:hidden rounded-xl border px-3 py-2 text-xl ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>☰</button>
-          <div className={`max-w-[1600px] mx-auto p-4 md:p-8 pt-12 ${activeTab === 'search' ? 'cl-search-content' : ''}`}>
+          <div className={`max-w-[1600px] mx-auto p-4 md:p-8 pt-12 ${['search', 'portfolio', 'market', 'profile'].includes(activeTab) ? 'cl-primary-content' : ''}`}>
             <div className="cl-main-logo flex-col items-center mb-8">
               <div className="relative group">
                   <img 
@@ -3232,10 +3354,13 @@
               activeTheme={activeTheme}
               darkMode={darkMode}
               eligible={themeAccess.eligible}
-              builtins={(window.chainlensThemes && window.chainlensThemes.BUILTIN_THEMES) || []}
+              builtins={builtinThemes}
               customs={customThemes}
               onSelect={setThemeId}
+              onEdit={theme => { setThemeSaveError(''); setThemeEditor(theme || { kind: 'new' }); }}
             />
+            {themeEditor && <ThemeEditor key={themeEditor.id || 'new'} theme={themeEditor.kind === 'new' ? null : themeEditor}
+              onClose={() => setThemeEditor(null)} onSave={saveTheme} busy={themeSaveBusy} error={themeSaveError} />}
 
             {/* Navigation is in the sidebar. */}
 
@@ -3243,7 +3368,13 @@
               <section className="mx-auto max-w-5xl min-h-[70vh] py-10" data-testid="magic-swap-page">
                 <div className="max-w-2xl mx-auto">
                   <p className="text-xs font-black uppercase tracking-[.25em] text-cyan-400">Swap crypto</p>
-                  <h1 className="mt-2 mb-4 font-heading text-4xl md:text-5xl font-extrabold uppercase">Magic Swap</h1>
+                  <h1 data-testid="magic-swap-logo" className="mt-3 mb-6 flex items-center gap-3">
+                    <img src="/magic-swap-icon.png" alt="" width="64" height="64" className="h-14 w-14 md:h-16 md:w-16 shrink-0" />
+                    {/* The wordmark is a white outline; invert it so it stays visible on light themes. */}
+                    <img src="/magic-swap-text.png" alt="" width="720" height="165" className="h-10 md:h-14 w-auto min-w-0 max-w-[65vw]"
+                      style={darkMode ? undefined : { filter: 'invert(1)' }} />
+                    <span className="sr-only">Magic Swap</span>
+                  </h1>
                   <div className={`mb-8 inline-flex w-full max-w-md gap-1 rounded-2xl border p-1 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`} role="group" aria-label="Magic Swap mode">
                     <button type="button" data-testid="wallet-swap-mode" aria-pressed={swapMode === 'wallet'} onClick={() => setSwapMode('wallet')} className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${swapMode === 'wallet' ? 'bg-cyan-500 text-slate-950' : darkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Wallet swap</button>
                     <button type="button" data-testid="exchange-swap-mode" aria-pressed={swapMode === 'exchange'} onClick={() => setSwapMode('exchange')} className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${swapMode === 'exchange' ? 'bg-cyan-500 text-slate-950' : darkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Exchange swap</button>
@@ -3254,9 +3385,9 @@
                   <DexSwapPanel darkMode={darkMode} />
                 </div>
                 {swapMode === 'exchange' && <>
-                  <p className={`mb-8 max-w-2xl mx-auto ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Swap assets across chains using our exchange partner.</p>
+                  <p className={`mb-8 max-w-2xl mx-auto ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Exchange across chains with SimpleSwap or ChangeNOW. Create an order, then send funds to its deposit address yourself.</p>
                   <div className={`rounded-[2rem] border p-4 md:p-8 ${darkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200 shadow-xl'}`}>
-                    <iframe id="simpleswap-frame" title="Magic Swap exchange" src="https://simpleswap.io/widget/e16a9606-7260-4926-a33d-e6c700b3de3b" className="w-full h-[560px] rounded-2xl" loading="lazy" />
+                    <window.ChainLensExchangeSwap />
                   </div>
                 </>}
               </section>

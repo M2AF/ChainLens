@@ -176,7 +176,8 @@ test.describe('Magic Swap wallet mode', () => {
     await expect(page.getByTestId('dex-swap-panel')).toHaveAttribute('data-tone', 'dark');
     await page.screenshot({ path: 'test-results/magic-swap-wallet-dark.png', fullPage: true });
     await page.getByTestId('exchange-swap-mode').click();
-    await expect(page.locator('#simpleswap-frame')).toBeVisible();
+    await expect(page.getByTestId('exchange-panel')).toBeVisible();
+    await expect(page.locator('#simpleswap-frame')).toHaveCount(0);
     await expect(page.getByTestId('exchange-swap-mode')).toHaveAttribute('aria-pressed', 'true');
     await page.getByTestId('wallet-swap-mode').click();
     await expect(page.getByTestId('evm-wallet')).toContainText(EVM_A);
@@ -301,5 +302,84 @@ test.describe('Magic Swap wallet mode', () => {
     await expect(page.getByTestId('evm-wallet')).toContainText('not connected');
     await expect(row(page)).toHaveAttribute('data-state', 'refunded', { timeout: 25_000 });
     await expect(row(page)).toContainText('returned on the source chain');
+  });
+});
+
+test.describe('Magic Swap wallet mode: confirmation and controls', () => {
+  test.setTimeout(60_000);
+
+  test('a confirmed swap shows a confirmation badge with its block', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    await page.route('**/api/dex/tx-status**', route => route.fulfill({ json: { state: 'confirmed', blockNumber: 107194935, source: 'public' } }));
+    await page.goto('/magic-swap');
+    await connectEvm(page);
+    await quoteUsdcToEth(page);
+    await page.getByTestId('swap').click();
+    await expect(row(page).getByTestId('tx-badge')).toContainText('Confirmed on Base', { timeout: 20_000 });
+    await expect(row(page).getByTestId('tx-badge')).toContainText('block 107,194,935');
+  });
+
+  test('when the status service fails, the connected wallet confirms the transaction', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    await page.route('**/api/dex/tx-status**', route => route.fulfill({ status: 502, json: { error: 'The swap service is temporarily unavailable.' } }));
+    await page.goto('/magic-swap');
+    await connectEvm(page);
+    await quoteUsdcToEth(page);
+    await page.getByTestId('swap').click();
+    await expect(row(page)).toHaveAttribute('data-state', 'completed', { timeout: 20_000 });
+    await expect(row(page).getByTestId('tx-badge')).toContainText('Confirmed on Base');
+  });
+
+  test('when nothing can confirm it yet, the row says why and offers Check now', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    let fail = true;
+    await page.route('**/api/dex/tx-status**', route => route.fulfill(fail
+      ? { status: 502, json: { error: 'The swap service is temporarily unavailable.' } }
+      : { json: { state: 'confirmed' } }));
+    await page.goto('/magic-swap');
+    await connectEvm(page);
+    await quoteUsdcToEth(page);
+    // Right after the swap is sent the wallet moves to another network, so it
+    // cannot read the Base receipt either.
+    await page.evaluate(() => { window.__evm.afterSend = (n) => { if (n === 2) window.__evm.chainId = 1; }; });
+    await page.getByTestId('swap').click();
+    await expect(row(page)).toContainText('Could not check the status', { timeout: 20_000 });
+    await expect(row(page).getByTestId('tx-badge')).toContainText('Waiting for confirmation');
+    fail = false;
+    await row(page).getByRole('button', { name: 'Check now' }).click();
+    await expect(row(page).getByTestId('tx-badge')).toContainText('Confirmed on Base', { timeout: 10_000 });
+  });
+
+  test('the switch button between the two tokens swaps pay and receive', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    await page.goto('/magic-swap');
+    await page.getByTestId('from-chain').selectOption('base');
+    await chooseToken(page, 'from', USDC_BASE);
+    await page.getByTestId('to-chain').selectOption('solana');
+    await chooseToken(page, 'to', SOL_MINT);
+    // It sits between the two token sections.
+    const fromBox = await page.getByTestId('from-token').boundingBox();
+    const flipBox = await page.getByTestId('flip').boundingBox();
+    const toBox = await page.getByTestId('to-chain').boundingBox();
+    expect(flipBox.y).toBeGreaterThan(fromBox.y);
+    expect(flipBox.y).toBeLessThan(toBox.y);
+    await page.getByTestId('flip').click();
+    await expect(page.getByTestId('from-chain')).toHaveValue('solana');
+    await expect(page.getByTestId('to-chain')).toHaveValue('base');
+    await expect(page.getByTestId('from-search')).toHaveValue('SOL');
+    await expect(page.getByTestId('to-search')).toHaveValue('USDC');
+    await expect(page.getByTestId('recipient')).toContainText('connect a EVM wallet');
+  });
+
+  test('cross-chain tracking is active in the page, so tracked routes are not refused', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    await page.goto('/magic-swap');
+    await expect(page.getByTestId('evm-wallet')).toBeVisible();
+    expect(await page.evaluate(() => window.MagicMoneySwapCore.isSettlementTrackingActive())).toBe(true);
   });
 });

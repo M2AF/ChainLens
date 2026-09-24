@@ -15,7 +15,7 @@ test('desktop sidebar opens Magic Swap as a page and centers utility dialogs', a
   await expect(page.getByTestId('magic-swap-page')).toBeVisible();
   await expect(page.getByTestId('evm-wallet')).toBeVisible();
   await page.getByTestId('exchange-swap-mode').click();
-  await expect(page.locator('#simpleswap-frame')).toHaveAttribute('title', 'Magic Swap exchange');
+  await expect(page.getByTestId('exchange-panel')).toBeVisible();
   await page.reload();
   await expect(page.getByTestId('magic-swap-page')).toBeVisible();
   await expect(page.getByTestId('evm-wallet')).toBeVisible();

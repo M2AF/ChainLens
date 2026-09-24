@@ -147,5 +147,18 @@
     };
   }
 
-  return { createStore, STORAGE_KEY, UNSENT_FINAL_AFTER_MS };
+  /** Can this browser persist the swap record? (Private modes and blocked storage cannot.) */
+  function storageWorks(storage) {
+    try {
+      const probe = `${STORAGE_KEY}.probe`;
+      storage.setItem(probe, '1');
+      const ok = storage.getItem(probe) === '1';
+      if (typeof storage.removeItem === 'function') storage.removeItem(probe);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+
+  return { createStore, storageWorks, STORAGE_KEY, UNSENT_FINAL_AFTER_MS };
 }));

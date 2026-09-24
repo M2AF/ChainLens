@@ -33,6 +33,7 @@ const SYNCED = {
 };
 
 async function installThemeMocks(page, { themes = null, signedIn = true } = {}) {
+  const response = structuredClone(themes || { eligible: false, walletLinked: false, socialLinked: false, entries: {} });
   if (signedIn) {
     await page.addInitScript(() => localStorage.setItem('cl_token', 'playwright-theme-token'));
   }
@@ -42,15 +43,70 @@ async function installThemeMocks(page, { themes = null, signedIn = true } = {}) 
   await page.route('**/api/profile/filters', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ entries: {} }),
   }));
-  await page.route('**/api/profile/themes', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify(themes || { eligible: false, walletLinked: false, socialLinked: false, entries: {} }),
-  }));
+  await page.route('**/api/profile/themes', async route => {
+    if (route.request().method() === 'PUT') {
+      if (!response.eligible) return route.fulfill({ status: 403, body: '{"error":"Not eligible"}' });
+      const incoming = route.request().postDataJSON().entries;
+      for (const [id, entry] of Object.entries(incoming)) {
+        if (!response.entries[id] || entry.t >= response.entries[id].t) response.entries[id] = entry;
+      }
+    }
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(response) });
+  });
   await page.route('**/api/chat/**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: '{}',
   }));
 }
+
+test('create, edit and delete a theme across reloads', async ({ page }) => {
+  await installThemeMocks(page, { themes: ELIGIBLE });
+  await page.goto('/');
+  await page.getByTestId('theme-picker-button').click();
+  await page.getByTestId('theme-create').click();
+  await expect(page.getByTestId('theme-editor')).toBeVisible();
+  await page.getByLabel('Theme name').fill('Ocean');
+  await page.getByLabel('Background hex').fill('#102030');
+  await page.getByLabel('Accent hex').fill('#33ccaa');
+  await page.getByLabel('Text hex').fill('#ffffff');
+  await page.getByRole('button', { name: 'Create theme', exact: true }).click();
+  await expect(page.getByTestId('theme-editor')).toHaveCount(0);
+  await expect(page.getByTestId('theme-picker-button')).toContainText('Ocean');
+  await expect(shell(page)).toHaveCSS('background-color', 'rgb(16, 32, 48)');
+
+  await page.reload();
+  await page.getByTestId('theme-picker-button').click();
+  await expect(page.getByTestId('theme-option-custom-cherry')).toBeVisible();
+  await page.getByRole('button', { name: 'Edit Ocean' }).click();
+  await page.getByLabel('Theme name').fill('Deep Ocean');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByTestId('theme-picker-button')).toContainText('Deep Ocean');
+
+  await page.getByTestId('theme-picker-button').click();
+  await page.getByRole('button', { name: 'Edit Deep Ocean' }).click();
+  await page.getByRole('button', { name: 'Delete theme' }).click();
+  await page.getByRole('button', { name: 'Click again to delete' }).click();
+  await expect(page.getByTestId('theme-picker-button')).toContainText('Dark');
+  await page.reload();
+  await page.getByTestId('theme-picker-button').click();
+  await expect(page.getByRole('button', { name: 'Edit Deep Ocean' })).toHaveCount(0);
+});
+
+test('a shipped theme can be recoloured and reverted through the profile', async ({ page }) => {
+  await installThemeMocks(page, { themes: ELIGIBLE });
+  await page.goto('/');
+  await page.getByTestId('theme-picker-button').click();
+  await page.getByRole('button', { name: 'Edit Crimson' }).click();
+  await page.getByLabel('Background hex').fill('#123456');
+  await page.getByRole('button', { name: 'Save colours' }).click();
+  await expect(page.getByTestId('theme-picker-button')).toContainText('Crimson');
+  await expect(shell(page)).toHaveCSS('background-color', 'rgb(18, 52, 86)');
+  await page.reload();
+  await expect(shell(page)).toHaveCSS('background-color', 'rgb(18, 52, 86)');
+  await page.getByTestId('theme-picker-button').click();
+  await page.getByRole('button', { name: 'Edit Crimson' }).click();
+  await page.getByRole('button', { name: 'Revert to default' }).click();
+  await expect(shell(page)).toHaveCSS('background-color', CRIMSON_PAGE);
+});
 
 const ELIGIBLE = { eligible: true, walletLinked: true, socialLinked: true, entries: SYNCED };
 
@@ -125,6 +181,7 @@ test('choosing a theme repaints the app and outlives a reload', async ({ page })
 test('a synced theme renders from the colours the wallet wrote', async ({ page }) => {
   await installThemeMocks(page, { themes: ELIGIBLE });
   await page.goto('/');
+  await expect(page.getByTestId('theme-picker-button')).toBeVisible();
 
   const sidebar = page.locator('.cl-sidebar');
   await expect(sidebar).toHaveCSS('background-color', 'rgb(255, 255, 255)');

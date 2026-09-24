@@ -31,7 +31,11 @@ window.ChainLensDexSwapMarkup = `
         <input id="amount" data-testid="amount" inputmode="decimal" placeholder="0.0" autocomplete="off">
       </div>
 
-      <div class="row" style="margin-top:16px">
+      <div class="flip-row">
+        <button type="button" class="flip" data-action="flip" data-testid="flip" aria-label="Switch the tokens you pay and receive" title="Switch">⇅</button>
+      </div>
+
+      <div class="row">
         <div class="grow">
           <label for="to-chain">To</label>
           <select id="to-chain" data-testid="to-chain"></select>

@@ -389,11 +389,8 @@
 
   // ── The cl_themes wire (theme-sync-wire.ts) ────────────────────────────────
   //
-  // ChainLens only ever READS this map, so the merge, the prune and the writing
-  // of tombstones stay in the wallet. What is ported is the part that decides
-  // what a valid entry IS, because a theme this parser rejects is a theme that
-  // silently never appears — the exact failure the wallet's frozen-wire note is
-  // about.
+  // Both apps write this map. custom-builtin-* entries are recolours of shipped
+  // themes and do not use one of the six custom slots.
 
   var MAX_SYNCED_THEMES = 6;
   var THEME_ID_MAX = 64;
@@ -450,7 +447,7 @@
   function liveThemes(entries) {
     var clean = sanitizeEntries(entries);
     return Object.keys(clean)
-      .filter(function (id) { return clean[id].d !== 1; })
+      .filter(function (id) { return clean[id].d !== 1 && id.indexOf('custom-builtin-') !== 0; })
       .map(function (id) {
         return { id: id, name: clean[id].n, colors: clean[id].c, t: clean[id].t };
       })

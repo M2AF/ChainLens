@@ -41,7 +41,7 @@ For a basic local run, no database or wallet is required. Features that rely on 
 | Messenger and themes | Apply `sql/cl_chat.sql` and `sql/cl_themes.sql`. `GIPHY_API_KEY` enables chat GIF search. Messenger requires a verified wallet and a linked Google or Discord account. |
 | Synced hidden/spam assets | Apply `sql/cl_asset_filters.sql`. Local filters work without sync; signed-in users can merge them across ChainLens and Magic Money. |
 | Search | `SEARCH_WORKER_BASE_URL` overrides the hosted Search Worker used by the compatibility proxy. See [Search deployment](SEARCH_DEPLOYMENT.md). |
-| Magic Swap | `MM_SWAP_WORKER_URL` overrides the hosted swap Worker; configure `MM_SWAP_CLIENT_TOKEN` for the server-to-Worker client gate. `CHAINLENS_JUPITER_FEE=off` disables the Jupiter fee in quotes. |
+| Magic Swap | `MM_SWAP_WORKER_URL` overrides the hosted swap Worker; configure `MM_SWAP_CLIENT_TOKEN` for its server-to-Worker client tag (not authentication). `CHAINLENS_JUPITER_FEE=off` disables the Jupiter fee in DEX quotes. Exchange Swap uses the same Worker URL and its existing server-side `SIMPLESWAP_API_KEY` and `CHANGENOW_API_KEY` secrets; no provider key belongs in ChainLens or the browser. |
 
 The SQL files are in [`sql/`](sql/). Apply only the features you intend to run; Supabase is optional for read-only scanning. Do not use the development JWT fallback on a public deployment.
 

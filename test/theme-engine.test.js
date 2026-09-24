@@ -269,6 +269,11 @@ test('a synced theme renders through the same palette as a shipped one', () => {
   assert.equal(vars['--cl-white'], spaced('#ffe3ee'));
 });
 
+test('built-in recolours do not consume custom theme slots', () => {
+  const entries = { 'custom-builtin-crimson': entry(), 'custom-ocean': entry() };
+  assert.deepEqual(themes.liveThemes(entries).map(theme => theme.id), ['custom-ocean']);
+});
+
 test('swatchOf reports background then accent, and survives junk', () => {
   assert.deepEqual(themes.swatchOf({ bg: '#2A0512', accent: '#ff2d6f', text: '#ffe3ee' }),
     ['#2a0512', '#ff2d6f']);
