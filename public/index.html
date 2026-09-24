@@ -1357,11 +1357,16 @@
     };
 
     const App = () => {
-      const [activeTab, setActiveTab] = useState(() => window.location.pathname === '/magic-swap' ? 'magic-swap' : 'search');
+      const tabFromLocation = () => {
+        if (window.location.pathname === '/magic-swap') return 'magic-swap';
+        const tab = new URLSearchParams(window.location.search).get('tab');
+        return ['search', 'portfolio', 'swap', 'market', 'profile'].includes(tab) ? tab : 'search';
+      };
+      const [activeTab, setActiveTab] = useState(tabFromLocation);
       const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
       const [swapMode, setSwapMode] = useState('wallet');
       useEffect(() => {
-        const onPopState = () => setActiveTab(window.location.pathname === '/magic-swap' ? 'magic-swap' : 'search');
+        const onPopState = () => setActiveTab(tabFromLocation());
         window.addEventListener('popstate', onPopState);
         return () => window.removeEventListener('popstate', onPopState);
       }, []);
@@ -1526,10 +1531,10 @@
       const [avatarError, setAvatarError] = useState('');
       const avatarFileInputRef = useRef(null);
 
-      const [showDonate, setShowDonate] = useState(false);
+      const [showDonate, setShowDonate] = useState(() => new URLSearchParams(window.location.search).get('tab') === 'donate');
       const [copiedDonate, setCopiedDonate] = useState(null);
-      const [showWallet, setShowWallet] = useState(false);
-      const [showChat, setShowChat] = useState(false);
+      const [showWallet, setShowWallet] = useState(() => new URLSearchParams(window.location.search).get('tab') === 'wallet');
+      const [showChat, setShowChat] = useState(() => new URLSearchParams(window.location.search).get('tab') === 'chat');
       const [chatPinned, setChatPinned] = useState(false);
       useEffect(() => {
         const onEscape = (event) => {

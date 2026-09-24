@@ -29,6 +29,7 @@
       --rose: #fb7185;
       --code: #050816;
       --shadow: 0 24px 90px rgba(0, 0, 0, 0.36);
+      --sidebar-width: 298px;
     }
 
     [data-theme="light"] {
@@ -68,6 +69,28 @@
       width: min(1180px, calc(100% - 32px));
       margin: 0 auto;
     }
+
+    .site-sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 50;
+      width: var(--sidebar-width);
+      display: flex;
+      flex-direction: column;
+      background: var(--panel-strong);
+      border-right: 1px solid var(--line);
+    }
+
+    .sidebar-logo { display: block; padding: 28px 28px 24px; }
+    .sidebar-logo img { display: block; width: 230px; max-width: 100%; height: 96px; object-fit: contain; }
+    .site-nav { overflow-y: auto; padding: 0 20px 24px; }
+    .site-nav a { display: flex; align-items: center; gap: 16px; min-height: 58px; padding: 0 24px; border-radius: 14px; color: var(--soft); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    .site-nav a:hover, .site-nav a.active { background: color-mix(in srgb, var(--cyan) 12%, transparent); color: var(--cyan); }
+    .site-nav a.active { box-shadow: inset 4px 0 var(--cyan); }
+    .site-nav svg { width: 23px; height: 23px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .site-nav hr { margin: 28px 8px; border: 0; border-top: 1px solid var(--line); }
+    .docs-main { margin-left: var(--sidebar-width); min-width: 0; }
+    .menu-button, .menu-backdrop { display: none; }
 
     .topbar {
       position: sticky;
@@ -131,7 +154,7 @@
     }
 
     .pill,
-    .theme-btn,
+    .theme-picker-button,
     .copy-btn {
       border: 1px solid var(--line);
       background: var(--panel);
@@ -152,12 +175,40 @@
     }
 
     .pill:hover,
-    .theme-btn:hover,
+    .theme-picker-button:hover,
     .copy-btn:hover {
       transform: translateY(-1px);
       border-color: var(--cyan);
       color: var(--cyan);
     }
+
+    .theme-picker { position: relative; }
+    .theme-picker-button { letter-spacing: .04em; text-transform: none; white-space: nowrap; }
+    .theme-swatch { width: 16px; height: 16px; flex: none; border-radius: 50%; border: 1px solid var(--line); }
+    .theme-menu { position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; width: 230px; max-height: min(70vh, 620px); overflow-y: auto; padding: 7px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel-strong); box-shadow: var(--shadow); }
+    .theme-menu[hidden], .theme-dialog[hidden] { display: none; }
+    .theme-heading { margin: 9px 10px 5px; color: var(--muted); font-size: 10px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+    .theme-row { display: flex; align-items: center; border-radius: 10px; }
+    .theme-row:hover, .theme-row.selected { background: color-mix(in srgb, var(--cyan) 12%, transparent); }
+    .theme-row button, .theme-create { border: 0; background: none; color: var(--text); cursor: pointer; font: inherit; }
+    .theme-choice { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 9px 10px; text-align: left; font-size: 12px; font-weight: 700; }
+    .theme-choice span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .theme-edit { padding: 8px; color: var(--muted) !important; }
+    .theme-edit:hover { color: var(--cyan) !important; }
+    .theme-create { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 10px; text-align: left; font-size: 12px; font-weight: 700; border-radius: 10px; }
+    .theme-create:hover { background: color-mix(in srgb, var(--cyan) 12%, transparent); }
+    .theme-create .plus { width: 16px; height: 16px; border: 1px solid var(--cyan); border-radius: 50%; color: var(--cyan); line-height: 13px; text-align: center; }
+    .theme-hint { margin: 5px 10px 10px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .theme-dialog { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px; background: rgba(2, 6, 23, .75); }
+    .theme-dialog form { width: min(420px, 100%); max-height: 90vh; overflow: auto; padding: 24px; border: 1px solid var(--line); border-radius: 22px; background: var(--panel-strong); box-shadow: var(--shadow); }
+    .theme-dialog h2 { font-size: 1.3rem; margin-bottom: 20px; }
+    .theme-dialog label { display: block; margin: 12px 0; color: var(--soft); font-size: 12px; font-weight: 700; }
+    .theme-dialog input[type="text"] { width: 100%; margin-top: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); font: inherit; }
+    .theme-dialog input[type="color"] { display: block; width: 100%; height: 42px; margin-top: 6px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+    .theme-dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .theme-dialog-actions button { padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+    .theme-dialog-actions button[type="submit"] { background: var(--cyan); color: var(--bg); }
+    .theme-error { color: var(--rose); font-size: 12px; }
 
     .hero {
       padding: 64px 0 38px;
@@ -510,6 +561,14 @@
       .cards { grid-template-columns: 1fr; }
     }
 
+    @media (max-width: 900px) {
+      .site-sidebar { width: min(298px, 85vw); transform: translateX(-100%); transition: transform .25s ease; }
+      .site-sidebar.open { transform: translateX(0); }
+      .docs-main { margin-left: 0; }
+      .menu-button { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; margin-right: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); font-size: 22px; cursor: pointer; }
+      .menu-backdrop.open { display: block; position: fixed; inset: 0; z-index: 45; border: 0; background: rgba(2, 6, 23, .7); }
+    }
+
     @media (max-width: 620px) {
       .topbar-inner {
         align-items: flex-start;
@@ -523,7 +582,7 @@
       }
 
       .pill,
-      .theme-btn {
+      .theme-picker-button {
         flex: 1;
       }
 
@@ -535,9 +594,40 @@
   </style>
 </head>
 <body>
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="icon-scanner" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5ZM3 7v10l9 5 9-5V7M12 12v10"/></symbol>
+    <symbol id="icon-apps" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+    <symbol id="icon-market" viewBox="0 0 24 24"><path d="M4 21V11h4v10M10 21V3h4v18M16 21v-7h4v7"/></symbol>
+    <symbol id="icon-profile" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></symbol>
+    <symbol id="icon-chat" viewBox="0 0 24 24"><path d="M3 4h18v13H8l-5 4V4ZM7 9h10M7 13h7"/></symbol>
+    <symbol id="icon-swap" viewBox="0 0 24 24"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></symbol>
+    <symbol id="icon-docs" viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6V2ZM15 2v5h4M9 12h7M9 16h7"/></symbol>
+    <symbol id="icon-wallet" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="16" rx="2"/><path d="M2 9h20M17 15h1"/></symbol>
+    <symbol id="icon-donate" viewBox="0 0 24 24"><path d="M12 21S3 15 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 7-9 13-9 13Z"/></symbol>
+  </svg>
+  <button class="menu-backdrop" id="menuBackdrop" aria-label="Close menu"></button>
+  <aside class="site-sidebar" id="siteSidebar" aria-label="ChainLens navigation">
+    <a class="sidebar-logo" href="/?tab=search"><img id="sidebarLogo" src="/ChainLens (dark).png" alt="ChainLens"></a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="/?tab=search"><svg><use href="#icon-search"/></svg>Search</a>
+      <a href="/?tab=portfolio"><svg><use href="#icon-scanner"/></svg>Scanner</a>
+      <a href="/?tab=swap"><svg><use href="#icon-apps"/></svg>App Hub</a>
+      <a href="/?tab=market"><svg><use href="#icon-market"/></svg>Market</a>
+      <a href="/?tab=profile"><svg><use href="#icon-profile"/></svg>Profile</a>
+      <hr>
+      <a href="/?tab=chat"><svg><use href="#icon-chat"/></svg>Chat</a>
+      <a href="/magic-swap"><svg><use href="#icon-swap"/></svg>Magic Swap</a>
+      <a href="/docs" class="active" aria-current="page"><svg><use href="#icon-docs"/></svg>Docs</a>
+      <a href="/?tab=wallet"><svg><use href="#icon-wallet"/></svg>Wallet</a>
+      <a href="/?tab=donate"><svg><use href="#icon-donate"/></svg>Donate</a>
+    </nav>
+  </aside>
+  <div class="docs-main">
   <header class="topbar">
     <div class="shell topbar-inner">
-      <a class="brand" href="/" aria-label="Back to ChainLens">
+      <button class="menu-button" id="menuButton" type="button" aria-label="Open menu" aria-expanded="false">☰</button>
+      <a class="brand" href="/docs" aria-label="Magic Money developer docs home">
         <img src="/MagicMoney_icon.svg" alt="Magic Money Wallet">
         <span class="brand-title">
           <strong>Magic Money Wallet</strong>
@@ -545,11 +635,12 @@
         </span>
       </a>
       <nav class="top-actions" aria-label="Docs actions">
-        <a class="pill" href="/">ChainLens</a>
         <a class="pill" href="https://github.com/M2AF/Magic-Money-Wallet" target="_blank" rel="noopener noreferrer">GitHub</a>
         <a class="pill" href="/audit/FINAL-AUDIT.html">Audit</a>
-        <a class="pill" href="#quick-start">Quick Start</a>
-        <button class="theme-btn" type="button" id="themeToggle">Dark</button>
+        <div class="theme-picker" id="themePicker">
+          <button class="theme-picker-button" type="button" id="themePickerButton" aria-label="Choose theme" aria-haspopup="menu" aria-expanded="false"><span class="theme-swatch" id="themeSwatch"></span><span id="themeLabel">Dark</span><span aria-hidden="true">▾</span></button>
+          <div class="theme-menu" id="themeMenu" role="menu" hidden></div>
+        </div>
       </nav>
     </div>
   </header>
@@ -557,19 +648,19 @@
   <main class="shell">
     <div class="hero">
       <div>
-        <div class="eyebrow">Developer preview</div>
-        <h1>Magic Money Wallet Docs</h1>
+        <div class="eyebrow">Developer documentation</div>
+        <h1>Build with Magic Money</h1>
         <p class="hero-copy">
-          Integration notes for dApp developers building against Magic Money Wallet across EVM, Solana, Cardano, Bitcoin, and WalletConnect. Use this page to detect the wallet, request accounts, submit signing requests, and understand the security boundaries.
+          Connect a dApp to Magic Money across desktop, the browser extension, Android, and iOS. Start with standard wallet discovery, request only the permissions you need, and keep signing tied to the user's selected account and network.
         </p>
       </div>
 
       <aside class="status-card" aria-label="Magic Money Wallet status">
         <img src="/MagicMoney_icon.svg" alt="">
         <p><strong>One wallet surface for many ecosystems.</strong></p>
-        <p>Magic Money is a self-custody wallet designed for ChainLens, desktop, and browser extension workflows.</p>
+        <p>One self-custody wallet for web and in-app dApps across EVM, Solana, Cardano, Bitcoin, and more.</p>
         <div class="status-grid">
-          <div class="metric"><span>Networks</span><strong>22</strong></div>
+          <div class="metric"><span>Default portfolio networks</span><strong>24</strong></div>
         </div>
       </aside>
     </div>
@@ -586,6 +677,7 @@
         <a href="#bitcoin">Bitcoin Provider</a>
         <a href="#walletconnect">WalletConnect</a>
         <a href="#networks">Networks</a>
+        <a href="#platforms">Platforms</a>
         <a href="#security">Security</a>
         <a href="#proxy">API Proxy</a>
         <a href="#build">Build Notes</a>
@@ -596,7 +688,7 @@
         <section id="overview">
           <h2>Overview</h2>
           <p>
-            Magic Money Wallet exposes standard wallet interfaces instead of a custom-only API. EVM dApps use EIP-1193 and EIP-6963, Solana dApps use the Wallet Standard and legacy <code>window.solana</code>, Cardano dApps use <code>window.cardano.magicmoney</code>, Bitcoin and Ordinals dApps use <code>window.unisat</code> or <code>window.btc_providers</code>, and QR or URI based flows use WalletConnect v2.
+            Magic Money Wallet exposes standard wallet interfaces. EVM dApps use EIP-1193 and EIP-6963, Solana dApps use the Wallet Standard and legacy <code>window.solana</code>, Cardano dApps use <code>window.cardano.magicmoney</code>, Bitcoin and Ordinals dApps use <code>window.unisat</code> or <code>window.btc_providers</code>, and URI based flows use WalletConnect v2. The desktop browser and Android/iOS in-app browsers inject these providers into dApp pages.
           </p>
           <div class="cards">
             <div class="mini-card">
@@ -625,7 +717,7 @@
         <section id="quick-start">
           <h2>Quick Start</h2>
           <p>
-            For the widest compatibility, detect Magic Money through standards first and only fall back to direct globals when the dApp framework requires it.
+            Discover the wallet through the ecosystem standard first. For EVM, retain the provider announced by EIP-6963 rather than assuming <code>window.ethereum</code> belongs to Magic Money.
           </p>
 
           <div class="code-head">
@@ -633,8 +725,19 @@
             <button class="copy-btn" type="button" data-copy="evm-connect">Copy</button>
           </div>
           <pre><code id="evm-connect">async function connectMagicMoneyEvm() {
-  const provider = window.ethereum;
-  if (!provider) throw new Error("No EVM wallet found");
+  const provider = await new Promise((resolve, reject) =&gt; {
+    const onAnnounce = (event) =&gt; {
+      if (event.detail.info.rdns !== "info.chainlens.magicmoney") return;
+      window.removeEventListener("eip6963:announceProvider", onAnnounce);
+      resolve(event.detail.provider);
+    };
+    window.addEventListener("eip6963:announceProvider", onAnnounce);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+    setTimeout(() =&gt; {
+      window.removeEventListener("eip6963:announceProvider", onAnnounce);
+      reject(new Error("Magic Money Wallet was not found"));
+    }, 1500);
+  });
 
   const accounts = await provider.request({
     method: "eth_requestAccounts"
@@ -720,7 +823,7 @@ window.dispatchEvent(new Event("eip6963:requestProvider"));</code></pre>
                 <tr><td><code>eth_accounts</code></td><td>Read connected accounts</td><td>Returns an empty array until approved.</td></tr>
                 <tr><td><code>eth_chainId</code></td><td>Read active chain</td><td>Returns a hex chain ID such as <code>0x1</code>.</td></tr>
                 <tr><td><code>wallet_switchEthereumChain</code></td><td>Switch chain</td><td>Supports configured EVM chains in Magic Money.</td></tr>
-                <tr><td><code>wallet_addEthereumChain</code></td><td>Add or select chain</td><td>Used for dApps that provide chain metadata.</td></tr>
+                <tr><td><code>wallet_addEthereumChain</code></td><td>Select supported chain</td><td>Unsupported chains return <code>4902</code>; configure custom networks in the wallet first.</td></tr>
                 <tr><td><code>personal_sign</code></td><td>Message signing</td><td>Shown to the user before signing.</td></tr>
                 <tr><td><code>eth_signTypedData_v4</code></td><td>EIP-712 typed data</td><td>Use this for structured login and permit flows.</td></tr>
                 <tr><td><code>eth_sendTransaction</code></td><td>Send transaction</td><td>Transaction is reviewed, signed locally, then broadcast.</td></tr>
@@ -956,6 +1059,8 @@ const psbtResult = await provider.request("signPsbt", {
             <span class="tag">Gnosis</span>
             <span class="tag">Abstract</span>
             <span class="tag">ApeChain</span>
+            <span class="tag">Robinhood Chain</span>
+            <span class="tag">Arc</span>
             <span class="tag">Ronin</span>
             <span class="tag">Soneium</span>
             <span class="tag">WorldChain</span>
@@ -969,6 +1074,14 @@ const psbtResult = await provider.request("signPsbt", {
             <span class="tag">Tron</span>
             <span class="tag">Dogecoin</span>
           </div>
+          <p style="margin-top:18px">The 24 default networks describe portfolio coverage. Transaction sending and swap routes depend on each network and the selected provider. Custom EVM networks can be added in the wallet after their RPC and chain ID are verified.</p>
+        </section>
+
+        <section id="platforms">
+          <h2>Platforms and account state</h2>
+          <p>Magic Money ships as an Electron desktop wallet, a Chrome Manifest V3 extension, and Android and iOS apps. The mobile apps use a native in-app browser with the same page-facing wallet interfaces. Discover a provider in each page; do not reuse a provider object across page loads.</p>
+          <p>The active EVM network can change from the wallet UI or an approved dApp request. Listen for <code>chainChanged</code> and <code>accountsChanged</code>, clear quotes or prepared transactions when either changes, and recheck <code>eth_chainId</code> before signing. A cross-chain swap is signed on its <em>source</em> network; the destination network is where the result is delivered.</p>
+          <p>ChainLens and Magic Money share eligible account themes and hidden-asset choices through the ChainLens profile. Those profile settings do not grant a dApp signing permission.</p>
         </section>
 
         <section id="security">
@@ -995,7 +1108,7 @@ const psbtResult = await provider.request("signPsbt", {
         <section id="build">
           <h2>Build Notes</h2>
           <p>
-            The wallet codebase ships as Electron desktop and Chrome Manifest V3 extension builds. Node.js 20+ and npm 10+ are expected for local development.
+            The wallet repository builds Electron desktop, Chrome Manifest V3 extension, Android, and iOS targets. Install the repo's pinned dependencies and use its build scripts for each target. Android native builds require JDK 24; iOS native builds run in macOS CI.
           </p>
 
           <div class="code-head">
@@ -1010,12 +1123,16 @@ npm run dev
 # Browser extension build
 npm run build:extension
 
+# Android web bundle and native sync
+npm run build:capacitor
+cd android &amp;&amp; ./gradlew assembleDebug
+
 # Typecheck and tests
 npm run typecheck
 npm test</code></pre>
 
           <p>
-            The dApp injection preloads are built through a separate inject bundle step. Keep that step attached to development, production, and package commands so EVM, Solana, and Cardano provider injection remains available.
+            Desktop dApp injection uses the separate <code>build:inject</code> bundle step, which the desktop dev and build scripts run. Android and iOS use the shared Capacitor provider bundle and native WebView bridge. Follow the repository README and release QA notes before shipping changes to signing or sending.
           </p>
         </section>
 
@@ -1035,6 +1152,7 @@ npm test</code></pre>
                 <tr><td>Ordinals app gets the payment address only.</td><td>Use the WBIP <code>getAddresses</code> path with <code>purposes: ["payment", "ordinals"]</code> to receive the Taproot ordinals address.</td></tr>
                 <tr><td>Signing request is rejected.</td><td>Treat user rejection as normal control flow and let the user retry from your dApp UI.</td></tr>
                 <tr><td>Wrong EVM chain.</td><td>Call <code>wallet_switchEthereumChain</code> before building chain-specific transactions.</td></tr>
+                <tr><td>A swap says the wallet switched networks.</td><td>Check the wallet's <code>eth_chainId</code> against the quote's source chain, then request a fresh quote. A stopped swap marked “Not sent” did not broadcast its swap transaction.</td></tr>
               </tbody>
             </table>
           </div>
@@ -1045,9 +1163,26 @@ npm test</code></pre>
 
   <footer>
     <div class="shell">
-      Magic Money Wallet docs are hosted on ChainLens. Last updated July 6, 2026.
+      Magic Money Wallet docs are hosted on ChainLens. Updated September 24, 2026.
     </div>
   </footer>
+  </div>
+
+  <div class="theme-dialog" id="themeDialog" hidden>
+    <form id="themeForm" aria-label="Edit theme">
+      <h2 id="themeDialogTitle">Create theme</h2>
+      <label>Name<input id="themeName" type="text" maxlength="24" required></label>
+      <label>Background<input id="themeBg" type="color"></label>
+      <label>Accent<input id="themeAccent" type="color"></label>
+      <label>Text<input id="themeText" type="color"></label>
+      <p class="theme-error" id="themeError" role="alert"></p>
+      <div class="theme-dialog-actions">
+        <button type="submit" id="themeSave">Save theme</button>
+        <button type="button" id="themeDelete" hidden>Delete</button>
+        <button type="button" id="themeCancel">Cancel</button>
+      </div>
+    </form>
+  </div>
 
   <script>
     const root = document.documentElement;
