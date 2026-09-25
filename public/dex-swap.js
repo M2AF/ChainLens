@@ -65,6 +65,7 @@
     busy: false,
   };
   const holdings = new Map(); // chain-qualified asset key → { balance, usd }; display only
+  const ownedTokens = new Map(); // chain-qualified asset key → exact-chain token metadata (or lookup placeholder)
   const scanned = new Map();  // chain → account last scanned for; never mix accounts
   const scanning = new Map();
 
@@ -139,7 +140,8 @@
         if (!address) throw new Error('The wallet did not return an account.');
         state[kind]?.signer.dispose?.();
         state[kind] = { record, signer, address };
-        scanned.clear(); holdings.clear(); scanning.clear();
+        scanned.clear(); holdings.clear(); ownedTokens.clear(); scanning.clear();
+        renderBalances();
         watchAccount(kind);
         invalidateQuote('Your wallet changed, so the quote was cleared. Get a new quote.');
         renderWallets();
@@ -170,7 +172,7 @@
       const address = await w.signer.currentAccount().catch(() => null);
       if (address && address !== w.address) {
         w.address = address;
-        scanned.clear(); holdings.clear(); scanning.clear();
+        scanned.clear(); holdings.clear(); ownedTokens.clear(); scanning.clear();
         renderWallets();
         renderBalances();
         invalidateQuote('Your wallet switched accounts, so the quote was cleared. Get a new quote.');
@@ -209,6 +211,12 @@
       availableChains(side).flatMap(chain => curated(chain).map(t => ({ ...t, chain }))));
     return catalogCache.get(side);
   }
+  function pickerCatalog(side) {
+    const curatedTokens = allCurated(side);
+    const known = new Set(curatedTokens.map(t => assetKey(t.chain, t.address)));
+    return [...curatedTokens, ...[...ownedTokens.values()].filter(t => availableChains(side).includes(t.chain)
+      && !known.has(assetKey(t.chain, t.address)))];
+  }
   function optionsFor(side, symbol) {
     if (!symbol) return availableChains(side);
     return availableChains(side).filter(chain => curated(chain).some(t => t.symbol.toLowerCase() === symbol.toLowerCase()));
@@ -242,9 +250,9 @@
     }
   }
 
-  // Scanner data is advisory for display and sorting, NEVER for quote identity or
-  // authorization. Only exact curated contract/mint matches are promoted: a spam
-  // asset using the same symbol cannot impersonate a held trusted coin.
+  // Scanner data is advisory for display and sorting, NEVER for quote identity
+  // or authorization. Non-curated holdings stay unverified and chain-qualified;
+  // a same-symbol token on another chain cannot be substituted for them.
   async function scanHoldings(chain) {
     const wallet = state[ecosystemOf(chain)];
     if (!wallet || scanned.get(chain) === wallet.address) return;
@@ -252,22 +260,47 @@
     const address = wallet.address;
     const task = (async () => {
       try {
-        const response = await fetch(`/api/tokens/${encodeURIComponent(chain)}/${encodeURIComponent(address)}`, { signal: AbortSignal.timeout(12000) });
+        const response = await fetch(`/api/tokens/${encodeURIComponent(chain)}/${encodeURIComponent(address)}`, { signal: AbortSignal.timeout(chain === 'monad' ? 30000 : 12000) });
         if (!response.ok) return;
         const body = await response.json();
         if (state[ecosystemOf(chain)]?.address !== address) return;
         const trusted = new Map(curated(chain).map(t => [assetKey(chain, t.address), t]));
         for (const item of body.nfts || []) {
-          const addressOrMint = item.id === 'native' || item.id === 'native-sol'
-            ? curated(chain).find(t => t.isNative)?.address : item.mint || item.id;
-          if (!addressOrMint) continue;
+          if (item.suspectedSpam) continue;
+          // A new scanner's explicit refusal is authoritative. The fallback
+          // lookup below is only for older deployed scanners with no swap field.
+          if (Object.hasOwn(item, 'swap') && item.swap === null) continue;
+          if (item.swap && item.swap.chain !== chain) continue;
+          const swapIdentity = item.swap?.chain === chain ? item.swap : null;
+          const native = swapIdentity?.isNative || item.id === 'native' || item.id === `native-${chain}`;
+          const addressOrMint = swapIdentity?.address || (native ? curated(chain).find(t => t.isNative)?.address : item.mint || item.address || item.id);
+          if (!addressOrMint || !core.isValidSwapAddress(chain, addressOrMint)) continue;
           const key = assetKey(chain, addressOrMint);
-          if (!trusted.has(key)) continue;
           const balance = Number(item.balance);
           if (!Number.isFinite(balance) || balance <= 0) continue;
           const usd = Number(item.totalValue);
           holdings.set(key, { balance: item.balance, usd: Number.isFinite(usd) && usd > 0 ? usd : 0 });
           if (item.image && /^https:\/\//i.test(item.image)) logoCache.set(key, item.image);
+          if (trusted.has(key)) continue;
+          const decimals = swapIdentity?.decimals ?? item.decimals;
+          const metadata = swapIdentity && Number.isInteger(decimals) && decimals >= 0 && decimals <= 36
+            ? { chain, address: addressOrMint, symbol: String(item.symbol || '').slice(0, 32),
+              name: String(item.name || item.symbol || '').slice(0, 80), decimals,
+              logoUri: /^https:\/\//i.test(item.image || '') ? item.image : null,
+              verified: false, source: 'owned-unverified', isNative: !!swapIdentity.isNative,
+              tokenProgram: swapIdentity.tokenProgram || null }
+            : core.sanitizeDiscoveredToken({
+              chain, address: addressOrMint, symbol: item.symbol, name: item.name,
+              decimals, logoUri: item.image, verified: false, source: 'owned-unverified',
+            }, chain);
+          // Older scanner records omit decimals. Show the holding immediately,
+          // but require an exact-address metadata lookup before selection.
+          if (metadata) ownedTokens.set(key, metadata);
+          else if (typeof item.symbol === 'string' && item.symbol.trim()) ownedTokens.set(key, {
+            chain, address: addressOrMint, symbol: item.symbol.trim().slice(0, 32),
+            name: String(item.name || item.symbol).slice(0, 80), logoUri: /^https:\/\//i.test(item.image || '') ? item.image : null,
+            verified: false, source: 'owned-unverified', needsLookup: true,
+          });
         }
         scanned.set(chain, address);
         renderBalances();
@@ -282,7 +315,9 @@
   async function warmHoldings() {
     if (warming) return;
     warming = true;
-    const chains = [...new Set([...availableChains('from'), ...availableChains('to')])]
+    const recent = store.list().flatMap(s => [s.fromChain, s.toChain]);
+    const chains = [...new Set([state.from.chain, state.to.chain, ...recent, ...availableChains('from'), ...availableChains('to')])]
+      .filter(chain => availableChains('from').includes(chain) || availableChains('to').includes(chain))
       .filter(chain => state[ecosystemOf(chain)]);
     let next = 0;
     await Promise.all(Array.from({ length: 3 }, async () => {
@@ -358,10 +393,26 @@
     });
   }
 
-  function chooseToken(side, token) {
-    searchSeq[side]++;
+  async function chooseToken(side, token) {
+    const requestId = ++searchSeq[side];
     clearTimeout(searchTimer[side]);
     const chain = token.chain || state[side].chain;
+    if (token.needsLookup) {
+      formMsg(`Checking ${token.symbol} on ${chainName(chain)} by contract address…`);
+      try {
+        const params = new URLSearchParams({ chain, address: token.address, limit: '10' });
+        const response = await fetch(`/api/dex/tokens?${params}`);
+        const body = await response.json();
+        if (requestId !== searchSeq[side]) return;
+        const exact = (body.tokens || []).find(t => assetKey(chain, t.address) === assetKey(chain, token.address));
+        if (!exact) return formMsg(`Could not verify metadata for ${token.symbol} on ${chainName(chain)}. No token was selected.`, 'bad');
+        token = { ...exact, chain, verified: exact.verified === true, source: 'owned-unverified' };
+        ownedTokens.set(assetKey(chain, token.address), token);
+      } catch {
+        if (requestId === searchSeq[side]) formMsg('Token metadata is unavailable. No token was selected.', 'bad');
+        return;
+      }
+    }
     state[side].chain = chain;
     state[side].token = { ...token, chain };
     $(`#${side}-search`).value = token.symbol;
@@ -372,11 +423,20 @@
     renderRecipient();
     scanHoldings(chain);
     invalidateQuote();
+    formMsg('');
   }
 
   function showResults(side, tokens, hint) {
     const box = $(`[data-testid="${side}-results"]`);
     box.innerHTML = '';
+    const header = document.createElement('div');
+    header.className = 'picker-header';
+    const title = document.createElement('span');
+    title.textContent = `${side === 'from' ? 'Choose a pay coin' : 'Choose a receive coin'}${warming ? ' · checking wallet holdings…' : ''}`;
+    const close = document.createElement('button'); close.type = 'button'; close.className = 'picker-close';
+    close.dataset.action = 'close-picker'; close.dataset.side = side; close.setAttribute('aria-label', `Close ${side === 'from' ? 'pay' : 'receive'} coin picker`);
+    close.textContent = 'Close ×';
+    header.append(title, close); box.append(header);
     // A symbol is only a search group, never a swap identity. Every button
     // resolves to a concrete chain + address before it can become a quote.
     const groups = new Map();
@@ -392,12 +452,13 @@
       const held = variants.filter(t => holdings.has(assetKey(t.chain, t.address)))
         .sort((a, b) => holdings.get(assetKey(b.chain, b.address)).usd - holdings.get(assetKey(a.chain, a.address)).usd);
       const preferred = held[0] || variants.find(t => t.chain === state[side].chain) || variants[0];
-      return { variants, preferred, usd: held.reduce((sum, t) => sum + holdings.get(assetKey(t.chain, t.address)).usd, 0), held: held.length > 0 };
-    }).sort((a, b) => Number(b.held) - Number(a.held) || b.usd - a.usd || a.preferred.symbol.localeCompare(b.preferred.symbol));
+      return { variants, preferred, usd: held.reduce((sum, t) => sum + holdings.get(assetKey(t.chain, t.address)).usd, 0),
+        tier: held.length ? (preferred.source === 'curated' ? 0 : 1) : 2 };
+    }).sort((a, b) => a.tier - b.tier || b.usd - a.usd || a.preferred.symbol.localeCompare(b.preferred.symbol));
     let shownSection = '';
-    for (const { variants, preferred: t, usd, held } of ranked.slice(0, 35)) {
+    for (const { variants, preferred: t, usd, tier } of ranked.slice(0, 80)) {
       const chain = t.chain;
-      const section = held ? 'In your connected wallet' : 'Other coins';
+      const section = tier === 0 ? 'In your connected wallet' : tier === 1 ? 'Other holdings · check contract' : 'Other coins';
       if (section !== shownSection) {
         const heading = document.createElement('p'); heading.className = 'section-label'; heading.textContent = section;
         box.appendChild(heading); shownSection = section;
@@ -414,7 +475,7 @@
       meta.innerHTML = `<span class="sym">${esc(t.symbol)}${unverified ? ' <em class="badge">UNVERIFIED</em>' : ''}</span>`
         + `<small>${esc(variants.length > 1 ? `${variants.length} networks · ${chainName(chain)}` : chainName(chain))}${t.isNative ? ' · native' : ` · ${esc(short(t.address))}`}</small>`;
       b.append(tokenLogo(chain, t, 28), meta);
-      if (held) {
+      if (tier < 2) {
         const balance = holdings.get(assetKey(chain, t.address));
         const value = document.createElement('span'); value.className = 'holding';
         value.innerHTML = `<strong>${esc(balance.balance)} ${esc(t.symbol)}</strong>${usd > 0 ? `$${usd.toFixed(2)}` : 'USD unavailable'}`;
@@ -440,7 +501,7 @@
     const current = () => searchSeq[side] === id;   // a newer search supersedes this one
     const chain = state[side].chain;
     const q = $(`#${side}-search`).value.trim();
-    const catalog = allCurated(side);
+    const catalog = pickerCatalog(side);
     if (!q) {
       showResults(side, catalog);
       // Enrich visible trusted rows with logos without delaying the catalog.
@@ -457,24 +518,32 @@
     const lower = q.toLowerCase();
     const local = catalog.filter(t => t.symbol.toLowerCase().includes(lower)
       || t.name.toLowerCase().includes(lower) || t.address.toLowerCase() === lower);
-    showResults(side, local);
+    showResults(side, local, local.length ? '' : isAddress ? 'Checking this contract on the selected network…'
+      : q.length < 3 ? 'Type at least 3 letters to search every network.' : 'Searching networks…');
+    if (!isAddress && q.length < 3) return;
     searchTimer[side] = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/dex/tokens?chain=${encodeURIComponent(chain)}&${isAddress ? 'address' : 'q'}=${encodeURIComponent(q)}&limit=30`);
+        const searchChain = isAddress ? chain : 'all';
+        const res = await fetch(`/api/dex/tokens?chain=${encodeURIComponent(searchChain)}&${isAddress ? 'address' : 'q'}=${encodeURIComponent(q)}&limit=30`);
         const body = await res.json();
         if (!current()) return;
-        const discovered = (body.tokens || []).map(t => ({ ...t, chain }));
-        rememberLogos(chain, discovered);
+        const discovered = (body.tokens || []).filter(t => isAddress
+          ? t.chain === chain && assetKey(chain, t.address) === assetKey(chain, q)
+          : availableChains(side).includes(t.chain))
+          .map(t => ({ ...t }));
+        for (const t of discovered) rememberLogos(t.chain, [t]);
         const known = new Set(local.map(t => assetKey(t.chain, t.address)));
-        const merged = [...local, ...discovered.filter(t => !known.has(assetKey(chain, t.address)))];
+        const merged = [...local, ...discovered.filter(t => !known.has(assetKey(t.chain, t.address)))];
         // Only an exact-address miss is a definite "no such token".
         showResults(side, merged, merged.length === 0 && isAddress
-          ? `No token found at that ${chain === 'solana' ? 'mint' : 'contract address'} on ${chainName(chain)}.` : '');
+          ? `No token found at that ${chain === 'solana' ? 'mint' : 'contract address'} on ${chainName(chain)}.`
+          : merged.length === 0 ? 'No matching token found. Try its exact contract or mint on the correct network.' : '');
         if (body.error) formMsg(body.error, 'warn');
+        else if (body.partial) formMsg('Some networks could not be searched; these results may be incomplete.', 'warn');
       } catch {
         if (current()) showResults(side, local);
       }
-    }, isAddress ? 0 : 250);   // a pasted address is intentional: resolve it at once
+    }, isAddress ? 0 : 650);   // one all-network request after typing settles; pasted addresses resolve at once
   }
 
   // ── Quote ──────────────────────────────────────────────────────────────────
@@ -829,8 +898,29 @@
 
   // ── Wiring ─────────────────────────────────────────────────────────────────
 
+  function closeResults(side) {
+    searchSeq[side]++;
+    clearTimeout(searchTimer[side]);
+    $(`[data-testid="${side}-results"]`).classList.add('hidden');
+    $(`#${side}-search`).value = state[side].token?.symbol || '';
+    $(`#${side}-search`).blur();
+  }
+  const onDocumentPointerDown = (e) => {
+    for (const side of ['from', 'to']) {
+      if (!root.contains(e.target) || !e.target.closest(`#${side}-search, [data-testid="${side}-results"]`)) closeResults(side);
+    }
+  };
+  document.addEventListener('pointerdown', onDocumentPointerDown);
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const side = e.target.closest('#from-search, [data-testid="from-results"]') ? 'from'
+      : e.target.closest('#to-search, [data-testid="to-results"]') ? 'to' : null;
+    if (side) { e.preventDefault(); closeResults(side); }
+  });
   root.addEventListener('click', (e) => {
-    const action = e.target.closest('[data-action]')?.dataset.action;
+    const target = e.target.closest('[data-action]');
+    const action = target?.dataset.action;
+    if (action === 'close-picker') closeResults(target.dataset.side);
     if (action === 'connect-evm') connect('evm');
     if (action === 'connect-solana') connect('solana');
     if (action === 'quote') getQuote();
@@ -875,8 +965,8 @@
       // Reopening the picker is a fresh choice, not a search confined to the
       // currently selected symbol. The catalog appears immediately.
       $(`#${side}-search`).value = '';
-      onSearch(side);
       warmHoldings();
+      onSearch(side);
     });
   }
   $('#amount').addEventListener('input', () => invalidateQuote());
@@ -888,6 +978,7 @@
   renderSwaps();
   poll();
   return () => {
+    document.removeEventListener('pointerdown', onDocumentPointerDown);
     clearInterval(expiryTimer);
     clearInterval(pollTimer);
     clearTimeout(searchTimer.from);

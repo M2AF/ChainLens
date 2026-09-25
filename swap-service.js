@@ -75,6 +75,65 @@ const PUBLIC_RPCS = {
 
 class SwapInputError extends Error {}
 
+// ── Swap identity for scanned wallet holdings ────────────────────────────────
+
+const DECIMALS_RE = /^(?:0|[1-9]\d?)$/;
+const SOLANA_PROGRAM_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+/**
+ * The exact, swap-ready identity of a token a scanner found in a wallet, or why
+ * there is none. The picker may only offer a holding for swapping through this:
+ * a holding is identified by chain + contract/mint, never by symbol or name, and
+ * its decimals must come from the token itself (an unknown value is NOT assumed
+ * to be 18: a wrong guess mis-sizes every amount the user enters).
+ *
+ *   { swap: { chain, address, key, decimals, isNative, tokenProgram }, swapIssue: null }
+ *   { swap: null, swapIssue: '<why this holding cannot be offered>' }
+ */
+function swapIdentityFor(chain, { address, decimals, native = false, tokenProgram = null } = {}) {
+  const c = String(chain || '').trim().toLowerCase();
+  const cap = core.swapCapability(c);
+  if (!cap || cap.signing === 'other' || !cap.discovery) {
+    return { swap: null, swapIssue: `Swaps are not available for tokens on ${c || 'this network'}.` };
+  }
+  const isSolana = c === 'solana';
+  const raw = native ? (isSolana ? core.SOL_NATIVE_MINT : core.NATIVE_EVM_SENTINEL) : String(address || '').trim();
+  if (!raw || !core.isValidSwapAddress(c, raw)) {
+    return { swap: null, swapIssue: 'The token contract could not be identified.' };
+  }
+  const d = typeof decimals === 'number' ? decimals : (DECIMALS_RE.test(String(decimals ?? '').trim()) ? Number(decimals) : NaN);
+  if (!Number.isInteger(d) || d < 0 || d > 36) {
+    return { swap: null, swapIssue: "The token's decimals could not be confirmed." };
+  }
+  const isNative = native || core.isNativeSwapAddress(c, raw);
+  return {
+    swap: {
+      chain: c,
+      // As reported for EVM (checksum case kept for display); Solana mints are case-sensitive.
+      address: isNative ? core.normalizeSwapAddress(c, raw) : raw,
+      key: core.swapAssetKey(c, raw),
+      decimals: d,
+      isNative,
+      tokenProgram: isSolana && !isNative && SOLANA_PROGRAM_RE.test(String(tokenProgram || '')) ? tokenProgram : null,
+    },
+    swapIssue: null,
+  };
+}
+
+/** Attach `swap` / `swapIssue` to a scanner token record (returns the record). */
+function withSwapIdentity(record, chain, identity) {
+  return Object.assign(record, swapIdentityFor(chain, identity));
+}
+
+// ── All-chain token search limits ────────────────────────────────────────────
+
+const ALL_CHAINS_CONCURRENCY = 6;
+const ALL_CHAINS_PER_CHAIN = 8;
+const ALL_CHAINS_MAX_RESULTS = 50;
+const ALL_CHAINS_TTL_MS = 60 * 1000;
+const ALL_CHAINS_PARTIAL_TTL_MS = 15 * 1000;
+const MIN_ALL_QUERY = 2;
+
 // ── Solana address helpers (no web3.js on this server) ───────────────────────
 
 const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -264,6 +323,100 @@ function createSwapService(options = {}) {
 
   async function tokens(query) {
     const chain = String(query.chain || '').trim().toLowerCase();
+    if (chain === 'all') return tokensAllChains(query);
+    return tokensOnChain(query);
+  }
+
+  /** Networks the all-chain search asks: every swap chain with token discovery. */
+  function searchChains() {
+    return Object.values(core.SWAP_NETWORKS)
+      .filter(n => n.discovery && n.signing !== 'other' && n.signing !== 'smart-account')
+      .map(n => n.id);
+  }
+
+  /**
+   * GET /api/dex/tokens?chain=all&q=... — one text query across every swap
+   * chain. Each chain's results are sanitized separately and stay qualified by
+   * chain + address; two tokens with the same symbol or name on different
+   * chains are two results. Only an identical chain + address is deduplicated.
+   * Exact-address lookups stay chain-specific (an address alone does not say
+   * which network it is on). Bounded: at most 6 chains in flight, 8 results per
+   * chain, 50 overall, cached 60 s (15 s when some chains failed).
+   */
+  async function tokensAllChains(query) {
+    if (query.address) throw new SwapInputError('Exact-address search needs a network: use chain=<network>&address=<address>.');
+    const q = String(query.q || '').replace(/\s+/g, ' ').trim();
+    if (q.length < MIN_ALL_QUERY) throw new SwapInputError(`Type at least ${MIN_ALL_QUERY} characters to search every network.`);
+    if (q.length > 64) throw new SwapInputError('Search text is too long.');
+    const chains = searchChains();
+    if (chains.some(c => core.looksLikeSwapAddress(c, q))) {
+      throw new SwapInputError('Exact-address search needs a network: use chain=<network>&address=<address>.');
+    }
+    const limit = Math.min(ALL_CHAINS_MAX_RESULTS, Math.max(1, Number(query.limit) || 20));
+    const key = `all|${q.toLowerCase()}|${limit}`;
+    const hit = tokenCache.get(key);
+    if (hit && hit.expiresAt > now()) return hit.value;
+
+    const perChain = new Map();
+    const failed = [];
+    let next = 0;
+    const lane = async () => {
+      while (next < chains.length) {
+        const chain = chains[next++];
+        try {
+          const out = await tokensOnChain({ chain, q, limit: Math.min(limit, ALL_CHAINS_PER_CHAIN) });
+          if (out.error) failed.push({ chain, error: out.error });
+          perChain.set(chain, out.tokens);
+        } catch (err) {
+          failed.push({ chain, error: err instanceof SwapInputError ? err.message : 'Token search unavailable.' });
+          perChain.set(chain, []);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(ALL_CHAINS_CONCURRENCY, chains.length) }, lane));
+
+    // Chain + address is the identity; nothing is merged by symbol or name.
+    const seen = new Set();
+    const ranked = [];
+    for (const chain of chains) {
+      (perChain.get(chain) || []).forEach((t, rank) => {
+        if (!t || t.chain !== chain) return;
+        const id = core.swapAssetKey(chain, t.address);
+        if (seen.has(id)) return;
+        seen.add(id);
+        ranked.push({ token: { ...t, key: id }, rank, chainOrder: chains.indexOf(chain) });
+      });
+    }
+    const needle = q.toLowerCase();
+    // An exact symbol OR name match first ("emonad" is EMO's name), then prefixes.
+    const score = (t) => {
+      const sym = t.symbol.toLowerCase();
+      const name = String(t.name || '').toLowerCase();
+      if (sym === needle || name === needle) return 0;
+      if (sym.startsWith(needle) || name.startsWith(needle)) return 1;
+      return 2;
+    };
+    ranked.sort((a, b) => score(a.token) - score(b.token)
+      || (b.token.verified === true) - (a.token.verified === true)
+      || a.rank - b.rank
+      || a.chainOrder - b.chainOrder);
+
+    failed.sort((a, b) => chains.indexOf(a.chain) - chains.indexOf(b.chain));
+    const value = {
+      tokens: ranked.slice(0, limit).map(r => r.token),
+      chains: { searched: chains, failed },
+      partial: failed.length > 0,
+      error: failed.length === chains.length ? 'Token search is unavailable right now.' : null,
+    };
+    if (failed.length < chains.length) {
+      if (tokenCache.size >= MAX_CACHE) tokenCache.delete(tokenCache.keys().next().value);
+      tokenCache.set(key, { value, expiresAt: now() + (failed.length ? ALL_CHAINS_PARTIAL_TTL_MS : ALL_CHAINS_TTL_MS) });
+    }
+    return value;
+  }
+
+  async function tokensOnChain(query) {
+    const chain = String(query.chain || '').trim().toLowerCase();
     if (!core.swapCapability(chain)) return { tokens: [], error: `Swaps are not available on ${chain || 'that network'}.` };
     const address = String(query.address || '').trim().slice(0, 64);
     const q = String(query.q || '').trim().slice(0, 64);
@@ -279,7 +432,11 @@ function createSwapService(options = {}) {
     if (!ok || !body) return { tokens: [], error: body?.error || `Token search unavailable (${status}).` };
     const list = Array.isArray(body.tokens) ? body.tokens : [];
     const value = {
-      tokens: list.map(t => core.sanitizeDiscoveredToken(t, chain)).filter(Boolean),
+      // Sanitized against THIS chain: a record claiming another chain, or with
+      // an invalid address or decimals, is dropped rather than repaired.
+      tokens: list
+        .filter(t => !t || t.chain == null || String(t.chain).toLowerCase() === chain)
+        .map(t => core.sanitizeDiscoveredToken(t, chain)).filter(Boolean),
       error: body.error || null,
     };
     if (!value.error) {
@@ -436,6 +593,8 @@ module.exports = {
   createSwapService,
   registerSwapRoutes,
   SwapInputError,
+  swapIdentityFor,
+  withSwapIdentity,
   // exported for tests
   isOnCurve,
   findProgramAddress,

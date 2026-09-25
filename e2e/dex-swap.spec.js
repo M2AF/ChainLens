@@ -386,6 +386,108 @@ test.describe('Magic Swap wallet mode: confirmation and controls', () => {
 });
 
 test.describe('Magic Swap DEX token picker', () => {
+  test('swap cards and action follow the active purple theme palette', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    await page.goto('/magic-swap');
+    await page.getByRole('switch', { name: 'Dark mode' }).click();
+    const colors = await page.evaluate(() => {
+      window.chainlensThemes.applyTheme({ bg: '#170b28', accent: '#a497f0', text: '#e9e3f4' });
+      const card = document.querySelector('.dex-swap .swap-asset-card');
+      const button = document.querySelector('.dex-swap [data-testid="get-quote"]');
+      return {
+        card: getComputedStyle(card).backgroundColor,
+        expectedCard: `rgb(${getComputedStyle(document.documentElement).getPropertyValue('--cl-slate-900').trim().replaceAll(' ', ', ')})`,
+        button: getComputedStyle(button).backgroundColor,
+        expectedButton: `rgb(${getComputedStyle(document.documentElement).getPropertyValue('--cl-cyan-500').trim().replaceAll(' ', ', ')})`,
+      };
+    });
+    expect(colors.card).toBe(colors.expectedCard);
+    expect(colors.button).toBe(colors.expectedButton);
+    await page.screenshot({ path: 'test-results/magic-swap-monad-theme.png', fullPage: true });
+    await page.getByTestId('from-search').focus();
+    await expect(page.getByTestId('from-results')).toBeVisible();
+    await page.screenshot({ path: 'test-results/magic-swap-monad-theme-picker.png', fullPage: true });
+  });
+
+  test('a held Monad EMO outranks a same-name Robinhood result and resolves by exact contract', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    const monadEmo = '0x81a224f8a62f52bde942dbf23a56df77a10b7777';
+    const robinhoodEmo = '0xbd5ea9aff4e9a22b7bcc71f5d748934a3db770c7';
+    await page.route('**/api/tokens/**', route => {
+      const chain = new URL(route.request().url()).pathname.split('/')[3];
+      return route.fulfill({ json: { nfts: chain === 'monad'
+        ? [{ id: monadEmo, name: 'emonad', symbol: 'EMO', balance: '265154.3178', totalValue: '25.00' }]
+        : [] } });
+    });
+    await page.route('**/api/dex/tokens**', route => {
+      const q = new URL(route.request().url()).searchParams;
+      const token = (chain, address) => ({ chain, address, symbol: 'EMO', name: 'emonad', decimals: 18,
+        verified: false, isNative: false, source: 'relay', logoUri: null });
+      if (q.get('address')) return route.fulfill({ json: { tokens: q.get('chain') === 'monad'
+        ? [token('monad', monadEmo)] : [], error: null } });
+      if (q.get('chain') === 'all') return route.fulfill({ json: { tokens: [token('robinhood', robinhoodEmo), token('monad', monadEmo)], error: null } });
+      return route.fulfill({ json: { tokens: [], error: null } });
+    });
+    await page.goto('/magic-swap');
+    await connectEvm(page);
+    await page.getByTestId('from-search').focus();
+    const list = page.getByTestId('from-results');
+    await expect(list.getByRole('option').filter({ hasText: 'EMO' })).toHaveCount(1, { timeout: 15000 });
+    await page.getByTestId('from-search').fill('emonad');
+    await expect(list.getByRole('option').first()).toHaveAttribute('data-chain', 'monad');
+    await expect(list.locator(`button[data-address="${robinhoodEmo}"]`)).toBeVisible();
+    await list.locator(`button[data-address="${monadEmo}"]`).click();
+    await expect(page.getByTestId('from-chain')).toHaveValue('monad');
+    await expect(page.getByTestId('from-token')).toContainText(monadEmo);
+    await expect(page.getByTestId('from-balance')).toContainText('265154.3178 EMO');
+    await expect(page.getByTestId('from-results')).toBeHidden();
+  });
+
+  test('scanner swap identity is respected and explicitly ineligible holdings are excluded', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    const monadEmo = '0x81a224f8a62f52bde942dbf23a56df77a10b7777';
+    const excluded = '0xbd5ea9aff4e9a22b7bcc71f5d748934a3db770c7';
+    await page.route('**/api/tokens/**', route => {
+      const chain = new URL(route.request().url()).pathname.split('/')[3];
+      return route.fulfill({ json: { nfts: chain === 'monad' ? [
+        { id: monadEmo, name: 'emonad', symbol: 'EMO', balance: '10', totalValue: '5',
+          swap: { chain: 'monad', address: monadEmo, key: `monad:${monadEmo}`, decimals: 18, isNative: false, tokenProgram: null } },
+        { id: excluded, name: 'Fake EMO', symbol: 'EMO', balance: '100', totalValue: '100',
+          swap: null, swapIssue: 'Unknown decimals' },
+      ] : [] } });
+    });
+    await page.goto('/magic-swap');
+    await connectEvm(page);
+    await page.getByTestId('from-search').focus();
+    const list = page.getByTestId('from-results');
+    await expect(list.locator(`button[data-address="${monadEmo}"]`)).toBeVisible({ timeout: 15000 });
+    await expect(list.locator(`button[data-address="${excluded}"]`)).toHaveCount(0);
+    await list.locator(`button[data-address="${monadEmo}"]`).click();
+    await expect(page.getByTestId('from-chain')).toHaveValue('monad');
+    await expect(page.getByTestId('from-balance')).toContainText('10 EMO');
+  });
+
+  test('coin picker closes with its button, Escape, and an outside click', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    await page.goto('/magic-swap');
+    const search = page.getByTestId('from-search');
+    const list = page.getByTestId('from-results');
+    await search.focus();
+    await expect(list).toBeVisible();
+    await page.getByRole('button', { name: 'Close pay coin picker' }).click();
+    await expect(list).toBeHidden();
+    await search.focus();
+    await search.press('Escape');
+    await expect(list).toBeHidden();
+    await search.focus();
+    await page.getByTestId('amount').click();
+    await expect(list).toBeHidden();
+  });
+
   test('a slow quote cannot reappear after the amount changes', async ({ page }) => {
     await installWallets(page);
     await mockDex(page);
@@ -424,8 +526,8 @@ test.describe('Magic Swap DEX token picker', () => {
     await page.getByTestId('from-search').focus();
     const list = page.getByTestId('from-results');
     await expect(list.locator('.section-label').first()).toHaveText('In your connected wallet');
-    await expect(list.locator('button').first()).toContainText('ETH');
-    await expect(list.locator('button').first()).toContainText('$1000.00');
+    await expect(list.getByRole('option').first()).toContainText('ETH');
+    await expect(list.getByRole('option').first()).toContainText('$1000.00');
     await page.getByTestId('from-search').fill('MON');
     await list.locator('button[data-chain="monad"]').filter({ hasText: 'MON' }).first().click();
     await expect(page.getByTestId('from-chain')).toHaveValue('monad');

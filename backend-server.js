@@ -24,7 +24,7 @@ const {
 } = require('./chat-service');
 const { resolveWalletSession } = require('./auth-session');
 const { createPrecompiledPage, COMPILED_PREFIX } = require('./precompile-page');
-const { createSwapService, registerSwapRoutes } = require('./swap-service');
+const { createSwapService, registerSwapRoutes, withSwapIdentity } = require('./swap-service');
 const { createExchangeService, registerExchangeRoutes } = require('./exchange-service');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
@@ -2509,7 +2509,7 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
     if (nativeRes.result) {
       const balance = parseInt(nativeRes.result, 16) / 1e18;
       if (balance > 0) {
-        tokens.push({
+        tokens.push(withSwapIdentity({
           id: 'native',
           name: nativeName,
           symbol: nativeSymbol,
@@ -2520,7 +2520,7 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
           image: nativeLogo,
           chain: chainId,
           isToken: true
-        });
+        }, chainId, { native: true, decimals: 18 }));
       }
     }
 
@@ -2541,7 +2541,10 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
         });
         const meta = await metaRes.json();
         const metadata = meta.result;
-        const balance = parseInt(token.tokenBalance, 16) / Math.pow(10, metadata.decimals || 18);
+        // Decimals come from the token. `|| 18` turned a real 0 into 18; an
+        // unknown value still displays as 18 but is never offered for a swap.
+        const knownDecimals = Number.isInteger(metadata?.decimals) ? metadata.decimals : null;
+        const balance = parseInt(token.tokenBalance, 16) / Math.pow(10, knownDecimals ?? 18);
         if (balance < 0.000001) return null;
 
         const usdPrice = await fetchUSDPrice(chainId, token.contractAddress);
@@ -2549,8 +2552,10 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
         // Calculate native price: if token is $10 and native is $3000, token = 0.0033 native
         const nativePrice = nativeUsdPrice > 0 ? (usdPrice / nativeUsdPrice) : 0;
 
-        return {
+        return withSwapIdentity({
           id: token.contractAddress,
+          address: token.contractAddress,
+          decimals: knownDecimals,
           name: metadata.name || 'Unknown',
           symbol: metadata.symbol || '???',
           balance: balance.toFixed(4),
@@ -2585,7 +2590,7 @@ const fetchAlchemyTokens = async (network, address, chainId) => {
           })(),
           chain: chainId,
           isToken: true
-        };
+        }, chainId, { address: token.contractAddress, decimals: knownDecimals });
       } catch (e) { return null; }
     }));
 
@@ -2708,7 +2713,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
       if (moralisNativeRaw && moralisNativeRaw !== '0') {
         const balance = parseInt(moralisNativeRaw, 10) / 1e18;
         if (balance > 0) {
-          tokens.push({
+          tokens.push(withSwapIdentity({
             id: 'native-mon',
             name: 'Monad',
             symbol: 'MON',
@@ -2719,7 +2724,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
             image: 'https://assets.coingecko.com/coins/images/54540/small/monad.png',
             chain: 'monad',
             isToken: true
-          });
+          }, 'monad', { native: true, decimals: 18 }));
         }
       }
 
@@ -2729,16 +2734,19 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
 
       // Process whatever Moralis did return
       const moralisTokens = await Promise.all(moralisResult.map(async (t) => {
-        const decimals = parseInt(t.decimals) ?? 18;
+        // `parseInt(x) ?? 18` never fell back (NaN is not nullish).
+        const parsedDecimals = Number.parseInt(t.decimals, 10);
+        const knownDecimals = Number.isInteger(parsedDecimals) ? parsedDecimals : null;
         const balance = t.balance_formatted
           ? parseFloat(t.balance_formatted)
-          : parseInt(t.balance || '0', 10) / Math.pow(10, decimals);
+          : parseInt(t.balance || '0', 10) / Math.pow(10, knownDecimals ?? 18);
         if (!balance || balance < 0.000001) return null;
         const usdPrice = await fetchUSDPrice('monad', t.token_address);
         const nativePrice = monUsdPrice > 0 ? (usdPrice / monUsdPrice) : 0; // Fixed: price per token in MON
         
-        return {
+        return withSwapIdentity({
           id: t.token_address,
+          decimals: knownDecimals,
           name: t.name || 'Unknown Token',
           symbol: t.symbol || '???',
           balance: balance.toFixed(4),
@@ -2749,7 +2757,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
           chain: 'monad',
           isToken: true,
           address: t.token_address
-        };
+        }, 'monad', { address: t.token_address, decimals: knownDecimals });
       }));
       tokens.push(...moralisTokens.filter(t => t !== null));
 
@@ -2829,10 +2837,11 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
             const rawBal = BigInt(balResult);
             if (rawBal === 0n) return null;
 
-            const decimals = decResult && decResult !== '0x' ? parseInt(decResult, 16) : 18;
+            // decimals() answered, or it is unknown (display falls back to 18; not swappable).
+            const knownDecimals = decResult && decResult !== '0x' ? parseInt(decResult, 16) : null;
             const symbol = decodeString(symResult) || 'UNKNOWN';
             const name = decodeString(nameResult) || symbol;
-            const balance = Number(rawBal) / Math.pow(10, decimals);
+            const balance = Number(rawBal) / Math.pow(10, knownDecimals ?? 18);
 
             if (balance < 0.000001) return null;
             console.log(`  ✅ RPC found: ${symbol} (${name}) = ${balance}`);
@@ -2840,8 +2849,9 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
             const usdPrice = await fetchUSDPrice('monad', contractAddr);
             const nativePrice = monUsdPrice > 0 ? (usdPrice / monUsdPrice) : 0; // Fixed: price per token in MON
             
-            return {
+            return withSwapIdentity({
               id: contractAddr,
+              decimals: knownDecimals,
               name,
               symbol,
               balance: balance.toFixed(4),
@@ -2852,7 +2862,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
               chain: 'monad',
               isToken: true,
               address: contractAddr
-            };
+            }, 'monad', { address: contractAddr, decimals: knownDecimals });
           } catch (e) {
             console.error(`  RPC balanceOf failed for ${contractAddr}:`, e.message);
             return null;
@@ -2895,23 +2905,23 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
                 if (!balResult || balResult === '0x') return null;
                 const rawBal = BigInt(balResult);
                 if (rawBal === 0n) return null;
-                const decimals = decResult && decResult !== '0x' ? parseInt(decResult, 16) : 18;
+                const knownDecimals = decResult && decResult !== '0x' ? parseInt(decResult, 16) : null;
                 const symbol = decodeString(symResult) || 'UNKNOWN';
                 const name = decodeString(nameResult) || symbol;
-                const balance = Number(rawBal) / Math.pow(10, decimals);
+                const balance = Number(rawBal) / Math.pow(10, knownDecimals ?? 18);
                 if (balance < 0.000001) return null;
                 console.log(`  ✅ Log scan found: ${symbol} = ${balance}`);
                 const usdPrice = await fetchUSDPrice('monad', contractAddr);
                 const nativePrice = monUsdPrice > 0 ? (usdPrice / monUsdPrice) : 0; // Fixed: price per token in MON
                 
-                return {
-                  id: contractAddr, name, symbol,
+                return withSwapIdentity({
+                  id: contractAddr, name, symbol, decimals: knownDecimals,
                   balance: balance.toFixed(4), usdPrice,
                   totalValue: (balance * usdPrice).toFixed(2),
                   nativePrice: nativePrice.toFixed(4), // Price per token in MON
                   image: await fetchTokenImageByAddress('monad', contractAddr) || await fetchTokenImage(symbol) || '',
                   chain: 'monad', isToken: true, address: contractAddr
-                };
+                }, 'monad', { address: contractAddr, decimals: knownDecimals });
               } catch { return null; }
             }));
             tokens.push(...extraTokens.filter(t => t !== null));
@@ -3023,7 +3033,7 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
       if (nativeBalance) {
         const solBalance = (nativeBalance.lamports || 0) / 1e9;
         if (solBalance > 0) {
-          tokens.push({
+          tokens.push(withSwapIdentity({
             id: 'native-sol',
             name: 'Solana',
             symbol: 'SOL',
@@ -3034,7 +3044,7 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
             image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
             chain: 'solana',
             isToken: true
-          });
+          }, 'solana', { native: true, decimals: 9 }));
         }
       }
       
@@ -3046,9 +3056,10 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
           const usdPrice = t.token_info?.price_info?.price_per_token || 0;
           const nativePrice = solPrice > 0 ? (usdPrice / solPrice) : 0;
           
-          return {
+          return withSwapIdentity({
             id: t.id,
             mint: t.id, // Store mint address
+            decimals: Number.isInteger(t.token_info?.decimals) ? t.token_info.decimals : null,
             name: t.content?.metadata?.name || 'Solana Token',
             symbol: t.content?.metadata?.symbol || 'SPL',
             balance: balanceNum.toFixed(4),
@@ -3063,7 +3074,7 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
               || '',
             chain: 'solana',
             isToken: true
-          };
+          }, 'solana', { address: t.id, decimals: t.token_info?.decimals, tokenProgram: t.token_info?.token_program });
         })
         .filter(t => parseFloat(t.balance) > 0);
       
@@ -3147,9 +3158,10 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
                 
                 console.log(`  ✅ Found NEW token via RPC: ${symbol} (${mint.substring(0, 8)}...) = ${balance}`);
                 
-                return {
+                return withSwapIdentity({
                   id: mint,
                   mint: mint,
+                  decimals,
                   name: name,
                   symbol: symbol,
                   balance: balance.toFixed(4),
@@ -3160,7 +3172,7 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
                   chain: 'solana',
                   isToken: true,
                   isNew: true // Flag to indicate this was caught via direct RPC
-                };
+                }, 'solana', { address: mint, decimals, tokenProgram: account.account?.owner });
               } catch (e) {
                 console.error(`  Error processing token account:`, e.message);
                 return null;
