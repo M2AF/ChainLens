@@ -64,6 +64,9 @@
     routing: null,
     busy: false,
   };
+  const holdings = new Map(); // chain-qualified asset key → { balance, usd }; display only
+  const scanned = new Map();  // chain → account last scanned for; never mix accounts
+  const scanning = new Map();
 
   // ── Amounts ────────────────────────────────────────────────────────────────
 
@@ -109,10 +112,14 @@
       : `Receives at: <strong>connect a ${ecosystemOf(state.to.chain) === 'evm' ? 'EVM' : 'Solana'} wallet</strong>`;
   }
 
+  let quoteSeq = 0;
   function invalidateQuote(reason) {
+    quoteSeq++;
+    $('[data-testid="get-quote"]').disabled = false;
     if (state.quote && reason) swapMsg(reason, 'warn');
     state.quote = null;
     $('[data-testid="quote"]').classList.add('hidden');
+    $('[data-testid="receive-amount"]').textContent = '—';
   }
 
   async function connect(kind) {
@@ -132,9 +139,12 @@
         if (!address) throw new Error('The wallet did not return an account.');
         state[kind]?.signer.dispose?.();
         state[kind] = { record, signer, address };
+        scanned.clear(); holdings.clear(); scanning.clear();
         watchAccount(kind);
         invalidateQuote('Your wallet changed, so the quote was cleared. Get a new quote.');
         renderWallets();
+        scanHoldings(state.from.chain);
+        if (state.to.chain !== state.from.chain) scanHoldings(state.to.chain);
         formMsg('');
       } catch (err) {
         formMsg(err?.code === 4001 ? 'The connection request was declined.' : `Could not connect: ${err?.message || err}`, 'bad');
@@ -160,7 +170,9 @@
       const address = await w.signer.currentAccount().catch(() => null);
       if (address && address !== w.address) {
         w.address = address;
+        scanned.clear(); holdings.clear(); scanning.clear();
         renderWallets();
+        renderBalances();
         invalidateQuote('Your wallet switched accounts, so the quote was cleared. Get a new quote.');
       }
     };
@@ -181,8 +193,102 @@
     $('#to-chain').value = state.to.chain;
   }
 
+  const sourceChains = core.swappableSourceChains().map(c => c.id);
+  const destinationChains = core.swappableDestinationChains().map(c => c.id);
+  const availableChains = (side) => side === 'from' ? sourceChains : destinationChains;
+  const curatedCache = new Map();
   function curated(chain) {
-    return core.curatedTokensForChain(chain).map(t => ({ ...t, logoUri: null, verified: true, source: 'curated' }));
+    if (!curatedCache.has(chain)) curatedCache.set(chain,
+      core.curatedTokensForChain(chain).map(t => ({ ...t, logoUri: null, verified: true, source: 'curated' })));
+    return curatedCache.get(chain);
+  }
+
+  const catalogCache = new Map();
+  function allCurated(side) {
+    if (!catalogCache.has(side)) catalogCache.set(side,
+      availableChains(side).flatMap(chain => curated(chain).map(t => ({ ...t, chain }))));
+    return catalogCache.get(side);
+  }
+  function optionsFor(side, symbol) {
+    if (!symbol) return availableChains(side);
+    return availableChains(side).filter(chain => curated(chain).some(t => t.symbol.toLowerCase() === symbol.toLowerCase()));
+  }
+  const ambiguousCache = new Map();
+  function ambiguousSymbol(side, symbol) {
+    const key = `${side}:${symbol.toLowerCase()}`;
+    if (!ambiguousCache.has(key)) ambiguousCache.set(key, availableChains(side).some(chain => curated(chain)
+      .filter(t => t.symbol.toLowerCase() === symbol.toLowerCase()).length > 1));
+    return ambiguousCache.get(key);
+  }
+  function setChainOptions(side) {
+    const selected = state[side].token;
+    const chains = selected
+      ? selected.source === 'curated' && !ambiguousSymbol(side, selected.symbol)
+        ? optionsFor(side, selected.symbol) : [state[side].chain]
+      : availableChains(side);
+    const select = $(`#${side}-chain`);
+    if (!chains.includes(state[side].chain)) state[side].chain = chains[0] || state[side].chain;
+    select.innerHTML = chains.map(id => `<option value="${esc(id)}">${esc(chainName(id))}</option>`).join('');
+    select.value = state[side].chain;
+    select.parentElement.classList.toggle('single', !!selected && chains.length === 1);
+  }
+
+  function renderBalances() {
+    for (const side of ['from', 'to']) {
+      const { chain, token } = state[side];
+      const held = token && holdings.get(assetKey(chain, token.address));
+      $(`[data-testid="${side}-balance"]`).textContent = held
+        ? `Balance: ${held.balance} ${token.symbol}${held.usd > 0 ? ` · $${held.usd.toFixed(2)}` : ''}` : '';
+    }
+  }
+
+  // Scanner data is advisory for display and sorting, NEVER for quote identity or
+  // authorization. Only exact curated contract/mint matches are promoted: a spam
+  // asset using the same symbol cannot impersonate a held trusted coin.
+  async function scanHoldings(chain) {
+    const wallet = state[ecosystemOf(chain)];
+    if (!wallet || scanned.get(chain) === wallet.address) return;
+    if (scanning.has(chain)) return scanning.get(chain);
+    const address = wallet.address;
+    const task = (async () => {
+      try {
+        const response = await fetch(`/api/tokens/${encodeURIComponent(chain)}/${encodeURIComponent(address)}`, { signal: AbortSignal.timeout(12000) });
+        if (!response.ok) return;
+        const body = await response.json();
+        if (state[ecosystemOf(chain)]?.address !== address) return;
+        const trusted = new Map(curated(chain).map(t => [assetKey(chain, t.address), t]));
+        for (const item of body.nfts || []) {
+          const addressOrMint = item.id === 'native' || item.id === 'native-sol'
+            ? curated(chain).find(t => t.isNative)?.address : item.mint || item.id;
+          if (!addressOrMint) continue;
+          const key = assetKey(chain, addressOrMint);
+          if (!trusted.has(key)) continue;
+          const balance = Number(item.balance);
+          if (!Number.isFinite(balance) || balance <= 0) continue;
+          const usd = Number(item.totalValue);
+          holdings.set(key, { balance: item.balance, usd: Number.isFinite(usd) && usd > 0 ? usd : 0 });
+          if (item.image && /^https:\/\//i.test(item.image)) logoCache.set(key, item.image);
+        }
+        scanned.set(chain, address);
+        renderBalances();
+        for (const side of ['from', 'to']) if (!$(`[data-testid="${side}-results"]`).classList.contains('hidden')) onSearch(side);
+      } catch { /* balances remain unknown; no false zero or fabricated USD */ }
+      finally { if (scanning.get(chain) === task) scanning.delete(chain); }
+    })();
+    scanning.set(chain, task);
+    return task;
+  }
+  let warming = false;
+  async function warmHoldings() {
+    if (warming) return;
+    warming = true;
+    const chains = [...new Set([...availableChains('from'), ...availableChains('to')])]
+      .filter(chain => state[ecosystemOf(chain)]);
+    let next = 0;
+    await Promise.all(Array.from({ length: 3 }, async () => {
+      while (next < chains.length) await scanHoldings(chains[next++]);
+    }));
+    warming = false;
   }
 
   // Logos seen in discovery, by chain-qualified asset key, as in Magic Money's
@@ -253,30 +359,67 @@
   }
 
   function chooseToken(side, token) {
-    state[side].token = token;
+    searchSeq[side]++;
+    clearTimeout(searchTimer[side]);
+    const chain = token.chain || state[side].chain;
+    state[side].chain = chain;
+    state[side].token = { ...token, chain };
     $(`#${side}-search`).value = token.symbol;
     $(`[data-testid="${side}-results"]`).classList.add('hidden');
+    setChainOptions(side);
     renderToken(side);
+    renderBalances();
+    renderRecipient();
+    scanHoldings(chain);
     invalidateQuote();
   }
 
   function showResults(side, tokens, hint) {
-    const chain = state[side].chain;
     const box = $(`[data-testid="${side}-results"]`);
-    rememberLogos(chain, tokens);
     box.innerHTML = '';
-    for (const t of tokens.slice(0, 30)) {
+    // A symbol is only a search group, never a swap identity. Every button
+    // resolves to a concrete chain + address before it can become a quote.
+    const groups = new Map();
+    for (const token of tokens) {
+      const chain = token.chain || state[side].chain;
+      const t = { ...token, chain };
+      const groupKey = t.source === 'curated' && !ambiguousSymbol(side, t.symbol)
+        ? `trusted:${t.symbol.toLowerCase()}` : assetKey(chain, t.address);
+      if (!groups.has(groupKey)) groups.set(groupKey, []);
+      groups.get(groupKey).push(t);
+    }
+    const ranked = [...groups.values()].map(variants => {
+      const held = variants.filter(t => holdings.has(assetKey(t.chain, t.address)))
+        .sort((a, b) => holdings.get(assetKey(b.chain, b.address)).usd - holdings.get(assetKey(a.chain, a.address)).usd);
+      const preferred = held[0] || variants.find(t => t.chain === state[side].chain) || variants[0];
+      return { variants, preferred, usd: held.reduce((sum, t) => sum + holdings.get(assetKey(t.chain, t.address)).usd, 0), held: held.length > 0 };
+    }).sort((a, b) => Number(b.held) - Number(a.held) || b.usd - a.usd || a.preferred.symbol.localeCompare(b.preferred.symbol));
+    let shownSection = '';
+    for (const { variants, preferred: t, usd, held } of ranked.slice(0, 35)) {
+      const chain = t.chain;
+      const section = held ? 'In your connected wallet' : 'Other coins';
+      if (section !== shownSection) {
+        const heading = document.createElement('p'); heading.className = 'section-label'; heading.textContent = section;
+        box.appendChild(heading); shownSection = section;
+      }
       const b = document.createElement('button');
       b.type = 'button';
       b.setAttribute('role', 'option');
       b.dataset.address = t.address;
-      // Unverified tokens are shown and labelled, never hidden (as in the wallet).
+      b.dataset.chain = chain;
+      // Unverified discovery results are explicit, never promoted as holdings.
       const unverified = t.verified !== true && !t.isNative;
       const meta = document.createElement('span');
       meta.className = 'meta';
       meta.innerHTML = `<span class="sym">${esc(t.symbol)}${unverified ? ' <em class="badge">UNVERIFIED</em>' : ''}</span>`
-        + `<small>${esc(t.name)}${t.isNative ? ' · native' : ` · ${esc(short(t.address))}`}</small>`;
+        + `<small>${esc(variants.length > 1 ? `${variants.length} networks · ${chainName(chain)}` : chainName(chain))}${t.isNative ? ' · native' : ` · ${esc(short(t.address))}`}</small>`;
       b.append(tokenLogo(chain, t, 28), meta);
+      if (held) {
+        const balance = holdings.get(assetKey(chain, t.address));
+        const value = document.createElement('span'); value.className = 'holding';
+        value.innerHTML = `<strong>${esc(balance.balance)} ${esc(t.symbol)}</strong>${usd > 0 ? `$${usd.toFixed(2)}` : 'USD unavailable'}`;
+        b.append(value);
+      }
       b.addEventListener('click', () => chooseToken(side, t));
       box.appendChild(b);
     }
@@ -297,24 +440,33 @@
     const current = () => searchSeq[side] === id;   // a newer search supersedes this one
     const chain = state[side].chain;
     const q = $(`#${side}-search`).value.trim();
+    const catalog = allCurated(side);
     if (!q) {
-      // Empty box: curated at once, then the chain's suggestions with logos.
-      showResults(side, curated(chain));
+      showResults(side, catalog);
+      // Enrich visible trusted rows with logos without delaying the catalog.
       suggestionsFor(chain).then(list => {
-        if (current()) showResults(side, core.mergeDiscoveredTokens(curated(chain), list));
+        if (!current()) return;
+        const known = new Set(catalog.map(t => assetKey(t.chain, t.address)));
+        const verified = list.filter(t => t.verified === true && !known.has(assetKey(chain, t.address)))
+          .map(t => ({ ...t, chain }));
+        showResults(side, [...catalog, ...verified]);
       });
       return;
     }
-    const isAddress = core.looksLikeSwapAddress(chain, q);
+    const isAddress = availableChains(side).some(c => core.looksLikeSwapAddress(c, q));
+    const lower = q.toLowerCase();
+    const local = catalog.filter(t => t.symbol.toLowerCase().includes(lower)
+      || t.name.toLowerCase().includes(lower) || t.address.toLowerCase() === lower);
+    showResults(side, local);
     searchTimer[side] = setTimeout(async () => {
-      const lower = q.toLowerCase();
-      const local = curated(chain).filter(t => t.symbol.toLowerCase().includes(lower)
-        || t.name.toLowerCase().includes(lower) || t.address.toLowerCase() === lower);
       try {
         const res = await fetch(`/api/dex/tokens?chain=${encodeURIComponent(chain)}&${isAddress ? 'address' : 'q'}=${encodeURIComponent(q)}&limit=30`);
         const body = await res.json();
         if (!current()) return;
-        const merged = core.mergeDiscoveredTokens(local, body.tokens || []);
+        const discovered = (body.tokens || []).map(t => ({ ...t, chain }));
+        rememberLogos(chain, discovered);
+        const known = new Set(local.map(t => assetKey(t.chain, t.address)));
+        const merged = [...local, ...discovered.filter(t => !known.has(assetKey(chain, t.address)))];
         // Only an exact-address miss is a definite "no such token".
         showResults(side, merged, merged.length === 0 && isAddress
           ? `No token found at that ${chain === 'solana' ? 'mint' : 'contract address'} on ${chainName(chain)}.` : '');
@@ -349,11 +501,13 @@
       taker: sourceAccount, toAddress: destinationAccount,
       fromDecimals: String(from.token.decimals), toDecimals: String(to.token.decimals),
     });
+    const requestId = ++quoteSeq;
     formMsg('Finding the best safe route…');
     $('[data-testid="get-quote"]').disabled = true;
     try {
       const res = await fetch(`/api/dex/quote?${params}`);
       const body = await res.json();
+      if (requestId !== quoteSeq) return; // a coin, chain, amount or account changed
       if (!body.quote) { invalidateQuote(); return formMsg(body.error || 'No route is available for this swap.', 'bad'); }
       // The server already filtered candidates, but its answer is a claim: the
       // same shared filter runs here before anything is shown as swappable.
@@ -364,9 +518,9 @@
       formMsg('');
       renderQuote();
     } catch {
-      formMsg('The swap service could not be reached. Try again.', 'bad');
+      if (requestId === quoteSeq) formMsg('The swap service could not be reached. Try again.', 'bad');
     } finally {
-      $('[data-testid="get-quote"]').disabled = false;
+      if (requestId === quoteSeq) $('[data-testid="get-quote"]').disabled = false;
     }
   }
 
@@ -383,6 +537,7 @@
     const q = state.quote;
     const dl = $('[data-testid="quote-details"]');
     const toDec = state.to.token.decimals;
+    $('[data-testid="receive-amount"]').textContent = fromRaw(q.buyAmountRaw, toDec);
     const rows = [
       ['Route', `${q.provider}${q.bridgeTool ? ` via ${q.bridgeTool}` : ''}${q.fromChain !== q.toChain ? ` · ${chainName(q.fromChain)} → ${chainName(q.toChain)}` : ''}`],
       ['You pay', `${fromRaw(q.sellAmountRaw, state.from.token.decimals)} ${state.from.token.symbol}`],
@@ -686,34 +841,49 @@
 
   /** Swap the pay and receive sides (network and token), as on Magic Money's swap screen. */
   function flip() {
+    for (const side of ['from', 'to']) { searchSeq[side]++; clearTimeout(searchTimer[side]); $(`[data-testid="${side}-results"]`).classList.add('hidden'); }
     const from = state.from;
     state.from = state.to;
     state.to = from;
-    $('#from-chain').value = state.from.chain;
-    $('#to-chain').value = state.to.chain;
     for (const side of ['from', 'to']) {
+      setChainOptions(side);
       $(`#${side}-search`).value = state[side].token ? state[side].token.symbol : '';
       renderToken(side);
     }
+    renderBalances();
     renderRecipient();
     invalidateQuote();
   }
   for (const side of ['from', 'to']) {
     $(`#${side}-chain`).addEventListener('change', (e) => {
+      searchSeq[side]++;
+      clearTimeout(searchTimer[side]);
+      $(`[data-testid="${side}-results"]`).classList.add('hidden');
       state[side].chain = e.target.value;
-      state[side].token = null;
-      $(`#${side}-search`).value = '';
+      if (state[side].token) {
+        state[side].token = curated(state[side].chain).find(t => t.symbol.toLowerCase() === state[side].token.symbol.toLowerCase()) || null;
+        $(`#${side}-search`).value = state[side].token?.symbol || '';
+      }
       renderToken(side);
+      renderBalances();
       renderRecipient();
+      scanHoldings(state[side].chain);
       invalidateQuote();
     });
     $(`#${side}-search`).addEventListener('input', () => onSearch(side));
-    $(`#${side}-search`).addEventListener('focus', () => onSearch(side));
+    $(`#${side}-search`).addEventListener('focus', () => {
+      // Reopening the picker is a fresh choice, not a search confined to the
+      // currently selected symbol. The catalog appears immediately.
+      $(`#${side}-search`).value = '';
+      onSearch(side);
+      warmHoldings();
+    });
   }
   $('#amount').addEventListener('input', () => invalidateQuote());
   $('#slippage').addEventListener('change', () => invalidateQuote());
 
   fillChains();
+  setChainOptions('from'); setChainOptions('to');
   renderWallets();
   renderSwaps();
   poll();

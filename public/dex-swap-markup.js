@@ -1,6 +1,6 @@
 // Magic Swap connected-wallet form. Keep data-testid and data-action hooks in sync with dex-swap.js.
 window.ChainLensDexSwapMarkup = `
-<section class="panel" aria-labelledby="wallets-h">
+<section class="panel wallet-strip" aria-labelledby="wallets-h">
       <label id="wallets-h">Wallets</label>
       <div class="row">
         <div class="grow wallet" data-testid="evm-wallet">EVM: <strong>not connected</strong></div>
@@ -13,40 +13,38 @@ window.ChainLensDexSwapMarkup = `
       <div class="results hidden" data-testid="provider-picker" role="listbox" aria-label="Choose a wallet"></div>
     </section>
 
-    <section class="panel" aria-label="Swap">
-      <div class="row">
-        <div class="grow">
-          <label for="from-chain">From</label>
-          <select id="from-chain" data-testid="from-chain"></select>
+    <section class="swap-compose" aria-label="Swap">
+      <div class="swap-asset-card">
+        <label for="from-search">YOU PAY</label>
+        <div class="swap-asset-main">
+          <input id="amount" data-testid="amount" inputmode="decimal" placeholder="0.0" autocomplete="off" aria-label="Amount to pay">
+          <input id="from-search" data-testid="from-search" placeholder="Choose coin" autocomplete="off" aria-label="Pay coin">
         </div>
-        <div class="grow">
-          <label for="from-search">Token</label>
-          <input id="from-search" data-testid="from-search" placeholder="Name, symbol or address" autocomplete="off">
+        <div class="results hidden" data-testid="from-results" role="listbox" aria-label="Tokens to sell"></div>
+        <div class="swap-asset-footer">
+          <div class="token" data-testid="from-token"></div>
+          <div class="swap-network"><label for="from-chain">Network</label><select id="from-chain" data-testid="from-chain" aria-label="Pay network"></select></div>
         </div>
-      </div>
-      <div class="results hidden" data-testid="from-results" role="listbox" aria-label="Tokens to sell"></div>
-      <div class="token" data-testid="from-token"></div>
-      <div style="margin-top:12px">
-        <label for="amount">Amount</label>
-        <input id="amount" data-testid="amount" inputmode="decimal" placeholder="0.0" autocomplete="off">
+        <div class="swap-balance" data-testid="from-balance"></div>
       </div>
 
       <div class="flip-row">
         <button type="button" class="flip" data-action="flip" data-testid="flip" aria-label="Switch the tokens you pay and receive" title="Switch">⇅</button>
       </div>
 
-      <div class="row">
-        <div class="grow">
-          <label for="to-chain">To</label>
-          <select id="to-chain" data-testid="to-chain"></select>
+      <div class="swap-asset-card">
+        <label for="to-search">YOU RECEIVE</label>
+        <div class="swap-asset-main">
+          <output data-testid="receive-amount">—</output>
+          <input id="to-search" data-testid="to-search" placeholder="Choose coin" autocomplete="off" aria-label="Receive coin">
         </div>
-        <div class="grow">
-          <label for="to-search">Token</label>
-          <input id="to-search" data-testid="to-search" placeholder="Name, symbol or address" autocomplete="off">
+        <div class="results hidden" data-testid="to-results" role="listbox" aria-label="Tokens to buy"></div>
+        <div class="swap-asset-footer">
+          <div class="token" data-testid="to-token"></div>
+          <div class="swap-network"><label for="to-chain">Network</label><select id="to-chain" data-testid="to-chain" aria-label="Receive network"></select></div>
         </div>
+        <div class="swap-balance" data-testid="to-balance"></div>
       </div>
-      <div class="results hidden" data-testid="to-results" role="listbox" aria-label="Tokens to buy"></div>
-      <div class="token" data-testid="to-token"></div>
 
       <div class="row" style="margin-top:12px">
         <div class="grow wallet" data-testid="recipient">Receives at: <strong>—</strong></div>
@@ -61,7 +59,7 @@ window.ChainLensDexSwapMarkup = `
         </div>
       </div>
       <div style="margin-top:14px">
-        <button type="button" data-action="quote" data-testid="get-quote">Get quote</button>
+        <button type="button" class="primary" data-action="quote" data-testid="get-quote">Get quote</button>
       </div>
       <div class="msg hidden" data-testid="form-message" role="status"></div>
     </section>

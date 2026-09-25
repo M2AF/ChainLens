@@ -133,7 +133,8 @@ async function mockDex(page, { status } = {}) {
 
 async function chooseToken(page, side, address) {
   await page.getByTestId(`${side}-search`).focus();
-  await page.getByTestId(`${side}-results`).locator(`button[data-address="${address}"]`).click();
+  const chain = await page.getByTestId(`${side}-chain`).inputValue();
+  await page.getByTestId(`${side}-results`).locator(`button[data-chain="${chain}"][data-address="${address}"]`).click();
 }
 
 async function quoteUsdcToEth(page) {
@@ -385,6 +386,70 @@ test.describe('Magic Swap wallet mode: confirmation and controls', () => {
 });
 
 test.describe('Magic Swap DEX token picker', () => {
+  test('a slow quote cannot reappear after the amount changes', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    await page.unroute('**/api/dex/quote**');
+    await page.route('**/api/dex/quote**', async route => {
+      await new Promise(resolve => setTimeout(resolve, 350));
+      const params = new URL(route.request().url()).searchParams;
+      await route.fulfill({ json: { quote: usdcToEth(params), routing: null, error: null } });
+    });
+    await page.goto('/magic-swap');
+    await connectEvm(page);
+    await quoteUsdcToEth(page);
+    await page.getByTestId('amount').fill('6');
+    await page.getByTestId('get-quote').click();
+    await page.getByTestId('amount').fill('7');
+    await page.waitForTimeout(500);
+    await expect(page.getByTestId('quote')).toBeHidden();
+    await expect(page.getByTestId('get-quote')).toBeEnabled();
+  });
+
+  test('coin-first picker ranks verified holdings by USD, auto-selects a unique network, and keeps multi-network choices', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    await page.route('**/api/tokens/**', route => {
+      const url = new URL(route.request().url());
+      const parts = url.pathname.split('/');
+      const chain = parts[3];
+      return route.fulfill({ json: { nfts: chain === 'base' ? [
+        { id: 'native', symbol: 'ETH', balance: '0.5', totalValue: '1000' },
+        { id: USDC_BASE, symbol: 'USDC', balance: '100', totalValue: '100' },
+        { id: '0x1111111111111111111111111111111111111111', symbol: 'ETH', balance: '999999', totalValue: '999999' },
+      ] : [] } });
+    });
+    await page.goto('/magic-swap');
+    await connectEvm(page);
+    await page.getByTestId('from-search').focus();
+    const list = page.getByTestId('from-results');
+    await expect(list.locator('.section-label').first()).toHaveText('In your connected wallet');
+    await expect(list.locator('button').first()).toContainText('ETH');
+    await expect(list.locator('button').first()).toContainText('$1000.00');
+    await page.getByTestId('from-search').fill('MON');
+    await list.locator('button[data-chain="monad"]').filter({ hasText: 'MON' }).first().click();
+    await expect(page.getByTestId('from-chain')).toHaveValue('monad');
+    await expect(page.getByTestId('from-chain').locator('option')).toHaveCount(1);
+    await page.getByTestId('from-search').focus();
+    await page.getByTestId('from-search').fill('ETH');
+    await list.locator('button[data-chain="base"]').filter({ hasText: 'ETH' }).first().click();
+    await expect(page.getByTestId('from-chain').locator('option')).not.toHaveCount(1);
+    await expect(page.getByTestId('from-balance')).toContainText('0.5 ETH');
+    await page.getByTestId('from-chain').selectOption('ethereum');
+    await expect(page.getByTestId('from-token')).toContainText('ETH');
+    await expect(page.getByTestId('from-balance')).toBeEmpty();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const closeMenu = page.locator('.cl-sidebar button[aria-label="Close menu"]');
+    if (await page.locator('.cl-sidebar').evaluate(el => el.classList.contains('open'))) await closeMenu.click();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(300); // mobile sidebar transform settles
+    await page.screenshot({ path: 'test-results/magic-swap-coin-first-mobile.png', fullPage: true });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    const card = await page.locator('.swap-asset-card').first().boundingBox();
+    expect(card.x).toBeGreaterThanOrEqual(0);
+    expect(card.x + card.width).toBeLessThanOrEqual(390);
+  });
+
   test('suggestions bring logos, unverified tokens are labelled, and the chosen token keeps its logo', async ({ page }) => {
     await installWallets(page);
     await mockDex(page);

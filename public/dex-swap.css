@@ -4,22 +4,25 @@
   --ds-border: rgb(var(--cl-slate-200));
   --ds-text: rgb(var(--cl-slate-900));
   --ds-muted: rgb(var(--cl-slate-600));
-  --ds-accent: rgb(var(--cl-cyan-600));
+  --ds-accent: #059669;
   --ds-accent-text: rgb(var(--cl-white));
   color: var(--ds-text);
   font: 15px/1.5 'Space Grotesk', system-ui, sans-serif;
 }
 .dex-swap[data-tone="dark"] {
-  --ds-panel: rgb(var(--cl-slate-900));
-  --ds-field: rgb(var(--cl-slate-950));
-  --ds-border: rgb(var(--cl-slate-800));
+  --ds-panel: #17352c;
+  --ds-field: #10251f;
+  --ds-border: #285b4b;
   --ds-text: rgb(var(--cl-slate-100));
   --ds-muted: rgb(var(--cl-slate-400));
-  --ds-accent: rgb(var(--cl-cyan-400));
-  --ds-accent-text: rgb(var(--cl-slate-950));
+  --ds-accent: #23e5a2;
+  --ds-accent-text: #092019;
 }
 .dex-swap * { box-sizing: border-box; }
 .dex-swap .panel { background: var(--ds-panel); border: 1px solid var(--ds-border); border-radius: 20px; padding: 16px; margin-bottom: 14px; }
+.dex-swap .wallet-strip { padding: 10px 14px; }
+.dex-swap .wallet-strip .row { min-height: 32px; }
+.dex-swap .wallet-strip .row button { padding: 5px 10px; font-size: 12px; }
 .dex-swap .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .dex-swap .grow { flex: 1 1 160px; min-width: 0; }
 .dex-swap label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ds-muted); margin-bottom: 6px; }
@@ -76,3 +79,25 @@
 .dex-swap .logo { border-radius: 50%; flex-shrink: 0; object-fit: cover; }
 .dex-swap .logo.tile { display: inline-flex; align-items: center; justify-content: center; font-weight: 700; background: var(--ds-field); color: var(--ds-accent); }
 .dex-swap .token { display: flex; align-items: center; gap: 8px; }
+
+/* Wallet-style pay/receive cards. Token is the primary choice; network is scoped to it. */
+.dex-swap .swap-compose { margin-bottom: 14px; }
+.dex-swap .swap-asset-card { position: relative; padding: 16px; border: 1px solid var(--ds-border); border-radius: 16px; background: var(--ds-panel); }
+.dex-swap .swap-asset-card > label { margin-bottom: 12px; }
+.dex-swap .swap-asset-main { display: flex; align-items: center; gap: 10px; }
+.dex-swap .swap-asset-main > input:first-child, .dex-swap .swap-asset-main > output { flex: 1 1 50%; min-width: 0; font-size: 19px; font-weight: 700; }
+.dex-swap .swap-asset-main > output { padding: 9px 11px; border: 1px solid var(--ds-border); border-radius: 12px; min-height: 48px; }
+.dex-swap .swap-asset-main > input:last-child { flex: 0 1 46%; min-width: 0; font-weight: 700; }
+.dex-swap .swap-asset-footer { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.dex-swap .swap-asset-footer .token { flex: 1; min-width: 0; margin: 0; }
+.dex-swap .swap-network { width: min(45%, 180px); }
+.dex-swap .swap-network label { margin-bottom: 3px; }
+.dex-swap .swap-network select { padding: 6px 9px; font-size: 12px; }
+.dex-swap .swap-network.single label { display: none; }
+.dex-swap .swap-network.single select { appearance: none; border-color: transparent; background: transparent; text-align: right; font-weight: 700; pointer-events: none; }
+.dex-swap .swap-balance { min-height: 18px; margin-top: 7px; color: var(--ds-muted); font-size: 12px; }
+.dex-swap .swap-asset-card .results { position: absolute; z-index: 20; left: 16px; right: 16px; top: 86px; max-height: 350px; overflow-y: auto; background: var(--ds-panel); box-shadow: 0 14px 35px rgba(0,0,0,.25); }
+.dex-swap .results .holding { margin-left: auto; text-align: right; white-space: nowrap; font-size: 11px; color: var(--ds-muted); }
+.dex-swap .results .holding strong { display: block; color: var(--ds-text); }
+.dex-swap .results .section-label { margin: 0; padding: 7px 10px; color: var(--ds-muted); font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; background: var(--ds-field); }
+@media (max-width: 480px) { .dex-swap .swap-asset-card { padding: 12px; } .dex-swap .swap-asset-main > input:last-child { flex-basis: 43%; } }
