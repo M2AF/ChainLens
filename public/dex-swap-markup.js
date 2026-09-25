@@ -25,7 +25,15 @@ window.ChainLensDexSwapMarkup = `
           <div class="token" data-testid="from-token"></div>
           <div class="swap-network"><label for="from-chain">Network</label><select id="from-chain" data-testid="from-chain" aria-label="Pay network"></select></div>
         </div>
-        <div class="swap-balance" data-testid="from-balance"></div>
+        <div class="swap-amount-presets">
+          <div class="swap-balance" data-testid="from-balance"></div>
+          <div class="swap-percent-buttons" role="group" aria-label="Use percentage of pay coin balance">
+            <button type="button" data-action="amount-percent" data-percent="25" aria-label="Use 25% of pay coin balance" disabled>25%</button>
+            <button type="button" data-action="amount-percent" data-percent="50" aria-label="Use 50% of pay coin balance" disabled>50%</button>
+            <button type="button" data-action="amount-percent" data-percent="75" aria-label="Use 75% of pay coin balance" disabled>75%</button>
+            <button type="button" data-action="amount-percent" data-percent="100" aria-label="Use 100% of spendable pay coin balance" disabled>100%</button>
+          </div>
+        </div>
       </div>
 
       <div class="flip-row">

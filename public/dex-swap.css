@@ -96,6 +96,11 @@
 .dex-swap .swap-network.single label { display: none; }
 .dex-swap .swap-network.single select { appearance: none; border-color: transparent; background: transparent; text-align: right; font-weight: 700; pointer-events: none; }
 .dex-swap .swap-balance { min-height: 18px; margin-top: 7px; color: var(--ds-muted); font-size: 12px; }
+.dex-swap .swap-amount-presets { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 7px; }
+.dex-swap .swap-amount-presets .swap-balance { margin-top: 0; }
+.dex-swap .swap-percent-buttons { display: flex; gap: 4px; margin-left: auto; }
+.dex-swap .swap-percent-buttons button { min-width: 44px; min-height: 44px; padding: 3px 7px; border-radius: 8px; font-size: 11px; white-space: nowrap; }
+.dex-swap .swap-percent-buttons button[aria-pressed="true"] { border-color: var(--ds-accent); color: var(--ds-accent); }
 .dex-swap .swap-asset-card .results { position: absolute; z-index: 20; left: 16px; right: 16px; top: 86px; max-height: 350px; overflow-y: auto; background: var(--ds-panel); box-shadow: 0 14px 35px rgba(0,0,0,.25); }
 .dex-swap .results .holding { margin-left: auto; text-align: right; white-space: nowrap; font-size: 11px; color: var(--ds-muted); }
 .dex-swap .results .holding strong { display: block; color: var(--ds-text); }

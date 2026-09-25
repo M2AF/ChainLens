@@ -87,6 +87,28 @@
     let frac = (v % base).toString().padStart(decimals, '0').slice(0, places).replace(/0+$/, '');
     return frac ? `${whole}.${frac}` : whole.toString();
   }
+  function exactAmount(raw, decimals) {
+    const base = 10n ** BigInt(decimals);
+    const whole = raw / base;
+    const frac = (raw % base).toString().padStart(decimals, '0').replace(/0+$/, '');
+    return frac ? `${whole}.${frac}` : whole.toString();
+  }
+  // Scanner balances are display-rounded. Use integer token units and leave
+  // one displayed unit behind unless the scanner supplied the exact raw balance.
+  function conservativeBalanceRaw(held, decimals) {
+    if (typeof held.rawBalance === 'string' && /^\d+$/.test(held.rawBalance)) return BigInt(held.rawBalance);
+    const shown = String(held.balance || '').replace(/,/g, '').trim();
+    if (!/^\d+(?:\.\d+)?$/.test(shown) || !Number.isInteger(decimals) || decimals < 0 || decimals > 36) return null;
+    const [whole, fraction = ''] = shown.split('.');
+    if (fraction.length > decimals && /[1-9]/.test(fraction.slice(decimals))) return null;
+    const raw = BigInt(whole + fraction.slice(0, decimals).padEnd(decimals, '0'));
+    // The supported scanners normally print four places even when trailing
+    // zeros are omitted by a fixture or source. Do not drop a whole token for
+    // a displayed balance such as "1".
+    const shownPlaces = Math.min(decimals, Math.max(fraction.length, 4));
+    const roundingUnit = decimals > shownPlaces ? 10n ** BigInt(decimals - shownPlaces) : 0n;
+    return raw > roundingUnit ? raw - roundingUnit : 0n;
+  }
 
   // ── Messages ───────────────────────────────────────────────────────────────
 
@@ -248,6 +270,55 @@
       $(`[data-testid="${side}-balance"]`).textContent = held
         ? `Balance: ${held.balance} ${token.symbol}${held.usd > 0 ? ` · $${held.usd.toFixed(2)}` : ''}` : '';
     }
+    const payable = state.from.token && state[ecosystemOf(state.from.chain)]
+      && holdings.get(assetKey(state.from.chain, state.from.token.address));
+    for (const button of root.querySelectorAll('[data-action="amount-percent"]')) {
+      button.disabled = !payable || conservativeBalanceRaw(payable, state.from.token.decimals) <= 0n;
+      button.setAttribute('aria-pressed', 'false');
+    }
+  }
+
+  async function nativeFeeReserve(chain, decimals) {
+    if (chain === 'solana') return 10_000_000n; // 0.01 SOL for transaction fees and possible token-account rent
+    if (decimals !== 18) throw new Error('100% is unavailable for this native coin because its fee units differ from its token units. Enter an amount manually.');
+    const wallet = state.evm;
+    if (!wallet || await wallet.signer.currentChainId() !== evmChainIdOf(chain)) {
+      throw new Error(`Switch your wallet to ${chainName(chain)} before using a percentage of its native coin.`);
+    }
+    const gasPrice = BigInt(await wallet.record.provider.request({ method: 'eth_gasPrice' }));
+    if (gasPrice <= 0n) throw new Error('The network fee could not be estimated. Enter an amount manually.');
+    const estimate = gasPrice * 1_000_000n; // deliberately generous: route gas is not known until quoting
+    return estimate > 1_000_000_000_000_000n ? estimate : 1_000_000_000_000_000n;
+  }
+
+  let presetSeq = 0;
+  async function setAmountPercent(percent) {
+    const id = ++presetSeq;
+    const { chain, token } = state.from;
+    const wallet = state[ecosystemOf(chain)];
+    const walletAddress = wallet?.address;
+    const held = token && holdings.get(assetKey(chain, token.address));
+    if (!wallet || !held) return formMsg('Connect the paying wallet and wait for its balance to load.', 'warn');
+    const balance = conservativeBalanceRaw(held, token.decimals);
+    if (balance === null || balance <= 0n) return formMsg('This balance is too small or could not be read precisely enough.', 'warn');
+    let reserve = 0n;
+    try {
+      if (percent === 100 && core.isNativeSwapAddress(chain, token.address)) reserve = await nativeFeeReserve(chain, token.decimals);
+    } catch (err) {
+      if (id === presetSeq) formMsg(err?.message || 'The network fee could not be estimated. Enter an amount manually.', 'warn');
+      return;
+    }
+    if (id !== presetSeq || state.from.chain !== chain || state.from.token !== token
+      || state[ecosystemOf(chain)] !== wallet || wallet.address !== walletAddress
+      || holdings.get(assetKey(chain, token.address)) !== held) return;
+    if (balance <= reserve) return formMsg('The balance is not enough after reserving network fees.', 'warn');
+    const amount = (balance - reserve) * BigInt(percent) / 100n;
+    if (amount <= 0n) return formMsg('This percentage is smaller than the token’s smallest unit.', 'warn');
+    $('#amount').value = exactAmount(amount, token.decimals);
+    for (const button of root.querySelectorAll('[data-action="amount-percent"]'))
+      button.setAttribute('aria-pressed', String(Number(button.dataset.percent) === percent));
+    invalidateQuote();
+    formMsg(reserve > 0n ? `Network-fee reserve: about ${exactAmount(reserve, token.decimals)} ${token.symbol}. The final quote may need more.` : '');
   }
 
   // Scanner data is advisory for display and sorting, NEVER for quote identity
@@ -279,7 +350,8 @@
           const balance = Number(item.balance);
           if (!Number.isFinite(balance) || balance <= 0) continue;
           const usd = Number(item.totalValue);
-          holdings.set(key, { balance: item.balance, usd: Number.isFinite(usd) && usd > 0 ? usd : 0 });
+          holdings.set(key, { balance: item.balance, rawBalance: item.rawBalance,
+            usd: Number.isFinite(usd) && usd > 0 ? usd : 0 });
           if (item.image && /^https:\/\//i.test(item.image)) logoCache.set(key, item.image);
           if (trusted.has(key)) continue;
           const decimals = swapIdentity?.decimals ?? item.decimals;
@@ -923,6 +995,7 @@
     if (action === 'close-picker') closeResults(target.dataset.side);
     if (action === 'connect-evm') connect('evm');
     if (action === 'connect-solana') connect('solana');
+    if (action === 'amount-percent') setAmountPercent(Number(target.dataset.percent));
     if (action === 'quote') getQuote();
     if (action === 'swap') swap();
     if (action === 'check-now') poll();
@@ -969,7 +1042,11 @@
       onSearch(side);
     });
   }
-  $('#amount').addEventListener('input', () => invalidateQuote());
+  $('#amount').addEventListener('input', () => {
+    presetSeq++;
+    for (const button of root.querySelectorAll('[data-action="amount-percent"]')) button.setAttribute('aria-pressed', 'false');
+    invalidateQuote();
+  });
   $('#slippage').addEventListener('change', () => invalidateQuote());
 
   fillChains();

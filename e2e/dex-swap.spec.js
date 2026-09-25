@@ -72,6 +72,7 @@ async function installWallets(page, { evmAccount = EVM_A } = {}) {
         switch (method) {
           case 'eth_requestAccounts': case 'eth_accounts': return [w.account];
           case 'eth_chainId': return '0x' + w.chainId.toString(16);
+          case 'eth_gasPrice': return '0x' + (1_000_000_000n).toString(16);
           case 'wallet_switchEthereumChain': w.chainId = parseInt(params[0].chainId, 16); w.emit('chainChanged', params[0].chainId); return null;
           case 'eth_getBalance': return '0x' + (10n ** 21n).toString(16);
           case 'eth_call': {
@@ -386,6 +387,97 @@ test.describe('Magic Swap wallet mode: confirmation and controls', () => {
 });
 
 test.describe('Magic Swap DEX token picker', () => {
+  test('balance presets fill 25, 50, 75 and 100 percent without sending a transaction', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    await page.route('**/api/tokens/**', route => {
+      const chain = new URL(route.request().url()).pathname.split('/')[3];
+      return route.fulfill({ json: { nfts: chain === 'base' ? [
+        { id: USDC_BASE, symbol: 'USDC', balance: '100.0000', rawBalance: '100000000', totalValue: '100',
+          swap: { chain: 'base', address: USDC_BASE, decimals: 6, isNative: false } },
+      ] : [] } });
+    });
+    await page.goto('/magic-swap');
+    await connectEvm(page);
+    await chooseToken(page, 'from', USDC_BASE);
+    const amount = page.getByTestId('amount');
+    for (const [percent, expected] of [[25, '25'], [50, '50'], [75, '75'], [100, '100']]) {
+      const button = page.getByRole('button', { name: `Use ${percent}% of ${percent === 100 ? 'spendable ' : ''}pay coin balance` });
+      await button.click();
+      await expect(amount).toHaveValue(expected);
+      await expect(button).toHaveAttribute('aria-pressed', 'true');
+    }
+    await amount.fill('7');
+    await expect(page.getByRole('button', { name: 'Use 100% of spendable pay coin balance' })).toHaveAttribute('aria-pressed', 'false');
+    expect(await page.evaluate(() => window.__evm.sent)).toHaveLength(0);
+    await page.screenshot({ path: 'test-results/magic-swap-percent-desktop.png', fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    const closeMenu = page.locator('.cl-sidebar button[aria-label="Close menu"]');
+    if (await page.locator('.cl-sidebar').evaluate(el => el.classList.contains('open'))) await closeMenu.click();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: 'test-results/magic-swap-percent-mobile.png', fullPage: true });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+
+  test('native 100 percent leaves a network-fee reserve; presets wait for a balance', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    await page.route('**/api/tokens/**', route => {
+      const chain = new URL(route.request().url()).pathname.split('/')[3];
+      return route.fulfill({ json: { nfts: chain === 'base' ? [
+        { id: 'native', symbol: 'ETH', balance: '0.5000', rawBalance: '500000000000000000', totalValue: '1500',
+          swap: { chain: 'base', address: NATIVE, decimals: 18, isNative: true } },
+      ] : [] } });
+    });
+    await page.goto('/magic-swap');
+    const full = page.getByRole('button', { name: 'Use 100% of spendable pay coin balance' });
+    await expect(full).toBeDisabled();
+    await connectEvm(page);
+    await chooseToken(page, 'from', NATIVE);
+    await full.click();
+    await expect(page.getByTestId('amount')).toHaveValue('0.499');
+    await expect(page.getByTestId('form-message')).toContainText('Network-fee reserve');
+    expect(await page.evaluate(() => window.__evm.sent)).toHaveLength(0);
+  });
+
+  test('rounded scanner balances never fill more than the safely displayed amount', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    await page.route('**/api/tokens/**', route => {
+      const chain = new URL(route.request().url()).pathname.split('/')[3];
+      return route.fulfill({ json: { nfts: chain === 'base' ? [
+        { id: USDC_BASE, symbol: 'USDC', balance: '100.0000', totalValue: '100',
+          swap: { chain: 'base', address: USDC_BASE, decimals: 6, isNative: false } },
+      ] : [] } });
+    });
+    await page.goto('/magic-swap');
+    await connectEvm(page);
+    await chooseToken(page, 'from', USDC_BASE);
+    await page.getByRole('button', { name: 'Use 100% of spendable pay coin balance' }).click();
+    await expect(page.getByTestId('amount')).toHaveValue('99.9999');
+  });
+
+  test('Solana native 100 percent keeps SOL for fees and token accounts', async ({ page }) => {
+    await installWallets(page);
+    await mockDex(page);
+    await page.route('**/api/tokens/**', route => {
+      const chain = new URL(route.request().url()).pathname.split('/')[3];
+      return route.fulfill({ json: { nfts: chain === 'solana' ? [
+        { id: 'native-sol', symbol: 'SOL', balance: '0.0350', rawBalance: '35000000', totalValue: '6',
+          swap: { chain: 'solana', address: SOL_MINT, decimals: 9, isNative: true } },
+      ] : [] } });
+    });
+    await page.goto('/magic-swap');
+    await connectSolana(page);
+    await page.getByTestId('from-chain').selectOption('solana');
+    await chooseToken(page, 'from', SOL_MINT);
+    await page.getByRole('button', { name: 'Use 100% of spendable pay coin balance' }).click();
+    await expect(page.getByTestId('amount')).toHaveValue('0.025');
+    await expect(page.getByTestId('form-message')).toContainText('Network-fee reserve');
+    expect(await page.evaluate(() => window.__sol.sent)).toHaveLength(0);
+  });
+
   test('swap cards and action follow the active purple theme palette', async ({ page }) => {
     await installWallets(page);
     await mockDex(page);
