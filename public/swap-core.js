@@ -123,8 +123,14 @@ var MagicMoneySwapCore = (() => {
   var NATIVE_EVM_SENTINEL = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
   var EVM_ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
   var SOL_NATIVE_MINT = "So11111111111111111111111111111111111111112";
+  var CARDANO_LOVELACE = "lovelace";
+  var CARDANO_USDCX_UNIT = {
+    mainnet: "1f3aec8bfe7ea4fe14c5f121e2a92e301afe414147860d557cac7e345553444378",
+    preprod: "31dde3db98ad05feb688d4dbb146b3b6054e1246cbcef98c79b0bf665553444378"
+  };
   var EVM_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
   var BASE58_RE = /^[1-9A-HJ-NP-Za-km-z]+$/;
+  var CARDANO_UNIT_RE = /^[0-9a-f]{56}(?:[0-9a-f]{2}){0,32}$/;
   function isNativeSwapAddress(chain, address) {
     const raw = (address ?? "").trim();
     if (!raw) return false;
@@ -135,10 +141,19 @@ var MagicMoneySwapCore = (() => {
     if (isSolanaSwapChain(chain)) {
       return raw === SOL_NATIVE_MINT || raw === "11111111111111111111111111111111";
     }
+    if (isCardanoSwapChain(chain)) return raw.toLowerCase() === CARDANO_LOVELACE;
     return false;
   }
   function isSolanaSwapChain(chain) {
     return (chain ?? "").trim().toLowerCase() === "solana";
+  }
+  function isCardanoSwapChain(chain) {
+    return (chain ?? "").trim().toLowerCase() === "cardano";
+  }
+  function splitCardanoUnit(unit) {
+    const raw = (unit ?? "").trim().toLowerCase();
+    if (!CARDANO_UNIT_RE.test(raw)) return null;
+    return { policyId: raw.slice(0, 56), assetNameHex: raw.slice(56) };
   }
   function normalizeSwapAddress(chain, address) {
     const raw = (address ?? "").trim();
@@ -149,6 +164,7 @@ var MagicMoneySwapCore = (() => {
     if (isSolanaSwapChain(chain)) {
       return isNativeSwapAddress(chain, raw) ? SOL_NATIVE_MINT : raw;
     }
+    if (isCardanoSwapChain(chain)) return raw.toLowerCase();
     return raw;
   }
   function swapAssetKey(chain, address) {
@@ -184,6 +200,9 @@ var MagicMoneySwapCore = (() => {
     if (!raw) return false;
     if (isEvmSwapChain(chain)) return EVM_ADDRESS_RE.test(raw);
     if (isSolanaSwapChain(chain)) return base58ByteLength(raw) === 32;
+    if (isCardanoSwapChain(chain)) {
+      return raw.toLowerCase() === CARDANO_LOVELACE || splitCardanoUnit(raw) != null;
+    }
     return false;
   }
   function looksLikeSwapAddress(chain, query) {
@@ -326,9 +345,13 @@ var MagicMoneySwapCore = (() => {
     t("worldchain", "ETH", "Ethereum", NATIVE_EVM_SENTINEL2, 18, true),
     t("zora", "ETH", "Ethereum", NATIVE_EVM_SENTINEL2, 18, true),
     t("hyperevm", "HYPE", "Hyperliquid", NATIVE_EVM_SENTINEL2, 18, true),
-    // ── Cardano (exchange flow only; no DEX execution) ──
+    // ── Cardano (same-chain via Minswap V2 orders; full asset units) ──
     t("cardano", "ADA", "Cardano", "lovelace", 6, true),
     t("cardano", "MIN", "Minswap", "29d222ce763455e3d7a09a665ce554f00ac89d2e99a1a83d267170c64d494e", 6),
+    // Circle's USDCx: unit from Circle's xReserve domain reference; 6 decimals per
+    // the Cardano token registry (as read by token-fetcher) and Minswap's index.
+    // Assets named "USDCx" under other policies exist and are NOT this token.
+    t("cardano", "USDCx", "USDCx (Circle)", CARDANO_USDCX_UNIT.mainnet, 6),
     // ── Bitcoin / Polkadot (exchange flow only) ──
     t("bitcoin", "BTC", "Bitcoin", "bitcoin", 8, true),
     t("polkadot", "DOT", "Polkadot", "polkadot", 10, true)
@@ -615,17 +638,21 @@ var MagicMoneySwapCore = (() => {
       reason: "DEX swaps need a transaction this wallet signs locally, and Bitcoin spending uses PSBT signing the swap executor does not have. Use the Cross-Chain tab for BTC.",
       evidence: "executor has no PSBT path for swap payloads"
     },
+    // Same-chain only, through Minswap V2 batcher orders. NOT 'verified': every
+    // piece below was measured live, but no swap has yet been executed with real
+    // funds from this wallet (docs/RELEASE-QA.md). Cross-chain in or out needs the
+    // xReserve leg, which is not enabled (docs/CARDANO-SWAP-DISCOVERY.md).
     cardano: {
       id: "cardano",
       chainId: null,
-      signing: "other",
-      sameChain: [],
+      signing: "cardano",
+      sameChain: ["minswap"],
       crossChainSource: [],
       crossChainDestination: [],
-      discovery: false,
-      status: "blocked",
-      reason: "Cardano DEX execution needs CBOR witness signing, which the swap executor does not have. Use the Cross-Chain tab for ADA.",
-      evidence: "executor rejects cardano source explicitly"
+      discovery: true,
+      status: "implemented-unverified",
+      reason: null,
+      evidence: "measured 2026-09-26, agg-api.minswap.org (keyless): exact-unit search; estimate + unsigned build-tx for USDCx->SNEK (2-hop via NIGHT), ADA->USDCx (1-hop and 2-hop) as Minswap V2 orders; order script c3e28c36... matches the published minswap-dex-v2 README; every recorded build passes the pre-signing validator. Not yet executed with real funds."
     },
     polkadot: {
       id: "polkadot",
@@ -707,7 +734,7 @@ var MagicMoneySwapCore = (() => {
     return Object.values(SWAP_NETWORKS).filter((c) => c.status !== "blocked" && (c.signing === "evm-eoa" || c.signing === "solana") && (c.sameChain.length > 0 || c.crossChainSource.length > 0));
   }
   function swappableDestinationChains() {
-    return Object.values(SWAP_NETWORKS).filter((c) => c.status !== "blocked" && (c.sameChain.length > 0 || c.crossChainDestination.length > 0));
+    return Object.values(SWAP_NETWORKS).filter((c) => c.status !== "blocked" && (c.crossChainDestination.length > 0 || c.sameChain.length > 0 && (c.signing === "evm-eoa" || c.signing === "solana")));
   }
   function swapUnavailableReason(chainId) {
     const cap = SWAP_NETWORKS[chainId];
@@ -1393,7 +1420,7 @@ var MagicMoneySwapCore = (() => {
     const buyCurated = isCuratedSwapToken(quote.toChain, quote.toTokenAddress);
     return sellCurated && buyCurated ? "curated" : "broad";
   }
-  var MIN_ENFORCEABLE_PROVIDERS = /* @__PURE__ */ new Set(["jupiter", "lifi", "0x", "relay"]);
+  var MIN_ENFORCEABLE_PROVIDERS = /* @__PURE__ */ new Set(["jupiter", "lifi", "0x", "relay", "minswap"]);
   var LIFECYCLE_VERIFIED_PROVIDERS = /* @__PURE__ */ new Set(["lifi", "relay"]);
   var settlementTrackingActive = false;
   function setSettlementTrackingActive(active) {
@@ -1721,9 +1748,20 @@ var MagicMoneySwapCore = (() => {
       return;
     }
     if (quote.fromChain === "cardano") {
-      throw new Error("Cardano DEX execution is not enabled yet — use Cross-Chain mode for ADA.");
+      validateCardanoQuote(quote);
+      return;
     }
     throw new Error(`Unsupported swap source chain: ${quote.fromChain}`);
+  }
+  function validateCardanoQuote(quote) {
+    if (quote.provider !== "minswap") throw new Error("Cardano swaps are only signed for Minswap orders.");
+    if (quote.toChain !== "cardano") throw new Error("Cardano swaps must stay on Cardano.");
+    const cbor = quote.txData?.cbor;
+    if (!cbor || !/^([0-9a-f]{2})+$/.test(cbor)) throw new Error("Quote did not include a Cardano transaction to sign.");
+    if (quote.txData.to || quote.txData.data || quote.txData.value || quote.txData.swapTransaction || quote.approvalTx || quote.permitTx) {
+      throw new Error("Cardano swap quote contains EVM or Solana transaction fields.");
+    }
+    if (!quote.cardanoOrder) throw new Error("Cardano swap quote does not describe its order.");
   }
   function validateEvmQuote(quote) {
     const { txData } = quote;
@@ -2080,9 +2118,47 @@ var MagicMoneySwapCore = (() => {
         return mapRelayStatus(raw, expectedTokenAddress);
       case "rango":
         return mapRangoStatus(raw, expectedTokenAddress);
+      case "minswap":
+        return mapMinswapStatus(raw, expectedTokenAddress);
       default:
         return mapProviderStatus(raw, expectedTokenAddress);
     }
+  }
+  function mapMinswapStatus(raw, expectedTokenAddress) {
+    const status = upper(raw.status);
+    const substatus = upper(raw.substatus);
+    const delivered = deliveredFrom(raw);
+    const base = {
+      providerStatus: raw.status ?? null,
+      providerSubstatus: raw.substatus ?? null,
+      delivered,
+      destTxHash: raw.destTxHash ?? null,
+      destExplorerUrl: raw.destExplorerUrl ?? null
+    };
+    if (raw.notFound || status === "NOT_FOUND") {
+      return { ...base, state: "source-submitted", message: "The order transaction has not appeared on Cardano yet." };
+    }
+    if (status === "PENDING") {
+      return {
+        ...base,
+        state: "source-confirmed",
+        message: "The order is on Cardano, waiting for a Minswap batcher to fill it. If the price moves past your minimum it will stay open until you cancel it — the ADA deposit and your tokens stay in the order until then."
+      };
+    }
+    if (status === "DONE" && substatus === "REFUNDED") {
+      return {
+        ...base,
+        state: "refunded",
+        message: "The order was cancelled, so the swap did not happen. The tokens you sold were returned to your wallet."
+      };
+    }
+    if (status === "DONE") {
+      if (delivered?.address && expectedTokenAddress && !sameAsset(delivered.address, expectedTokenAddress, delivered.chain)) {
+        return { ...base, state: "partial", message: `The order paid out ${delivered.symbol ?? "a different token"} rather than the one you asked for.` };
+      }
+      return { ...base, state: "completed", message: null };
+    }
+    return { ...base, state: "unknown", message: "The order's status could not be read from Cardano. It will be checked again." };
   }
   function mapRangoStatus(raw, expectedTokenAddress) {
     const status = (raw.status ?? "").toLowerCase();
@@ -2185,6 +2261,7 @@ var MagicMoneySwapCore = (() => {
       minBuyAmountRaw: input.minBuyAmountRaw,
       recipient: input.recipient,
       isCrossChain: input.isCrossChain,
+      settlesAfterSource: input.settlesAfterSource === true,
       bridgeTool: input.bridgeTool,
       providerRequestId: input.providerRequestId,
       approvalTxHash: null,
@@ -2304,8 +2381,9 @@ var MagicMoneySwapCore = (() => {
         sourceTxHash: args.txHash,
         sourceTxState,
         // A confirmed source tx on a same-chain swap IS the completed swap; a
-        // cross-chain one has only reached the bridge.
-        state: !args.success ? "failed" : s.isCrossChain ? "bridging" : "completed",
+        // cross-chain one has only reached the bridge, and a batcher order has
+        // only been PLACED — the batcher has not traded it yet.
+        state: !args.success ? "failed" : s.isCrossChain ? "bridging" : s.settlesAfterSource ? "source-confirmed" : "completed",
         updatedAt: now,
         fee
       }
@@ -2386,7 +2464,7 @@ var MagicMoneySwapCore = (() => {
     return { ...map, [id]: { ...s, fee, updatedAt: now } };
   }
   function sessionsNeedingReconcile(map) {
-    return Object.values(map).filter((s) => s.isCrossChain && !!s.sourceTxHash && !isTerminalSwapState(s.state));
+    return Object.values(map).filter((s) => (s.isCrossChain || s.settlesAfterSource === true) && !!s.sourceTxHash && !isTerminalSwapState(s.state));
   }
   function summarizeFeeRevenue(map) {
     const out = { collected: 0, claimable: 0, pending: 0, notCollected: 0, feeFree: 0, unknown: 0 };

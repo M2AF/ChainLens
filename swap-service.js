@@ -90,10 +90,19 @@ const SOLANA_PROGRAM_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
  *   { swap: { chain, address, key, decimals, isNative, tokenProgram }, swapIssue: null }
  *   { swap: null, swapIssue: '<why this holding cannot be offered>' }
  */
+/**
+ * Signing kinds a ChainLens-connected wallet can complete. An ALLOW-list: the
+ * shared capability matrix gains kinds that only Magic Money signs (Cardano's
+ * 'cardano', a validated Minswap CBOR order), and a deny-list would silently
+ * offer those networks here.
+ */
+const CHAINLENS_SIGNING = new Set(['evm-eoa', 'solana']);
+const chainlensCanSwap = (cap) => !!cap && CHAINLENS_SIGNING.has(cap.signing);
+
 function swapIdentityFor(chain, { address, decimals, native = false, tokenProgram = null } = {}) {
   const c = String(chain || '').trim().toLowerCase();
   const cap = core.swapCapability(c);
-  if (!cap || cap.signing === 'other' || !cap.discovery) {
+  if (!chainlensCanSwap(cap) || !cap.discovery) {
     return { swap: null, swapIssue: `Swaps are not available for tokens on ${c || 'this network'}.` };
   }
   const isSolana = c === 'solana';
@@ -220,7 +229,7 @@ const isAccount = (chain, v) => ecosystemOf(chain) === 'evm'
 function requireChain(value, role) {
   const chain = String(value || '').trim().toLowerCase();
   const cap = core.swapCapability(chain);
-  if (!cap) throw new SwapInputError(`Swaps are not available on ${chain || 'that network'}.`);
+  if (!chainlensCanSwap(cap)) throw new SwapInputError(`Swaps are not available on ${chain || 'that network'}.`);
   if (role === 'source' && !(cap.sameChain.length || cap.crossChainSource.length)) {
     throw new SwapInputError(core.swapUnavailableReason(chain) || `No swaps start on ${chain}.`);
   }
@@ -330,7 +339,7 @@ function createSwapService(options = {}) {
   /** Networks the all-chain search asks: every swap chain with token discovery. */
   function searchChains() {
     return Object.values(core.SWAP_NETWORKS)
-      .filter(n => n.discovery && n.signing !== 'other' && n.signing !== 'smart-account')
+      .filter(n => n.discovery && chainlensCanSwap(n))
       .map(n => n.id);
   }
 
@@ -417,7 +426,7 @@ function createSwapService(options = {}) {
 
   async function tokensOnChain(query) {
     const chain = String(query.chain || '').trim().toLowerCase();
-    if (!core.swapCapability(chain)) return { tokens: [], error: `Swaps are not available on ${chain || 'that network'}.` };
+    if (!chainlensCanSwap(core.swapCapability(chain))) return { tokens: [], error: `Swaps are not available on ${chain || 'that network'}.` };
     const address = String(query.address || '').trim().slice(0, 64);
     const q = String(query.q || '').trim().slice(0, 64);
     const limit = Math.min(50, Math.max(1, Number(query.limit) || 20));
