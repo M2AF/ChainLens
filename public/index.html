@@ -268,12 +268,12 @@
     } = window.ChainLensChains;
     const { discoverWalletProviders, requestLinkedAddress } = window.ChainLensWalletProviders;
     const { keyFor: assetKeyFor, legacyKeyToCanonical, mergeEntries: mergeFilterEntries,
-            sanitizeEntries: sanitizeFilterEntries } = window.assetFilterKey;
+            sanitizeEntries: sanitizeFilterEntries, convertHiddenToSpam } = window.assetFilterKey;
 
-    // ── Hidden / spam assets ──────────────────────────────────────────────────
+    // ── Spam assets ───────────────────────────────────────────────────────────
     //
     // The same list MagicMoney Wallet keeps, under the same keys, carried on the
-    // ChainLens profile — hide a scam airdrop in either product and it is hidden
+    // ChainLens profile — mark a scam airdrop in either product and it is filtered
     // in both, on every device you are signed in on.
     //
     // localStorage is what the grid renders from, always. Signing in ADDS the
@@ -292,7 +292,7 @@
     const migrateLegacyFilters = (entries) => {
       if (localStorage.getItem(FILTERS_MIGRATED) === '1') return entries;
       const out = Object.assign({}, entries);
-      [['hiddenAssets', 'h'], ['spamAssets', 's']].forEach(([store, state]) => {
+      [['hiddenAssets', 's'], ['spamAssets', 's']].forEach(([store, state]) => {
         let legacy = [];
         try { legacy = JSON.parse(localStorage.getItem(store) || '[]'); } catch { return; }
         if (!Array.isArray(legacy)) return;
@@ -312,7 +312,10 @@
 
     const loadStoredFilters = () => {
       try {
-        return migrateLegacyFilters(sanitizeFilterEntries(JSON.parse(localStorage.getItem(FILTERS_STORE) || '{}')));
+        const entries = migrateLegacyFilters(sanitizeFilterEntries(JSON.parse(localStorage.getItem(FILTERS_STORE) || '{}')));
+        const converted = convertHiddenToSpam(entries);
+        if (converted !== entries) saveStoredFilters(converted);
+        return converted;
       } catch {
         return migrateLegacyFilters({});
       }
@@ -342,7 +345,7 @@
     // ── AssetGrid — extracted so React keeps the same component instance
     //    across NFT↔Token tab switches, preserving all <img> loaded states ──
     const AssetGrid = React.memo(({ assets, isListView, darkMode, chainStyles,
-        resolveImg, handleImgError, toggleHide, toggleSpam, setSelectedAsset,
+        resolveImg, handleImgError, toggleSpam, setSelectedAsset,
         nativePrices, tokenMode }) => {
       return (
         <div className={`max-w-6xl mx-auto ${isListView ? "flex flex-col gap-3" : "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8"}`}>
@@ -352,8 +355,7 @@
             return (
               <div key={assetKey} onClick={() => setSelectedAsset(nft)} className={`group relative overflow-hidden border transition-all cursor-pointer ${isListView ? `flex items-center gap-4 p-4 rounded-2xl ${darkMode ? 'bg-slate-900 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-100 hover:shadow-lg hover:border-slate-300'}` : `rounded-[2.5rem] shadow-sm flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 hover:-translate-y-2 hover:shadow-xl'}`}`}>
                 <div className="absolute top-4 right-4 z-40 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                  <button onClick={(e) => toggleHide(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-blue-500 text-white backdrop-blur-sm border border-white/10">👁️</button>
-                  <button onClick={(e) => toggleSpam(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-red-600 text-white backdrop-blur-sm border border-white/10">🚫</button>
+                  <button type="button" title="Mark as spam" aria-label="Mark this item as spam" onClick={(e) => toggleSpam(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-red-600 text-white backdrop-blur-sm border border-white/10">🚫</button>
                 </div>
                 <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-100"}>
                   <img
@@ -1406,15 +1408,13 @@
       const [isResolving, setIsResolving] = useState(false);
       const [scanIssues, setScanIssues] = useState([]);
 
-      // Canonical asset key → { s: 'h' hidden | 's' spam | 'a' restored, t: ms }.
+      // Canonical asset key → { s: 's' spam | 'a' restored, t: ms }.
       // 'a' is a TOMBSTONE, not an absence: the wallet on another device still
       // holds the older hide, and only a NEWER decision can outrank it. Dropping
       // the key instead would let that device put the asset straight back.
       const [filterEntries, setFilterEntries] = useState(loadStoredFilters);
       const [showManager, setShowManager] = useState(false);
 
-      const hiddenIds = useMemo(
-        () => Object.keys(filterEntries).filter(k => filterEntries[k].s === 'h'), [filterEntries]);
       const spamIds = useMemo(
         () => Object.keys(filterEntries).filter(k => filterEntries[k].s === 's'), [filterEntries]);
 
@@ -1779,7 +1779,7 @@
             if (!res.ok) return;
             const body = await res.json();
             if (cancelled || !body || !body.entries) return;
-            const merged = mergeFilterEntries(filterEntriesRef.current, body.entries);
+            const merged = convertHiddenToSpam(mergeFilterEntries(filterEntriesRef.current, body.entries));
             filterEntriesRef.current = merged;
             saveStoredFilters(merged);
             setFilterEntries(merged);
@@ -1793,9 +1793,9 @@
         return () => { cancelled = true; };
       }, [authToken]);
 
-      // Push after a user decision, debounced — hiding five scam tokens in a row
+      // Push after a user decision, debounced — marking five scam tokens in a row
       // is one request. What comes back is the server's merge with the other
-      // devices, so applying it is how a hide made in the wallet arrives here.
+      // devices, so applying it is how a spam choice made in the wallet arrives here.
       useEffect(() => {
         if (!authToken || !filtersDirty.current) return;
         filtersDirty.current = false;
@@ -1810,7 +1810,9 @@
             if (!res.ok) return;
             const body = await res.json();
             if (!body || !body.entries) return;
-            const merged = mergeFilterEntries(filterEntriesRef.current, body.entries);
+            const received = mergeFilterEntries(filterEntriesRef.current, body.entries);
+            const merged = convertHiddenToSpam(received);
+            if (merged !== received) filtersDirty.current = true;
             filterEntriesRef.current = merged;
             saveStoredFilters(merged);
             setFilterEntries(merged);
@@ -2946,13 +2948,13 @@
       };
 
       const resetEverything = () => {
-        if (confirm("Clear all results AND unhide all previously hidden assets?")) {
+        if (confirm("Clear all results AND restore all assets marked as spam?")) {
             clearAll();
-            // Tombstones, not a wipe: this has to un-hide on the other devices
+            // Tombstones, not a wipe: this has to restore on the other devices
             // too, and a device that still holds the hide would otherwise push it
             // straight back. The pre-sync arrays are cleared as well so a
             // downgrade doesn't resurrect the old list.
-            unhideAll();
+            restoreAllSpam();
             localStorage.removeItem('hiddenAssets');
             localStorage.removeItem('spamAssets');
         }
@@ -3017,9 +3019,6 @@
         return visibleAssets.reduce((sum, asset) => sum + (parseFloat(asset.totalValue) || 0), 0).toFixed(2);
       }, [visibleAssets]);
 
-      const hiddenList = useMemo(
-        () => nfts.filter(nft => (filterEntries[assetKeyFor(nft)] || {}).s === 'h'), [nfts, filterEntries]);
-
       const spamList = useMemo(
         () => nfts.filter(nft => (filterEntries[assetKeyFor(nft)] || {}).s === 's'), [nfts, filterEntries]);
 
@@ -3057,21 +3056,15 @@
       }, [appHubData]);
 
       // Un-toggling writes 'a' (restored) rather than deleting the key: the
-      // wallet on another device still holds the hide, and only a newer decision
-      // outranks it. Deleting would let its next push re-hide the asset.
-      const toggleHide = (e, nft) => {
-        e.stopPropagation();
-        const key = assetKeyFor(nft);
-        setFilterState(key, (filterEntries[key] || {}).s === 'h' ? 'a' : 'h');
-      };
-
+      // wallet on another device still holds the spam entry, and only a newer
+      // decision outranks it. Deleting would let its next push re-filter the asset.
       const toggleSpam = (e, nft) => {
         e.stopPropagation();
         const key = assetKeyFor(nft);
         setFilterState(key, (filterEntries[key] || {}).s === 's' ? 'a' : 's');
       };
 
-      const unhideAll = () => {
+      const restoreAllSpam = () => {
         setFilterState(Object.keys(filterEntries).filter(k => filterEntries[k].s !== 'a'), 'a');
       };
 
@@ -3758,9 +3751,9 @@
                 )}
 
                 <div className="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-3 px-4 md:px-8 py-4 mb-8">
-                    {/* Hidden Button - Far Left */}
+                    {/* Spam manager */}
                     <button onClick={() => setShowManager(true)} className={`flex-shrink-0 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${darkMode ? 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white' : 'bg-white border border-slate-200 text-slate-500'}`}>
-                        Hidden ({hiddenIds.length + spamIds.length})
+                        Spam ({spamIds.length})
                     </button>
 
                     {/* Asset Type Tabs */}
@@ -3850,7 +3843,7 @@
                 <div style={{display: viewMode === 'nfts' ? 'block' : 'none'}}>
                   <AssetGrid assets={nftAssets} isListView={isListView} darkMode={darkMode}
                     chainStyles={chainStyles} resolveImg={resolveImg} handleImgError={handleImgError}
-                    toggleHide={toggleHide} toggleSpam={toggleSpam} setSelectedAsset={setSelectedAsset}
+                    toggleSpam={toggleSpam} setSelectedAsset={setSelectedAsset}
                     nativePrices={nativePrices} tokenMode={false} />
                 </div>
 
@@ -3858,7 +3851,7 @@
                 <div style={{display: viewMode === 'tokens' ? 'block' : 'none'}}>
                   <AssetGrid assets={tokenAssets} isListView={isListView} darkMode={darkMode}
                     chainStyles={chainStyles} resolveImg={resolveImg} handleImgError={handleImgError}
-                    toggleHide={toggleHide} toggleSpam={toggleSpam} setSelectedAsset={setSelectedAsset}
+                    toggleSpam={toggleSpam} setSelectedAsset={setSelectedAsset}
                     nativePrices={nativePrices} tokenMode={true} />
                 </div>
                 </>
@@ -4663,23 +4656,14 @@
               <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-xl modal-enter">
                 <div className={`max-w-2xl w-full border rounded-[3rem] p-6 md:p-10 shadow-2xl flex flex-col max-h-[80vh] ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
                   <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-2xl font-heading font-extrabold uppercase">Managed Assets</h2>
+                    <h2 className="text-2xl font-heading font-extrabold uppercase">Spam Assets</h2>
                     <button onClick={() => setShowManager(false)} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-800 text-white hover:bg-red-500 transition-colors">✕</button>
                   </div>
                   <div className="flex-1 overflow-y-auto dark-scroll pr-2 space-y-4">
-                    {[...hiddenList, ...spamList].length === 0 ? (
-                      <p className="text-center py-20 opacity-30 italic">No hidden or spam assets.</p>
+                    {spamList.length === 0 ? (
+                      <p className="text-center py-20 opacity-40 italic">No scanned assets marked as spam.</p>
                     ) : (
                       <>
-                        {hiddenList.map(nft => (
-                          <div key={`${nft.chain}-${nft.address || nft.id || nft.mint || nft.name}`} className="flex items-center justify-between p-3 rounded-2xl bg-black/20 border border-white/5">
-                            <div className="flex items-center gap-4">
-                              <img src={resolveImg(nft.image, nft.symbol)} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" onError={(e)=>{e.currentTarget.onerror=null;e.currentTarget.src=imgFallbackSvg(nft.symbol,nft.chain);}} />
-                              <span className="text-xs font-bold uppercase tracking-tighter">{nft.name} (Hidden)</span>
-                            </div>
-                            <button onClick={(e) => toggleHide(e, nft)} className="text-[10px] font-bold text-blue-400 hover:text-white uppercase">Restore</button>
-                          </div>
-                        ))}
                         {spamList.map(nft => (
                           <div key={`${nft.chain}-${nft.address || nft.id || nft.mint || nft.name}`} className="flex items-center justify-between p-3 rounded-2xl bg-red-950/20 border border-red-500/10">
                             <div className="flex items-center gap-4">
@@ -4693,8 +4677,8 @@
                     )}
                   </div>
                   <div className="mt-8 pt-6 border-t border-white/5 flex gap-4">
-                    <button onClick={unhideAll} className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-2xl transition-all">Unhide All Assets</button>
-                    <button onClick={() => setShowManager(false)} className="px-8 py-4 bg-slate-800 text-[10px] font-bold uppercase tracking-widest rounded-2xl">Close</button>
+                    <button onClick={restoreAllSpam} className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold uppercase tracking-widest rounded-2xl transition-all">Restore All Assets</button>
+                    <button onClick={() => setShowManager(false)} className="px-8 py-4 bg-slate-800 text-white text-[10px] font-bold uppercase tracking-widest rounded-2xl">Close</button>
                   </div>
                 </div>
               </div>

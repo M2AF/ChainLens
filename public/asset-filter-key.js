@@ -166,6 +166,19 @@
     return kept;
   }
 
+  // Older clients can still send 'h'. Turn it into spam with a timestamp that
+  // outranks that hide when the profile merges whole lists across devices.
+  function convertHiddenToSpam(entries, now) {
+    var hidden = Object.keys(entries).filter(function (key) { return entries[key].s === 'h'; });
+    if (!hidden.length) return entries;
+    var out = Object.assign({}, entries);
+    var time = now === undefined ? Date.now() : now;
+    hidden.forEach(function (key) {
+      out[key] = { s: 's', t: Math.max(time, entries[key].t + 1) };
+    });
+    return out;
+  }
+
   window.assetFilterKey = {
     MAX_FILTER_ENTRIES: MAX_FILTER_ENTRIES,
     canonicalTokenKey: canonicalTokenKey,
@@ -174,5 +187,6 @@
     legacyKeyToCanonical: legacyKeyToCanonical,
     sanitizeEntries: sanitizeEntries,
     mergeEntries: mergeEntries,
+    convertHiddenToSpam: convertHiddenToSpam,
   };
 })();

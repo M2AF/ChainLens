@@ -39,7 +39,7 @@ For a basic local run, no database or wallet is required. Features that rely on 
 | Google / Discord login | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`; configure callback URLs with `GOOGLE_CALLBACK_URL` and `DISCORD_CALLBACK_URL` if the defaults do not match. |
 | Passkeys | Apply `sql/cl_passkeys.sql`; `WEBAUTHN_RP_ID` and `WEBAUTHN_ORIGINS` can set the relying party and allowed origins. Passkeys are added to an existing account before they can be used to sign in. |
 | Messenger and themes | Apply `sql/cl_chat.sql` and `sql/cl_themes.sql`. `GIPHY_API_KEY` enables chat GIF search. Messenger requires a verified wallet and a linked Google or Discord account. |
-| Synced hidden/spam assets | Apply `sql/cl_asset_filters.sql`. Local filters work without sync; signed-in users can merge them across ChainLens and Magic Money. |
+| Synced spam assets | Apply `sql/cl_asset_filters.sql`. Local filters work without sync; signed-in users can merge them across ChainLens and Magic Money. Earlier hidden assets become spam. |
 | Search | `SEARCH_WORKER_BASE_URL` overrides the hosted Search Worker used by the compatibility proxy. See [Search deployment](SEARCH_DEPLOYMENT.md). |
 | Magic Swap | `MM_SWAP_WORKER_URL` overrides the hosted swap Worker; configure `MM_SWAP_CLIENT_TOKEN` for its server-to-Worker client tag (not authentication). `CHAINLENS_JUPITER_FEE=off` disables the Jupiter fee in DEX quotes. Exchange Swap uses the same Worker URL and its existing server-side `SIMPLESWAP_API_KEY` and `CHANGENOW_API_KEY` secrets; no provider key belongs in ChainLens or the browser. |
 
@@ -51,7 +51,7 @@ The Express server in [`backend-server.js`](backend-server.js) serves the single
 
 Magic Swap uses [`public/swap-core.js`](public/swap-core.js), generated from the wallet's shared swap core, to check candidate routes on the server and again in the browser before a signature. Keep that bundle in sync with the wallet; `npm test` checks its recorded bundle hash and swap behavior. A quote or listed network is not a guarantee that a particular swap can execute. Connected-wallet support and provider responses decide what is offered.
 
-Account sessions use server-verified wallet signatures or OAuth, then a JWT for protected profile routes. Manual addresses are watch-only; Bitcoin, Polkadot, Tron, and Dogecoin extension addresses are also linked as watch-only. Passkey registration requires an existing authenticated account. Hidden and spam choices render from local storage and can sync with the profile when signed in. Magic Money's custom themes are created in the wallet and read by eligible ChainLens accounts; ChainLens does not edit them.
+Account sessions use server-verified wallet signatures or OAuth, then a JWT for protected profile routes. Manual addresses are watch-only; Bitcoin, Polkadot, Tron, and Dogecoin extension addresses are also linked as watch-only. Passkey registration requires an existing authenticated account. Spam choices render from local storage and can sync with the profile when signed in. Magic Money's custom themes are created in the wallet and read by eligible ChainLens accounts; ChainLens does not edit them.
 
 ## Development checks
 
@@ -67,4 +67,4 @@ The Search Worker has its own package and checks in [`cloudflare-search-worker/`
 
 - [Original design reference](docs/DESIGN_REFERENCE.md) records the visual system and earlier implementation decisions. Use this README and the current code for feature/setup facts.
 - [Privacy policy](PRIVACY_POLICY.md) describes data handling.
-- Portfolio scanning is based on public addresses and third-party indexers. It may show stale, incomplete, or spam assets; use the hide/spam controls for your own view.
+- Portfolio scanning is based on public addresses and third-party indexers. It may show stale, incomplete, or spam assets; use Mark as spam to remove an asset from your view.
