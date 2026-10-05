@@ -27,6 +27,7 @@ const { createPrecompiledPage, COMPILED_PREFIX } = require('./precompile-page');
 const { createSwapService, registerSwapRoutes, withSwapIdentity } = require('./swap-service');
 const { createExchangeService, registerExchangeRoutes } = require('./exchange-service');
 const { createTickerService } = require('./market-ticker-service');
+const { createNewListingsService } = require('./new-listings-service');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -3485,6 +3486,11 @@ const saveTop100 = (data) => {
 };
 
 const tickerService = createTickerService(fetch);
+const newListingsService = createNewListingsService({ key: process.env.NEW_LISTINGS_KEY });
+newListingsService.start();
+app.get('/api/market/new-listings', (_req, res) => {
+  res.set('Cache-Control', 'no-store').json(newListingsService.snapshot());
+});
 app.get('/api/market/ticker', async (_req, res) => {
   try {
     const snapshot = await tickerService.snapshot(_top100Cache, _top100CacheTs);

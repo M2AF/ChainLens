@@ -1,6 +1,7 @@
 node_modules/
 
 # Local environment files
+# Includes the server-only NEW_LISTINGS_KEY; publish variable names only.
 .env
 .env.*
 !.env.example
@@ -15,6 +16,7 @@ Thumbs.db
 apphublist.xlsx
 chainlens-diagnose.js
 .claude/settings.local.json
+.handoff.lock
 
 # Local Cloudflare CLI state
 .wrangler/
@@ -29,6 +31,7 @@ pnpm-debug.log*
 market-cache.json
 
 # Test and coverage output
+# Includes New Listings probe output and desktop/mobile screenshots.
 test-results/
 playwright-report/
 blob-report/

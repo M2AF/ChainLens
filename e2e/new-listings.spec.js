@@ -1,0 +1,28 @@
+const { test, expect } = require('@playwright/test');
+test('Market and New Listings switch preserves market, displays real feed fields and searches on mobile', async ({ page }) => {
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/api/market/top100', route => route.fulfill({ json: [{ id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', current_price: 64000, market_cap_rank: 1, price_change_percentage_24h: 2, market_cap: 1e12 }] }));
+  await page.route('**/api/market/new-listings', route => route.fulfill({ json: { state: 'live', delayMs: 3000, events: [{ id: '1', exchange: 'upbit', marketType: 'spot', markets: ['usdt'], symbols: ['TEST'], title: '$TEST listed on Upbit spot', timestamp: 1700000000000, url: 'https://example.com/listing' }] } }));
+  await page.goto('/');
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Market', exact: true }).click();
+  await expect(page.getByRole('row', { name: /Bitcoin/ })).toBeVisible();
+  const toggle = page.getByRole('group', { name: 'Market Watch view' });
+  const favicon = toggle.getByRole('button', { name: 'New Listings' }).locator('img');
+  await expect(favicon).toHaveAttribute('src', '/new-listings-favicon.png');
+  await expect.poll(() => favicon.evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
+  await toggle.getByRole('button', { name: 'New Listings' }).click();
+  const panel = page.getByTestId('new-listings-panel');
+  await expect(panel.getByRole('status')).toContainText('Live · 3s provider delay');
+  await expect(panel.getByRole('article')).toContainText('$TEST');
+  await expect(panel.getByRole('link', { name: 'View announcement' })).toHaveAttribute('href', 'https://example.com/listing');
+  await page.screenshot({ path: 'test-results/new-listings-desktop.png' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await panel.getByRole('textbox').fill('missing');
+  await expect(panel).toContainText('No matching listings.');
+  await panel.getByRole('textbox').fill('upbit');
+  await expect(panel.getByRole('article')).toBeVisible();
+  await page.screenshot({ path: 'test-results/new-listings-mobile.png' });
+  await toggle.getByRole('button', { name: 'Market', exact: true }).click();
+  await expect(page.getByRole('row', { name: /Bitcoin/ })).toBeVisible();
+  expect(errors).toEqual([]);
+});
