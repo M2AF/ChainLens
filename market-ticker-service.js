@@ -6,6 +6,7 @@ const number = value => value == null || value === '' || !Number.isFinite(Number
 function marketRows(coins, timestamp) {
   return (coins || []).filter(c => number(c.current_price) > 0).map(c => ({
     id: `market:${c.id}`, name: c.name, symbol: c.symbol, chain: 'Global',
+    image: c.image || '',
     price: number(c.current_price), change: number(c.price_change_percentage_24h),
     source: c.source || 'CoinGecko', updatedAt: Date.parse(c.last_updated) || timestamp,
   }));
@@ -22,6 +23,7 @@ function dexRows(pairs, timestamp) {
     if ((best.get(id)?.liquidity || 0) >= number(p.liquidity.usd)) continue;
     best.set(id, { id, name: p.baseToken.name, symbol: p.baseToken.symbol,
       chain: p.chainId, address: p.baseToken.address, price: number(p.priceUsd),
+      image: p.info?.imageUrl || '',
       change: number(p.priceChange?.h24), source: 'DEX Screener', updatedAt: timestamp,
       liquidity: number(p.liquidity.usd),
       url: `https://dexscreener.com/${encodeURIComponent(p.chainId)}/${encodeURIComponent(p.pairAddress)}` });

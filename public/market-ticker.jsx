@@ -1,3 +1,17 @@
+function MarketTickerIcon({ row }) {
+  const sources = [...new Set([
+    row.chain !== 'Global' ? `https://dd.dexscreener.com/ds-data/chains/${encodeURIComponent(row.chain)}.png` : '',
+    typeof row.image === 'string' && row.image.startsWith('https://') ? row.image : '',
+  ].filter(Boolean))];
+  const [index, setIndex] = React.useState(0);
+  React.useEffect(() => setIndex(0), [row.chain, row.image]);
+  return <span className="cl-ticker-icon" aria-hidden="true">
+    {sources[index]
+      ? <img src={sources[index]} alt="" width="18" height="18" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setIndex(value => value + 1)} />
+      : String(row.chain === 'Global' ? row.symbol || '?' : row.chain || '?').slice(0, 1).toUpperCase()}
+  </span>;
+}
+
 function MarketTicker({ darkMode }) {
   const [feed, setFeed] = React.useState(null);
   const [failed, setFailed] = React.useState(false);
@@ -34,7 +48,7 @@ function MarketTicker({ darkMode }) {
   const renderRow = (row, duplicate) => {
     const change = Number.isFinite(row.change) ? row.change : null;
     const old = !row.updatedAt || now - row.updatedAt > 10 * 60000;
-    const contents = <><strong>{String(row.symbol || '?').toUpperCase()}</strong><span className="cl-ticker-chain">{row.chain}</span><span>{price(row.price)}</span><span className={change === null || old ? 'cl-ticker-neutral' : change >= 0 ? 'cl-ticker-up' : 'cl-ticker-down'}>{old ? 'Stale' : change === null ? '24h —' : `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`}</span></>;
+    const contents = <><MarketTickerIcon row={row} /><strong>{String(row.symbol || '?').toUpperCase()}</strong><span className="cl-ticker-chain">{row.chain}</span><span>{price(row.price)}</span><span className={change === null || old ? 'cl-ticker-neutral' : change >= 0 ? 'cl-ticker-up' : 'cl-ticker-down'}>{old ? 'Stale' : change === null ? '24h —' : `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`}</span></>;
     const title = `${row.name} · ${row.chain}${row.address ? ` · ${row.address}` : ''} · ${row.source} · ${row.updatedAt ? new Date(row.updatedAt).toLocaleString() : 'Unknown update time'} · 24h change`;
     return row.url?.startsWith('https://dexscreener.com/')
       ? <a key={row.id} className="cl-ticker-coin" href={row.url} target="_blank" rel="noopener noreferrer" tabIndex={duplicate ? -1 : 0} title={title}>{contents}</a>
