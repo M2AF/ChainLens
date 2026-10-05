@@ -29,6 +29,8 @@
   <script src="/exchange-assets.js"></script>
   <script type="text/babel" src="/exchange-swap.jsx"></script>
   <link rel="stylesheet" href="/dex-swap.css">
+  <link rel="stylesheet" href="/market-ticker.css">
+  <script type="text/babel" src="/market-ticker.jsx"></script>
   <script src="/asset-filter-key.js"></script>
   <script src="/theme-engine.js"></script>
   <script src="/app-hub-data.js"></script>
@@ -3326,6 +3328,7 @@
             </nav>
           </aside>
           <div className="cl-main min-h-screen">
+          <MarketTicker darkMode={darkMode} />
           <button aria-label="Open menu" onClick={() => setMobileMenuOpen(true)} className={`fixed left-4 top-4 z-[60] min-[901px]:hidden rounded-xl border px-3 py-2 text-xl ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>☰</button>
           <div className={`max-w-[1600px] mx-auto p-4 md:p-8 pt-12 ${['search', 'portfolio', 'market', 'profile'].includes(activeTab) ? 'cl-primary-content' : ''}`}>
             <div className="cl-main-logo flex-col items-center mb-8">

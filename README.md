@@ -55,6 +55,8 @@ Account sessions use server-verified wallet signatures or OAuth, then a JWT for 
 
 ## Development checks
 
+The bottom price ticker combines the existing global market feed with cross-chain DEX prices from [DEX Screener's public API](https://docs.dexscreener.com/api/reference). It interleaves market leaders with up to 60 DEX tokens, balances DEX entries across chains, and uses the most liquid pool per chain/address (minimum $10,000 liquidity). Discovery uses native-symbol searches and the latest token profiles; this is a rotating selection, not exhaustive coverage of every token. Prices refresh on a five-minute server cache, and old data is labeled stale. Hover/focus or the pause button stops scrolling; reduced-motion mode supports manual horizontal scrolling. `/api/market/ticker` requires no additional API key.
+
 ```bash
 npm run check       # syntax checks for the server and browser modules
 npm test            # Node tests, including scanner, auth, search, themes, and swaps

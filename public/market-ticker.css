@@ -1,0 +1,22 @@
+.cl-main { padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
+.cl-ticker { position: fixed; bottom: 0; left: 298px; right: 0; z-index: 65; display: flex; align-items: center; height: calc(42px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid rgb(var(--cl-slate-500) / .25); font-size: 12px; }
+.cl-ticker-dark { background: rgb(var(--cl-slate-900)); color: rgb(var(--cl-white)); }
+.cl-ticker-light { background: rgb(var(--cl-white)); color: rgb(var(--cl-slate-900)); }
+.cl-ticker-label { display: flex; flex-direction: column; padding: 0 16px; flex-shrink: 0; font-weight: 700; border-right: 1px solid rgb(var(--cl-slate-500) / .25); }
+.cl-ticker-label small { font-size: 9px; font-weight: 400; opacity: .65; }
+.cl-ticker-window { flex: 1; min-width: 0; overflow: hidden; }
+.cl-ticker-track { display: flex; width: max-content; animation: cl-ticker-scroll var(--ticker-duration, 90s) linear infinite; }
+.cl-ticker-group { display: flex; flex-shrink: 0; align-items: center; }
+.cl-ticker-coin { display: inline-flex; align-items: center; gap: 8px; padding: 0 18px; height: 40px; white-space: nowrap; text-decoration: none; color: inherit; font-variant-numeric: tabular-nums; border-right: 1px solid rgb(var(--cl-slate-500) / .15); }
+.cl-ticker-chain { opacity: .6; font-size: 10px; }
+.cl-ticker-up { color: #10b981; }
+.cl-ticker-down { color: #f87171; }
+.cl-ticker-light .cl-ticker-up { color: #047857; }
+.cl-ticker-light .cl-ticker-down { color: #b91c1c; }
+.cl-ticker-neutral { opacity: .6; }
+.cl-ticker-control { align-self: stretch; width: 38px; flex-shrink: 0; border-left: 1px solid rgb(var(--cl-slate-500) / .25); background: transparent; }
+.cl-ticker-empty { padding: 0 16px; opacity: .65; }
+.cl-ticker:hover .cl-ticker-track, .cl-ticker:focus-within .cl-ticker-track, .cl-ticker-paused .cl-ticker-track { animation-play-state: paused; }
+@keyframes cl-ticker-scroll { to { transform: translateX(-50%); } }
+@media (max-width: 900px) { .cl-ticker { left: 0; } .cl-ticker-label { padding: 0 9px; } .cl-ticker-coin { padding: 0 12px; } }
+@media (prefers-reduced-motion: reduce) { .cl-ticker-track { animation: none; } .cl-ticker-window { overflow-x: auto; } .cl-ticker-group[aria-hidden] { display: none; } }

@@ -26,6 +26,7 @@ const { resolveWalletSession } = require('./auth-session');
 const { createPrecompiledPage, COMPILED_PREFIX } = require('./precompile-page');
 const { createSwapService, registerSwapRoutes, withSwapIdentity } = require('./swap-service');
 const { createExchangeService, registerExchangeRoutes } = require('./exchange-service');
+const { createTickerService } = require('./market-ticker-service');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -3482,6 +3483,16 @@ const saveTop100 = (data) => {
   _top100CacheTs = Date.now();
   try { fs.writeFileSync(MARKET_CACHE_FILE, JSON.stringify({ data, ts: _top100CacheTs })); } catch (_) {}
 };
+
+const tickerService = createTickerService(fetch);
+app.get('/api/market/ticker', async (_req, res) => {
+  try {
+    const snapshot = await tickerService.snapshot(_top100Cache, _top100CacheTs);
+    res.set('Cache-Control', 'no-store').json(snapshot);
+  } catch (_) {
+    res.status(503).json({ error: 'Ticker temporarily unavailable' });
+  }
+});
 
 app.get('/api/market/top100', async (req, res) => {
   if (_top100Cache && Date.now() - _top100CacheTs < TOP100_TTL) {
