@@ -83,3 +83,18 @@
 ### 2026-10-05T19:29-03:00 · codex · handoff · no-git
 - Investigation closed per user clarification; diagnostic changes remain local.
 - next: Deploy local logo and feed diagnostic changes when authorized. No current missed-event defect established; wallet deferred.
+
+### 2026-10-05T19:35-03:00 · codex · claim · no-git
+- task: Replace ChainLens App Hub heading with supplied logo
+- lease until 2026-10-05T22:35-03:00
+
+### 2026-10-05T19:35-03:00 · codex · checkpoint · no-git
+- Copied supplied App Hub PNG unchanged to public/apphub.png; replaced App Hub heading with accessible responsive image, padding clipped in CSS and light-mode inversion. Checking compiled homepage and visual desktop/mobile layout.
+
+### 2026-10-05T19:36-03:00 · codex · verify · no-git
+- verified: Homepage precompile passes; actual logo loaded in Chromium; desktop/mobile screenshots reviewed
+- App Hub heading now displays supplied logo, responsive with light/dark contrast. First mobile screenshot had sidebar open after viewport resize; recaptured via normal mobile navigation with menu closed. No deployment.
+
+### 2026-10-05T19:36-03:00 · codex · handoff · no-git
+- App Hub logo replacement complete locally, verified and logged.
+- next: Deploy local ChainLens App Hub/Market Watch logos and feed diagnostics when authorized; wallet remains deferred.
