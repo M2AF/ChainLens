@@ -7,11 +7,16 @@ task: -
 lease_until: -
 repo: -
 verify: npm run check && npm test
-verified: no-git · 139 unit tests pass; syntax/precompile pass; 2 browser scenarios pass with final favicon scenario rerun passing; actual backend endpoint HTTP200/live/3000ms/no-store verified · 2026-10-05T19:10-03:00
+verified: no-git · 139 unit tests, homepage compilation, existing desktop/mobile New Listings browser scenario pass · 2026-10-05T19:29-03:00
 head: no-git
-updated: 2026-10-05T19:10-03:00 · codex
+updated: 2026-10-05T19:29-03:00 · codex
 
 ## Now
+- User clarified missed-new-listing report was a misread; no confirmed ingestion defect. MON spot timestamp18:26 Halifax predates key-config verification19:14.
+- Added local sanitized connection/receive/filter counters and explicit free-feed empty state with connection time. 139 unit tests and homepage compilation pass; existing desktop/mobile feed test passes.
+- Production endpoint verified HTTP200/live/3000ms with events=[] and updatedAt=null. Key now configured; no listing stored in current process.
+- Provider FAQ confirms sockets never replay; free key cannot fetch history. Website historical rows do not seed ChainLens. Production homepage still lacks local logo update.
+- Market Watch h2 now uses user's public/marketwatch.png logo, copied unchanged; responsive CSS clips transparent padding and inverts only in light mode for contrast.
 - ChainLens Market / New Listings implementation complete locally; wallet untouched.
 - Server-only NEW_LISTINGS_KEY configured in ignored local .env. No deployment or commit.
 - Added ws dependency, feed service/tests, Market UI/e2e, docs/NEW-LISTINGS.md.
@@ -19,7 +24,7 @@ updated: 2026-10-05T19:10-03:00 · codex
 - Official favicon saved locally in public/new-listings-favicon.png and used in switcher; gitignore covers secrets, runtime/test artifacts, ephemeral .handoff.lock.
 
 ## Next
-- Configure NEW_LISTINGS_KEY in production and deploy/restart only when authorized; verify live endpoint. Wallet work later per user.
+- Deploy local logo and feed diagnostic changes when authorized. No current missed-event defect established; wallet deferred.
 
 ## Traps
 - Free feed contains exchange announcements, no price/history/contract data. Memory buffer clears on restart; reconnects can leave gaps.
@@ -32,5 +37,6 @@ updated: 2026-10-05T19:10-03:00 · codex
 - Fullstack Iteration, Playwright Testing, Visual Iteration: implementation/browser/screenshot validation; Codex skills root C:/Users/balla/.codex/skills.
 
 ## Pointers
+- public/marketwatch.png; source ../Magic Money Wallet/logos and Banners/marketwatch.png (read only).
 - docs/NEW-LISTINGS.md; test/new-listings-service.test.js; e2e/new-listings.spec.js.
 - test-results/new-listings-desktop.png and new-listings-mobile.png; new-listings-unit-run.txt.

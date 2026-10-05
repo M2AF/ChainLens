@@ -3887,7 +3887,9 @@
                 <div className="max-w-6xl mx-auto">
                     <div className={`p-8 rounded-[3rem] border transition-all ${darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-2xl'}`}>
                         <div className="mb-8">
-                            <h2 className="text-4xl font-heading font-extrabold uppercase mb-2">Market Watch</h2>
+                            <h2 className="relative w-full max-w-xl aspect-[10/1] overflow-hidden mb-4">
+                              <img src="/marketwatch.png" alt="Market Watch" width="2172" height="724" className="absolute top-1/2 -translate-y-1/2 w-full h-auto" style={darkMode ? undefined : { filter: 'invert(1)' }} />
+                            </h2>
                             <p className="text-sm opacity-60">{marketMode === 'market' ? 'Live cryptocurrency market data powered by CoinGecko, CoinMarketCap & Binance' : 'New exchange listing announcements as they arrive'}</p>
                         </div>
                         <div role="group" aria-label="Market Watch view" className={`mb-6 flex gap-2 rounded-2xl border p-1.5 ${darkMode ? 'border-slate-700 bg-slate-950/70' : 'border-slate-200 bg-slate-50'}`}>
@@ -3913,7 +3915,12 @@
                               <p className="text-sm break-words mb-3">{event.title}</p>
                               <a href={event.url} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-cyan-500 hover:underline">View announcement ↗</a>
                             </article>)}
-                            {listingsFeed.events.length === 0 && <p className="py-12 text-center text-sm opacity-60">{listingsFeed.state === 'live' ? 'Waiting for new listing announcements. They will appear here automatically.' : 'Listing announcements will appear when the feed connects.'}</p>}
+                            {listingsFeed.events.length === 0 && <div className="py-12 text-center text-sm opacity-60">
+                              <p>{listingsFeed.state === 'live' ? 'Connected. Waiting for listing announcements published after this server connected.' : 'Listing announcements will appear when the feed connects.'}</p>
+                              {listingsFeed.state === 'live' && <p className="mt-2">The free feed does not replay earlier listings.</p>}
+                              {listingsFeed.diagnostics?.connectedAt && <p className="mt-2">Connected: {new Date(listingsFeed.diagnostics.connectedAt).toLocaleString()}</p>}
+                              {listingsFeed.state === 'live' && <a href="https://newlistings.pro" target="_blank" rel="noopener noreferrer" className="inline-block mt-3 text-cyan-500 underline">View recent listings on New Listings Feed ↗</a>}
+                            </div>}
                             {listingsFeed.events.length > 0 && !listingsFeed.events.some(event => `${event.symbols.join(' ')} ${event.exchange} ${event.title}`.toLowerCase().includes(listingsSearch.toLowerCase())) && <p className="py-12 text-center text-sm opacity-60">No matching listings.</p>}
                           </div>
                           <p className="mt-6 text-xs opacity-50">Powered by <a href="https://newlistings.pro" target="_blank" rel="noopener noreferrer" className="underline">New Listings Feed</a>. Recent announcements received by ChainLens; reconnects may leave gaps.</p>

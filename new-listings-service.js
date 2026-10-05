@@ -20,8 +20,11 @@ function parseListing(message) {
 function createNewListingsService({ key, Socket = WebSocket, random = Math.random } = {}) {
   let socket, retryTimer, admissionTimer, stopped = false, retryMs = 1000;
   let state = key ? 'connecting' : 'unconfigured', delayMs = null, updatedAt = null;
+  const diagnostics = { startedAt: Date.now(), connectedAt: null, lastMessageAt: null, lastEventAt: null,
+    receivedEvents: 0, acceptedListings: 0, ignoredEvents: 0, duplicateListings: 0, connections: 0,
+    lastErrorCode: null, lastCloseCode: null };
   const events = [];
-  const snapshot = () => ({ state, delayMs, updatedAt, events: events.slice() });
+  const snapshot = () => ({ state, delayMs, updatedAt, events: events.slice(), diagnostics: { ...diagnostics } });
   function connect() {
     if (stopped || !key || socket) return;
     state = 'connecting';
@@ -32,30 +35,38 @@ function createNewListingsService({ key, Socket = WebSocket, random = Math.rando
     admissionTimer = setTimeout(() => current.terminate(), 15000);
     admissionTimer.unref?.();
     current.on('message', data => {
+      diagnostics.lastMessageAt = Date.now();
       let message;
-      try { message = JSON.parse(data.toString()); } catch { fatal = true; state = 'error'; current.close(); return; }
+      try { message = JSON.parse(data.toString()); } catch { fatal = true; diagnostics.lastErrorCode = 'INVALID_JSON'; state = 'error'; current.close(); return; }
       if (message?.type === 'success' && message.code === 'READY') {
         admitted = true; clearTimeout(admissionTimer); retryMs = 1000; state = 'live';
+        diagnostics.connectedAt = Date.now(); diagnostics.connections++; diagnostics.lastErrorCode = null;
         delayMs = Number.isFinite(message.subscription?.delay_ms) ? message.subscription.delay_ms : null;
       } else if (message?.type === 'error') {
+        diagnostics.lastErrorCode = ['SERVER_UNAVAILABLE', 'CONNECTION_LIMIT_REACHED', 'CONNECTION_CLOSED', 'AUTHENTICATION_FAILED', 'KEY_EXPIRED'].includes(message.code) ? message.code : 'UPSTREAM_ERROR';
         fatal = message.code !== 'SERVER_UNAVAILABLE'; state = fatal ? 'error' : 'reconnecting'; current.close();
       } else if (admitted) {
+        diagnostics.receivedEvents++; diagnostics.lastEventAt = Date.now();
         const event = parseListing(message);
         if (event && !events.some(e => e.id === event.id || (e.url === event.url && e.timestamp === event.timestamp))) {
+          diagnostics.acceptedListings++;
           events.push(event); events.sort((a, b) => b.timestamp - a.timestamp); events.splice(200); updatedAt = Date.now();
-        }
+        } else if (event) diagnostics.duplicateListings++;
+        else diagnostics.ignoredEvents++;
       }
     });
     current.on('unexpected-response', (_request, response) => {
       const status = response.statusCode;
+      diagnostics.lastErrorCode = `HTTP_${Number.isInteger(status) ? status : 'ERROR'}`;
       fatal = status < 500 && status !== 408 && status !== 429;
       const after = response.headers['retry-after'] || '';
       minimumWait = /^\d+$/.test(after) ? Number(after) * 1000 : Math.max(0, Date.parse(after) - Date.now()) || 0;
       response.resume(); current.terminate();
     });
-    current.on('error', () => {}); // Never expose upstream errors or auth headers.
+    current.on('error', () => { diagnostics.lastErrorCode ||= 'SOCKET_ERROR'; }); // No raw errors or auth headers.
     current.on('close', code => {
       clearTimeout(admissionTimer); socket = null;
+      diagnostics.lastCloseCode = code;
       if (stopped) return;
       if (fatal || code === 1008) { state = 'error'; return; }
       state = 'reconnecting';

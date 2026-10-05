@@ -10,6 +10,8 @@ The browser polls `/api/market/new-listings` every five seconds only while New L
 
 READY confirms admission; socket open alone does not. Transient failures retry with exponential backoff and jitter, respecting Retry-After. Auth, expiry, or connection-limit failures stop retries until the operator resolves them and restarts. Protocol pings are handled by `ws`, without application heartbeat messages. HTTPS source links only, React text rendering, bounded fields and payloads.
 
+The snapshot includes `diagnostics`: process start and latest READY time, last received message/event times, received/accepted/ignored/duplicate counters, connection count, and sanitized error/close codes. No raw payloads, keys, usernames, or upstream error messages are exposed. Compare the listing's provider timestamp with the connection time before attributing an empty feed to filtering. `ignoredEvents` includes non-listing announcements as well as invalid listing records; it alone does not identify a parser bug. These diagnostics require deploying the updated backend.
+
 Keep production to one ingest process or at most the key's two permitted egress IPs. Multiple replicas must use a shared ingest service before scaling past this limit. The existing Node backend avoids a new Worker/relay infrastructure dependency; `ws` is the only added runtime dependency because authentication requires a bearer header and browser WebSocket cannot set it.
 
 Provider references: https://newlistings.pro/docs/quickstart, https://newlistings.pro/docs/v2/full, https://newlistings.pro/docs/v2/connection-lifecycle.

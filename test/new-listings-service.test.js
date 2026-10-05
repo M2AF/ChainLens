@@ -26,12 +26,21 @@ test('one upstream, READY admission, deduplication, bounded history, sanitized s
   send({ type: 'success', code: 'READY', subscription: { delay_ms: 3000, username: 'private' } });
   assert.equal(service.snapshot().state, 'live');
   send(fixture()); send(fixture()); assert.equal(service.snapshot().events.length, 1);
+  const nonListing = fixture(); nonListing.parser.classification.event = 'none'; send(nonListing);
+  assert.equal(service.snapshot().diagnostics.receivedEvents, 3);
+  assert.equal(service.snapshot().diagnostics.acceptedListings, 1);
+  assert.equal(service.snapshot().diagnostics.duplicateListings, 1);
+  assert.equal(service.snapshot().diagnostics.ignoredEvents, 1);
+  assert(service.snapshot().diagnostics.connectedAt >= service.snapshot().diagnostics.startedAt);
+  const priorSnapshot = service.snapshot(); priorSnapshot.diagnostics.receivedEvents = -1;
+  assert.equal(service.snapshot().diagnostics.receivedEvents, 3);
   for (let i = 0; i < 210; i++) send({ ...fixture(), id: i + 20, detected_time_us: 1700000000000000 + i * 1000 });
   assert.equal(service.snapshot().events.length, 200);
   assert(!JSON.stringify(service.snapshot()).includes('private'));
   assert(!JSON.stringify(service.snapshot()).includes('test-secret'));
   send({ type: 'error', code: 'AUTHENTICATION_FAILED', message: 'private upstream details' });
   assert.equal(service.snapshot().state, 'error');
+  assert.equal(service.snapshot().diagnostics.lastErrorCode, 'AUTHENTICATION_FAILED');
   service.stop();
 });
 test('missing server credential reports unconfigured without connecting', () => {
