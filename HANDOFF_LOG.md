@@ -115,3 +115,21 @@
 ### 2026-10-05T21:15-03:00 · codex · handoff · no-git
 - NFT favorites sync through shared ChainLens-ID preferences implemented and locally verified in both products; offline decisions and unfavorite tombstones retained. No live writes, commit or deployment.
 - next: When deployment is authorized, update ChainLens backend and wallet profile Worker first, then website/wallet clients. Verify same-ID star/unstar across devices using valid server credentials. Existing App Hub/Market Watch logo and feed updates await deployment too.
+
+### 2026-10-06T00:32-03:00 · codex · claim · no-git
+- task: Profile portfolio gallery, session retention and 3:1 banner
+- lease until 2026-10-06T03:32-03:00
+
+### 2026-10-06T00:35-03:00 · codex · checkpoint · no-git
+- Profile portfolio component and session-owned NFT loading implemented. Six concurrent scanner NFT requests across every linked EVM/non-EVM wallet, canonical dedupe, partial publish, retained holdings until logout/refresh; profile DOM stays mounted across tab navigation. Compact left account disclosures preserve controls. Banner center-crops to1500x500 and uses authenticated profile PATCH; additive SQL migration prepared, not applied. Homepage precompile6scripts passes. Browser fixture screenshots next.
+
+### 2026-10-06T00:42-03:00 · codex · checkpoint · no-git
+- Reviewed1920px dark desktop and390px mobile screenshots. Profile/browser scenario passes (38NFTs, 2EVMwallets acrossallEVMchains +Solana/Cardano, cursor page2, dedupe, retained imageDOM, favorites/chainfilters,1500x500banner,logout). Fixed JSX comments rendered as text and mobile screenshot sidebar transition. Invalid-token/null-profile hook regression caught by spam test and fixed; both spam tests pass.143unit tests and syntax/precompile6scripts pass. Preparing final account-race and browser regression checks.
+
+### 2026-10-06T00:47-03:00 · codex · verify · no-git
+- verified: 143unit tests;5browser checks; final profile test pass; syntax/precompile6scripts; screenshots reviewed
+- Profile portfolio implementation complete locally. All5browser checks pass; final profile test repeated after compact account styling and assertions for retained linked-wallet/passkey controls (pass).143unit tests, syntax and6script precompile pass. Desktop/mobile/expanded account screenshots reviewed; sample NFT data only. Read-only cl_users banner probe rejected existing credential; no SQL applied or live writes. No wallet edits, commit or deployment.
+
+### 2026-10-06T00:47-03:00 · codex · handoff · no-git
+- OpenSea-inspired Profile gallery, condensed left account panel,3:1banner upload, all-linked-wallet NFT preload/pagination and session retention implemented and locally verified. docs/PROFILE-PORTFOLIO.md and screenshots record behavior and coverage limits. Prepared banner SQL remains unapplied; existing DB credential rejected. Trading tabs question pending; implemented Overview/Holdings/Favorites.
+- next: Review profile-portfolio screenshots with user. Deployment when authorized: apply sql/cl_profile_banner.sql via normal DB workflow, deploy backend/static assets, verify live banner persistence and linked-wallet portfolio loading with valid credentials. Retain existing pending favorites Worker and logos/feed deployment requirements.

@@ -33,6 +33,8 @@
   <script type="text/babel" src="/market-ticker.jsx"></script>
   <script src="/asset-filter-key.js"></script>
   <script type="text/babel" src="/nft-favorites.jsx"></script>
+  <script type="text/babel" src="/profile-portfolio.jsx"></script>
+  <link rel="stylesheet" href="/profile-portfolio.css">
   <script src="/theme-engine.js"></script>
   <script src="/app-hub-data.js"></script>
 
@@ -1529,6 +1531,7 @@
       const [authToken, setAuthToken] = useState(() => localStorage.getItem('cl_token'));
       const [userProfile, setUserProfile] = useState(null);
       const { favorites: nftFavorites, toggleFavorite: toggleNftFavorite } = window.useProfileNftFavorites(userProfile?.id, authToken);
+      const profilePortfolio = window.useProfilePortfolio(userProfile, authToken);
       const [authLoading, setAuthLoading] = useState(false);
       const [walletConnecting, setWalletConnecting] = useState(null); // 'evm'|'solana'|'cardano'|'google'|'discord'
       const [walletPickerType, setWalletPickerType] = useState(null);
@@ -4028,17 +4031,14 @@
                         </>}
                     </div>
                 </div>
-            ) : activeTab === 'profile' ? (
-                // ══════════════════════════════════════════════════════════
-                // PROFILE TAB
-                // ══════════════════════════════════════════════════════════
-                <div className="max-w-3xl mx-auto">
+            ) : null}
+            <div hidden={activeTab !== 'profile'}>
+                <div className={userProfile ? "profile-workspace" : "max-w-3xl mx-auto"}>
                   {authLoading ? (
                     <div className="py-32 text-center animate-pulse">
                       <p className={`text-sm font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Loading profile…</p>
                     </div>
                   ) : !userProfile ? (
-                    // ── LOGGED OUT: Login / Connect panel ──────────────────
                     <div className={`rounded-[3rem] border p-8 md:p-14 shadow-2xl glass-card ${darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-100'}`}>
                       <div className="text-center mb-10 slide-up">
                         <h2 className="text-4xl font-heading font-extrabold uppercase mb-3">Your Profile</h2>
@@ -4118,8 +4118,8 @@
                       </p>
                     </div>
                   ) : (
-                    // ── LOGGED IN: Profile dashboard ───────────────────────
-                    <div className="space-y-6">
+                    <div className="profile-layout">
+                    <aside className="profile-account">
                       {showAvatarEditor && (
                         <div
                           className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4"
@@ -4168,7 +4168,7 @@
 
                               {avatarMode === 'nft' ? (
                                 (() => {
-                                  const avatarNfts = (nfts || []).filter(asset => !asset.isToken && asset.image).slice(0, 24);
+                                  const avatarNfts = (profilePortfolio.assets || []).filter(asset => !asset.isToken && asset.image).slice(0, 24);
                                   return avatarNfts.length > 0 ? (
                                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                                       {avatarNfts.map(asset => {
@@ -4331,7 +4331,8 @@
                         </div>
                       )}
 
-                      {/* ── Linked Socials ──────────────────────────────── */}
+                      <details><summary>Social accounts & passkeys</summary>
+{/* ── Linked Socials ──────────────────────────────── */}
                       <div className={`rounded-[3rem] border p-8 glass-card ${darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
                         <div className="flex items-center justify-between mb-6">
                           <h3 className="text-lg font-heading font-extrabold uppercase">Linked Socials</h3>
@@ -4449,7 +4450,9 @@
                         </div>
                       )}
 
-                      {/* Linked wallets section */}
+                      </details>
+                      <details><summary>Linked wallets · {userProfile.cl_wallets?.length || 0}</summary>
+{/* Linked wallets section */}
                       <div className={`rounded-[3rem] border p-8 glass-card ${darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
                         <div className="flex items-center justify-between mb-6">
                           <h3 className="text-lg font-heading font-extrabold uppercase">Linked Wallets</h3>
@@ -4555,25 +4558,17 @@
                         </div>
                       </div>
 
-                      {/* Quick-scan banner — shows on portfolio tab too */}
-                      {(userProfile.cl_wallets || []).length > 0 && (
-                        <div className={`rounded-3xl border p-5 sm:p-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 ${darkMode ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'}`}>
-                          <div className="text-center sm:text-left">
-                            <p className="text-sm font-bold text-emerald-500">Ready to scan</p>
-                            <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                              {(userProfile.cl_wallets || []).length} wallet{(userProfile.cl_wallets || []).length !== 1 ? 's' : ''} across {[...new Set((userProfile.cl_wallets || []).map(w => w.chain))].length} chain{[...new Set((userProfile.cl_wallets || []).map(w => w.chain))].length !== 1 ? ' families' : ' family'}
-                            </p>
-                          </div>
-                          <button onClick={loadMyPortfolio}
-                            className="w-full sm:w-auto px-5 sm:px-8 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-heading font-extrabold uppercase tracking-widest text-base sm:text-lg transition-all shadow-xl shadow-emerald-500/20">
-                            ⚡ Load Portfolio
-                          </button>
-                        </div>
-                      )}
+                      </details>
+                      <div className="profile-summary"><span>YOUR COLLECTION</span><b>{profilePortfolio.assets.length}</b><span>NFTs across {new Set(profilePortfolio.assets.map(a => a.chain)).size} chains</span></div>
+                    </aside>
+                    <div className="min-w-0">
+                      <window.ProfileBanner profile={userProfile} authFetch={authFetch} onSave={(id, url) => setUserProfile(p => p?.id === id ? { ...p, banner_url: url || null } : p)} />
+                      <window.ProfilePortfolio portfolio={profilePortfolio} favorites={nftFavorites} toggleFavorite={toggleNftFavorite} onSelect={setSelectedAsset} resolveImg={resolveImg} darkMode={darkMode} hidden={new Set(Object.keys(filterEntries).filter(k => ['h', 's'].includes(filterEntries[k].s)))} />
+                    </div>
                     </div>
                   )}
                 </div>
-            ) : null}
+            </div>
 
             {/* Chart Modal */}
             {showChart && selectedCoin && (

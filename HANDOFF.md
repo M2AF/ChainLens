@@ -7,11 +7,13 @@ task: -
 lease_until: -
 repo: -
 verify: npm run check && npm test
-verified: no-git · npm run check; npm test (140 pass); homepage precompile 5 scripts; profile-favorites browser tests 2 pass · 2026-10-05T21:15-03:00
+verified: no-git · 143unit tests;5browser checks; final profile test pass; syntax/precompile6scripts; screenshots reviewed · 2026-10-06T00:47-03:00
 head: no-git
-updated: 2026-10-05T21:15-03:00 · codex
+updated: 2026-10-06T00:47-03:00 · codex
 
 ## Now
+- Profile portfolio redesign implemented locally: compact left account disclosures,3:1banner,Overview/Holdings/Favorites mosaic, all-linked-wallet session cache and background previews; scanner state independent and Profile stays mounted through navigation.
+- 143 unit tests, syntax/precompile6scripts and5browser checks pass; profile test repeated after compact account styling and expanded-panel assertions (pass). Desktop/mobile/expanded account screenshots reviewed. Banner SQL prepared, not applied; existing local DB read rejected (Unregistered API key).
 - Shared ChainLens-ID NFT favorites complete locally in website and Magic Money: profile-scoped favorites/unfavorite tombstones, offline retry, wallet legacy migration and account/network isolation. Stars pin NFTs; existing sorts remain within groups.
 - 140 unit tests, syntax/precompile, scanner-star and real wallet+website hook browser checks pass. Existing local DB credential returned Unregistered API key; no live DB writes, commit or deployment.
 - App Hub text heading replaced locally with supplied public/apphub.png logo; unchanged source artwork, responsive padding clip and light-mode inversion. Desktop/mobile screenshots reviewed; homepage precompile passes.
@@ -27,7 +29,7 @@ updated: 2026-10-05T21:15-03:00 · codex
 - Official favicon saved locally in public/new-listings-favicon.png and used in switcher; gitignore covers secrets, runtime/test artifacts, ephemeral .handoff.lock.
 
 ## Next
-- When deployment is authorized, update ChainLens backend and wallet profile Worker first, then website/wallet clients. Verify same-ID star/unstar across devices using valid server credentials. Existing App Hub/Market Watch logo and feed updates await deployment too.
+- Review profile-portfolio screenshots with user. Deployment when authorized: apply sql/cl_profile_banner.sql via normal DB workflow, deploy backend/static assets, verify live banner persistence and linked-wallet portfolio loading with valid credentials. Retain existing pending favorites Worker and logos/feed deployment requirements.
 
 ## Traps
 - Free feed contains exchange announcements, no price/history/contract data. Memory buffer clears on restart; reconnects can leave gaps.
@@ -42,6 +44,7 @@ updated: 2026-10-05T21:15-03:00 · codex
 - Fullstack Iteration, Playwright Testing, Visual Iteration: implementation/browser/screenshot validation; Codex skills root C:/Users/balla/.codex/skills.
 
 ## Pointers
+- docs/PROFILE-PORTFOLIO.md; public/profile-portfolio.{jsx,css}; sql/cl_profile_banner.sql; e2e/profile-portfolio.spec.js; test-results/profile-portfolio-{desktop,mobile,banner}.png.
 - docs/PROFILE-NFT-FAVORITES.md; public/nft-favorites.jsx; e2e/profile-favorites.spec.js; test-results/profile-favorites-scanner.png.
 - public/apphub.png; test-results/apphub-logo-desktop.png and apphub-logo-mobile.png.
 - public/marketwatch.png; source ../Magic Money Wallet/logos and Banners/marketwatch.png (read only).

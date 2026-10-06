@@ -1653,6 +1653,12 @@ app.patch('/api/profile', requireAuth, async (req, res) => {
     updates.avatar_url = avatarUrl || null;
   }
 
+  if (req.body.banner_url !== undefined) {
+    const banner = require('./profile-banner').validateBanner(req.body.banner_url);
+    if (banner.error) return res.status(banner.status).json({ error: banner.error });
+    updates.banner_url = banner.value;
+  }
+
   if (Object.keys(updates).length === 0) {
     return res.status(400).json({ error: 'No profile changes supplied' });
   }
@@ -2438,38 +2444,7 @@ app.post('/api/swap/evm/quote', async (req, res) => {
 
 // --- ASSET HELPERS ---
 
-const fetchAlchemyNFTs = async (network, address, chainId) => {
-  try {
-    const url = `https://${network}.g.alchemy.com/nft/v3/${API_KEYS.alchemy}/getNFTsForOwner?owner=${address}&withMetadata=true`;
-    console.log(`🔍 Fetching NFTs for ${chainId} from:`, url);
-    
-    const res = await fetch(url);
-    const data = await res.json();
-    
-    if (!res.ok) {
-      console.error(`❌ Alchemy NFT API error for ${chainId}:`, res.status, data);
-      return [];
-    }
-    
-    console.log(`✅ ${chainId}: Found ${data.ownedNfts?.length || 0} NFTs`);
-    
-    return (data.ownedNfts || []).map(nft => ({
-      id: `${chainId}-${nft.contract.address}-${nft.tokenId}`,
-      name: nft.name || nft.title || 'Unnamed NFT',
-      image: nft.image?.cachedUrl || nft.image?.thumbnailUrl || nft.image?.originalUrl || '',
-      collection: nft.contract.name || 'Collection',
-      chain: chainId,
-      isToken: false,
-      metadata: { 
-        traits: nft.raw?.metadata?.attributes || nft.raw?.metadata?.traits || [], 
-        description: nft.description || '' 
-      }
-    }));
-  } catch (e) { 
-    console.error(`❌ Error fetching NFTs for ${chainId}:`, e.message);
-    return []; 
-  }
-};
+const fetchAlchemyNFTs = require('./nft-source-page').createAlchemyNFTPage({ fetchImpl: fetch, apiKey: API_KEYS.alchemy });
 
 const fetchAlchemyTokens = async (network, address, chainId) => {
   try {
@@ -2614,11 +2589,13 @@ const evmChains = SCANNER_EVM_CHAINS
 
 evmChains.forEach(chain => {
   app.get(`/api/nfts/${chain.id}/:address`, (req, res) => {
-    fetchAlchemyNFTs(chain.net, req.params.address, chain.id)
-      .then(n => res.json({ nfts: n }))
+    const pageKey = req.query.pageKey || '';
+    if (typeof pageKey !== 'string' || pageKey.length > 4096) return res.status(400).json({ error: 'Invalid page cursor' });
+    fetchAlchemyNFTs(chain.net, req.params.address, chain.id, pageKey)
+      .then(n => res.json(n))
       .catch(err => {
         console.error(`❌ Route error for ${chain.id} NFTs:`, err.message);
-        res.json({ nfts: [] });
+        res.status(502).json({ error: 'NFT source unavailable', nfts: [] });
       });
   });
   
@@ -2666,6 +2643,7 @@ const nonEvmScanner = createNonEvmScanner({
 // --- Monad (via Moralis API) ---
 app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
   const { mode, address } = req.params;
+  if (req.query.pageKey !== undefined && (typeof req.query.pageKey !== 'string' || req.query.pageKey.length > 4096)) return res.status(400).json({ error: 'Invalid page cursor' });
   try {
     console.log(`📡 Fetching Monad ${mode} for ${address} via Moralis...`);
 
@@ -2940,7 +2918,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
     } else {
       // Fetch NFTs
       const response = await fetch(
-        `https://deep-index.moralis.io/api/v2.2/${address}/nft?chain=0x8f&format=decimal&media_items=true`,
+        `https://deep-index.moralis.io/api/v2.2/${address}/nft?chain=0x8f&format=decimal&media_items=true${req.query.pageKey ? `&cursor=${encodeURIComponent(String(req.query.pageKey))}` : ''}`,
         { headers: moralisHeaders }
       );
 
@@ -2982,7 +2960,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
       });
 
       console.log(`✅ Monad: Found ${nfts.length} NFTs via Moralis`);
-      res.json({ nfts });
+      res.json({ nfts, nextPageKey: data.cursor || null });
     }
   } catch (err) {
     console.error('❌ Monad Moralis error:', err);
@@ -2993,6 +2971,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
 // --- Solana ---
 app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
   const { mode, address } = req.params;
+  if (mode === 'nfts' && req.query.pageKey !== undefined && (!Number.isSafeInteger(Number(req.query.pageKey)) || Number(req.query.pageKey) < 1)) return res.status(400).json({ error: 'Invalid page cursor' });
   try {
     const solPrice = await fetchUSDPrice('solana', 'So11111111111111111111111111111111111111112');
     
@@ -3013,7 +2992,7 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
         method: 'getAssetsByOwner',
         params: { 
           ownerAddress: address, 
-          page: 1, 
+          page: mode === 'nfts' ? Math.max(1, Number(req.query.pageKey) || 1) : 1, 
           limit: 1000, // Increased to catch all tokens
           displayOptions: {
             showFungible: mode === 'tokens',
@@ -3024,6 +3003,7 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
     });
     
     const heliusData = await heliusResponse.json();
+    if (!heliusResponse.ok || heliusData.error) throw new Error('Solana NFT source unavailable');
     const items = heliusData.result?.items || [];
     const nativeBalance = heliusData.result?.nativeBalance || null;
     
@@ -3203,10 +3183,11 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
         chain: 'solana',
         image: asset.content?.links?.image || '',
         collection: asset.grouping?.[0]?.collection_metadata?.name || 'Solana',
+        collectionId: asset.grouping?.find(g => g.group_key === 'collection')?.group_value || asset.id,
         isToken: false,
         metadata: { traits: asset.content?.metadata?.attributes || [], description: asset.content?.metadata?.description || '' }
       }));
-      res.json({ nfts });
+      res.json({ nfts, nextPageKey: items.length === 1000 ? String(Math.max(1, Number(req.query.pageKey) || 1) + 1) : null });
     }
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
