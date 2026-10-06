@@ -36,6 +36,7 @@
   <script src="/nft-floor.js"></script>
   <script src="/nft-spam.js"></script>
   <script src="/nft-image.js"></script>
+  <script src="/nft-session.js"></script>
   <script type="text/babel" src="/nft-favorites.jsx"></script>
   <script type="text/babel" src="/profile-portfolio.jsx"></script>
   <link rel="stylesheet" href="/profile-portfolio.css">
@@ -1940,6 +1941,8 @@
       });
 
       const logout = () => {
+        scanAbortRef.current?.abort(); scanAbortRef.current = null;
+        setLoading(false); setIsResolving(false); setNfts([]); setTransactions([]);
         setAuthToken(null); setUserProfile(null); setPasskeys([]);
         localStorage.removeItem('cl_token');
       };
@@ -2988,6 +2991,8 @@
       }, []);
 
       const clearAll = () => {
+        scanAbortRef.current?.abort(); scanAbortRef.current = null;
+        setLoading(false); setIsResolving(false);
         setEvmAddr(''); setSolAddr(''); setAdaAddr('');
         setNfts([]); setTransactions([]); setResolvedEvm(null);
         setScanIssues([]);
@@ -3128,8 +3133,16 @@
         const controller = new AbortController();
         scanAbortRef.current = controller;
         const { signal } = controller;
+        const deadline = setTimeout(() => {
+          if (scanAbortRef.current !== controller) return;
+          controller.abort();
+          setLoading(false); setIsResolving(false);
+          setScanIssues(previous => [...previous, 'Some sources timed out. Loaded results are retained; scan again to retry.']);
+        }, 90000);
 
         setLoading(true); setNfts([]); setTransactions([]); setResolvedEvm(null);
+        const current = () => !signal.aborted && scanAbortRef.current === controller;
+        try {
 
         const issues = [];
         const resolvedByChain = Object.fromEntries(DEFAULT_CHAINS.map(chain => [chain.id, []]));
@@ -3140,9 +3153,8 @@
         const resolveAddress = async (url) => {
           setIsResolving(true);
           try {
-            const response = await fetch(url, { signal });
-            const data = await response.json();
-            return response.ok ? data.address || null : null;
+            const data = await window.NftSession.request(url, signal);
+            return data.address || null;
           } catch (error) {
             if (error.name !== 'AbortError') console.error('Address resolution error:', error);
             return null;
@@ -3183,85 +3195,71 @@
           if (target && detectAddressChain(target) === entry.chainId) addResolved(entry.chainId, target);
           else issues.push(`Could not resolve ${CHAIN_MAP[entry.chainId].label} input ${truncAddr(entry.input)}`);
         }
+        if (!current()) return;
         setIsResolving(false);
         setScanIssues(issues);
-
-        const nftTasks = [], tokenTasks = [], txTasks = [];
-        const sf = (url) => fetch(url, { signal }).then(response => {
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          return response.json();
-        });
-
-        // EVM — every address × every active chain
-        for (const addr of resolvedByChain.evm) {
-          EVM_CHAINS.forEach(chain => {
-            if (!activeChains.includes(chain.id)) return;
-            const encoded = encodeURIComponent(addr);
-            nftTasks.push(sf(`/api/nfts/${chain.id}/${encoded}`));
-            tokenTasks.push(sf(`/api/tokens/${chain.id}/${encoded}`));
-            txTasks.push(sf(`/api/transactions/${chain.id}/${encoded}`));
-          });
+        const targets = [];
+        for (const address of resolvedByChain.evm) {
+          for (const chain of EVM_CHAINS) if (activeChains.includes(chain.id)) targets.push({ chain: chain.id, address });
         }
-
-        // Every non-EVM address is sent only to its detected chain adapter.
         for (const chain of [...ACCOUNT_CHAINS, ...UTXO_CHAINS]) {
-          if (!activeChains.includes(chain.id)) continue;
-          for (const addr of resolvedByChain[chain.id]) {
-            const encoded = encodeURIComponent(addr);
-            nftTasks.push(sf(`/api/nfts/${chain.id}/${encoded}`));
-            tokenTasks.push(sf(`/api/tokens/${chain.id}/${encoded}`));
-            txTasks.push(sf(`/api/transactions/${chain.id}/${encoded}`));
+          if (activeChains.includes(chain.id)) for (const address of resolvedByChain[chain.id]) targets.push({ chain: chain.id, address });
+        }
+        const assets = new Map(), tokensByTarget = new Map(), txMap = new Map();
+        const publish = () => {
+          if (!current()) return;
+          const combined = new Map(assets);
+          for (const tokens of tokensByTarget.values()) for (const token of tokens) {
+            const key = `token:${token.chain}:${String(token.address || token.id || token.mint || token.name).toLowerCase()}`;
+            const prior = combined.get(key);
+            combined.set(key, prior ? { ...prior,
+              balance: (parseFloat(prior.balance || 0) + parseFloat(token.balance || 0)).toFixed(4),
+              totalValue: (parseFloat(prior.totalValue || 0) + parseFloat(token.totalValue || 0)).toFixed(2)
+            } : { ...token, isToken: true });
           }
+          setNfts([...combined.values()]);
+        };
+        const addNfts = values => {
+          for (const nft of values) assets.set(window.nftFavoriteKey(nft), nft);
+          publish();
+        };
+        const report = (target, type, error) => {
+          if (!current()) return;
+          issues.push(`${target.chain} · ${truncAddr(target.address)} · ${type}: ${error.message}`);
+          setScanIssues([...issues]);
+        };
+        // Seed only the requested wallet/chain targets, including pages already received.
+        for (const target of targets) addNfts(profilePortfolio.cache.peek(target.chain, target.address));
+        const nftTasks = targets.map(target => profilePortfolio.cache.load(target.chain, target.address, values => {
+          if (current()) addNfts(values);
+        }).catch(error => report(target, 'NFTs', error)));
+        const otherJobs = targets.flatMap(target => ['tokens', 'transactions'].map(type => ({ ...target, type })));
+        const worker = async () => {
+          while (otherJobs.length && current()) {
+            const target = otherJobs.shift();
+            try {
+              const body = await window.NftSession.request(`/api/${target.type}/${target.chain}/${encodeURIComponent(target.address)}`, signal);
+              if (!current()) return;
+              if (target.type === 'tokens') {
+                tokensByTarget.set(window.NftSession.targetKey(target.chain, target.address), (body.nfts || []).map(token => ({ ...token, chain: token.chain || target.chain })));
+                publish();
+              } else {
+                for (const tx of body.transactions || []) {
+                  const value = { ...tx, chain: tx.chain || target.chain };
+                  txMap.set(`${value.chain}-${value.hash || value.id || value.timestamp}`, value);
+                }
+                setTransactions([...txMap.values()].sort((a,b) => b.timestamp - a.timestamp));
+              }
+            } catch (error) { report(target, target.type, error); }
+          }
+        };
+        await Promise.all([...nftTasks, ...Array.from({ length: Math.min(6, otherJobs.length) }, worker)]);
+        } catch (error) {
+          if (current()) setScanIssues(previous => [...previous, error.message || 'Scan failed']);
+        } finally {
+          clearTimeout(deadline);
+          if (current()) { setLoading(false); setIsResolving(false); }
         }
-
-        try {
-          const [nftResults, tokenResults, txResults] = await Promise.all([
-            Promise.allSettled(nftTasks),
-            Promise.allSettled(tokenTasks),
-            Promise.allSettled(txTasks)
-          ]);
-
-          // Merge NFTs
-          const nftCombined = nftResults.filter(r => r.status === 'fulfilled' && r.value.nfts).flatMap(r => r.value.nfts);
-          const nftMap = new Map();
-          nftCombined.forEach(nft => {
-            const key = `${nft.chain}-${String(nft.address || nft.id || nft.mint || nft.name).toLowerCase()}`;
-            if (!nftMap.has(key)) nftMap.set(key, { ...nft, isToken: false });
-          });
-
-          // Merge tokens — aggregate balances if same token across multiple addresses
-          const tokenCombined = tokenResults.filter(r => r.status === 'fulfilled' && r.value.nfts).flatMap(r => r.value.nfts);
-          tokenCombined.forEach(token => {
-            const key = `${token.chain}-${String(token.address || token.id || token.mint || token.name).toLowerCase()}`;
-            if (nftMap.has(key)) {
-              const ex = nftMap.get(key);
-              nftMap.set(key, { ...ex,
-                balance: (parseFloat(ex.balance || 0) + parseFloat(token.balance || 0)).toFixed(4),
-                totalValue: (parseFloat(ex.totalValue || 0) + parseFloat(token.totalValue || 0)).toFixed(2)
-              });
-            } else {
-              nftMap.set(key, { ...token, isToken: true });
-            }
-          });
-
-          // Keep suspected NFTs available for restoration in the shared manager.
-          const filtered = Array.from(nftMap.values());
-          setNfts(filtered);
-
-          // Merge transactions — dedup by hash
-          const txCombined = txResults.filter(r => r.status === 'fulfilled' && r.value.transactions).flatMap(r => r.value.transactions);
-          const txMap = new Map();
-          txCombined.forEach(tx => { const k = `${tx.chain}-${tx.hash||tx.id||tx.timestamp}`; if (!txMap.has(k)) txMap.set(k, tx); });
-          setTransactions(Array.from(txMap.values()).sort((a,b) => b.timestamp - a.timestamp));
-
-          const total = Object.values(resolvedByChain).reduce((count, addresses) => count + addresses.length, 0);
-          console.log(`✅ Scanned ${total} address${total !== 1 ? 'es' : ''}: ${filtered.length} assets`);
-        } catch (e) {
-          if (e.name === 'AbortError') return; // scan was superseded — discard
-          console.error('Scan error:', e);
-        }
-
-        setLoading(false);
       };
 
       // Legacy handlers for backward compatibility

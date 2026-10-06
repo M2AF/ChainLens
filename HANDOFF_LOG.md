@@ -234,3 +234,19 @@
 ### 2026-10-06T02:39-03:00 · codex · handoff · no-git
 - Font and ID placement refinement complete locally. No commit or deployment performed.
 - next: User pushes/deploys public/index.html and public/profile-portfolio.jsx/css; refreshed desktop/mobile screenshot previews in test-results.
+
+### 2026-10-06T03:00-03:00 · codex · claim · no-git
+- task: Fix Scanner loading and reuse Profile NFT cache
+- lease until 2026-10-06T06:00-03:00
+
+### 2026-10-06T03:03-03:00 · codex · checkpoint · no-git
+- Scanner root cause: uncapped fetches and all-or-nothing Promise.all blocked NFTs behind token/transaction requests; no Profile cache reuse. Added per-session wallet/chain NFT cache with coalesced pagination,6-worker limits, request/scan deadlines and progressive Scanner publishing.2 cache unit tests pass;5 browser checks running (session71490).
+- next: Check browser results; fix regressions; add bounded request/cancellation coverage and review scanner screenshot.
+
+### 2026-10-06T03:06-03:00 · codex · verify · no-git
+- verified: 160unit tests;5browser checks; Scanner isolation rerun;syntax/precompile6scripts
+- Scanner fix:160 unit tests,5 browser checks passed; final scanner isolation rerun passed. Verified same Profile targets issue zero extra NFT calls, both NFT pages display during stalled token request, request timeout clears loading without losing assets, unrelated wallet gets fresh isolated paginated results. Syntax and6-script homepage precompile pass. Documented new public/nft-session.js deployment requirement.
+
+### 2026-10-06T03:06-03:00 · codex · handoff · no-git
+- Scanner/Profile NFT session reuse and stalled-source fix complete locally; screenshot reviewed.160unit tests,5browser checks plus isolation rerun,syntax and precompile pass. No commit/deployment performed.
+- next: User pushes/deploys public/index.html,public/profile-portfolio.jsx and NEW public/nft-session.js together. Tokens/transactions still request separately; cached NFTs render immediately.

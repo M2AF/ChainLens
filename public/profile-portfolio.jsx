@@ -42,6 +42,15 @@
     try { subject = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub; } catch {}
     const owner = profile?.id && token && subject === profile.id ? profile.id : null;
     const wallets = profile?.cl_wallets || [];
+    const session = useRef(null);
+    if (!session.current || session.current.owner !== owner) {
+      session.current?.cache.clear();
+      session.current = { owner, cache: window.NftSession.create({
+        key: window.nftFavoriteKey,
+        normalize: nft => ({ ...nft, metadata: { ...nft.metadata, traits: window.nftMetadata.traits(nft.metadata?.traits) } })
+      }) };
+    }
+    const cache = session.current.cache;
     const previews = useRef({ owner: null, images: new Map(), queue: [], active: 0 });
     useEffect(() => {
       if (previews.current.owner !== owner) {
@@ -73,18 +82,6 @@
     useEffect(() => {
       if (!owner || !token) { setState({ owner: null, assets: [], loading: false, issues: [] }); return; }
       let cancelled = false;
-      const controller = new AbortController();
-      const request = async url => {
-        const child = new AbortController();
-        const cancel = () => child.abort();
-        controller.signal.addEventListener('abort', cancel, { once: true });
-        const timer = setTimeout(cancel, 30000);
-        try {
-          const response = await fetch(url, { signal: child.signal });
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          return await response.json();
-        } finally { clearTimeout(timer); controller.signal.removeEventListener('abort', cancel); }
-      };
       const targets = new Map();
       for (const wallet of wallets) {
         const chains = wallet.chain === 'evm' ? window.ChainLensChains.EVM_CHAINS : window.ChainLensChains.DEFAULT_CHAINS.filter(c => c.id === wallet.chain);
@@ -106,27 +103,18 @@
         while (queue.length && !cancelled) {
           const { chain, address } = queue.shift();
           try {
-            let cursor = '', seen = new Set();
-            do {
-            const body = await request(`/api/nfts/${chain}/${encodeURIComponent(address)}${cursor ? `?pageKey=${encodeURIComponent(cursor)}` : ''}`);
-            if (body.error) throw new Error(body.error);
-            for (const asset of body.nfts || []) {
-              const nft = { ...asset, chain: asset.chain || chain, isToken: false,
-                metadata: { ...asset.metadata, traits: window.nftMetadata.traits(asset.metadata?.traits) } };
-              found.set(window.nftFavoriteKey(nft), nft);
-            }
-            publish(true);
-            cursor = body.nextPageKey ? String(body.nextPageKey) : '';
-            if (cursor && seen.has(cursor)) throw new Error('Provider repeated a pagination cursor');
-            seen.add(cursor);
-            } while (cursor && !cancelled);
+            await cache.load(chain, address, assets => {
+              if (cancelled) return;
+              for (const nft of assets) found.set(window.nftFavoriteKey(nft), nft);
+              publish(true);
+            });
           } catch (e) { if (!cancelled) { issues.push(`${chain} · ${address.slice(0, 8)}…: ${e.message}`); publish(true); } }
         }
       }
       Promise.all(Array.from({ length: Math.min(6, queue.length) }, worker)).then(() => publish(false));
-      return () => { cancelled = true; controller.abort(); };
+      return () => { cancelled = true; };
     }, [owner, token, signature]);
-    return owner && state.owner === owner && token ? state : { assets: [], loading: false, issues: [] };
+    return { ...(owner && state.owner === owner && token ? state : { assets: [], loading: false, issues: [] }), cache };
   };
   const category = asset => {
     const tag = window.nftMetadata.traits(asset.metadata?.traits).find(t => /^(category|type)$/i.test(t.trait_type))?.value;

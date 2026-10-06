@@ -7,11 +7,12 @@ task: -
 lease_until: -
 repo: -
 verify: npm run check && npm test
-verified: no-git · Banner refinement:2 Profile browser checks passed;6-script precompile passed · 2026-10-06T02:39-03:00
+verified: no-git · 160unit tests;5browser checks; Scanner isolation rerun;syntax/precompile6scripts · 2026-10-06T03:06-03:00
 head: no-git
-updated: 2026-10-06T02:39-03:00 · codex
+updated: 2026-10-06T03:06-03:00 · codex
 
 ## Now
+- Scanner cache/loading fix complete locally: shared per-account wallet/chain NFT cache with all-page reuse and progressive results; bounded requests and90-second scan deadline.160 unit tests and5 browser checks pass; unrelated-wallet isolation rerun passes. Screenshot reviewed. No backend changes.
 - Banner identity refinement complete locally: title restored to previous Space Grotesk font; ID-copy moved outside banner above tabs.150px desktop/96px mobile avatar and modern sidebar actions retained. Desktop/mobile screenshots reviewed; homepage precompile passes.
 - User confirms changes now work live after pushing their commit; screenshot shows uploaded banner, per-NFT spam buttons, Spam tab and correct REDACTED artwork,817 NFTs across13 chains. User confirmation, not an independent production audit.
 - Profile spam/image/Monad fixes complete locally:156unit tests,6browser checks,syntax and6-script precompile pass. Fixtures verify spam sync/restoration, banner crop/save, image fallback and retained artwork.
@@ -24,9 +25,10 @@ updated: 2026-10-06T02:39-03:00 · codex
 - User pushed/deployed changes and confirms success; Codex performed no commit/deployment. Wallet source only read during implementation; wallet lease untouched.
 
 ## Next
-- User pushes/deploys public/index.html and public/profile-portfolio.jsx/css; refreshed desktop/mobile screenshot previews in test-results.
+- User pushes/deploys public/index.html,public/profile-portfolio.jsx and NEW public/nft-session.js together. Tokens/transactions still request separately; cached NFTs render immediately.
 
 ## Traps
+- Deploy new public/nft-session.js with index.html and profile-portfolio.jsx; Scanner uses the same cache. Tokens/transactions still need calls. Failed sources can retry; successful NFTs persist until refresh/logout.
 - Alchemy legacy floor currency is missing on Monad; require explicit currency outside known ETH networks. Never assume ETH/native blindly.
 - Arweave redirects to its subdomains; bounded gateway allowlist is required. Alchemy Robinhood RPC host failed while public Robinhood RPC works.
 - NFT provider traits can be dictionaries, serialized JSON, scalars or arrays with null entries; normalize before array methods or React rendering. Deploy public/nft-metadata.js with the frontend fix.
@@ -42,6 +44,7 @@ updated: 2026-10-06T02:39-03:00 · codex
 - Fullstack Iteration, Playwright Testing, Visual Iteration: implementation/browser/screenshot validation; Codex skills root C:/Users/balla/.codex/skills.
 
 ## Pointers
+- public/nft-session.js; test/nft-session.test.js; e2e/scanner-cache.spec.js; test-results/scanner-profile-cache.png.
 - docs/PROFILE-PORTFOLIO.md; public/profile-portfolio.{jsx,css}; sql/cl_profile_banner.sql; e2e/profile-portfolio.spec.js; test-results/profile-portfolio-{desktop,mobile,banner}.png.
 - docs/PROFILE-NFT-FAVORITES.md; public/nft-favorites.jsx; e2e/profile-favorites.spec.js; test-results/profile-favorites-scanner.png.
 - public/apphub.png; test-results/apphub-logo-desktop.png and apphub-logo-mobile.png.
