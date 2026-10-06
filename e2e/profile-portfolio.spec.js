@@ -42,6 +42,16 @@ test('profile preloads all linked wallets, retains mounted artwork, filters star
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
   await nav.getByRole('button', { name: 'Profile', exact:true }).click();
   await expect(page.locator('.profile-summary b')).toHaveText('38');
+  await expect(page.locator('.profile-banner-avatar img')).toHaveCSS('width','150px');
+  await expect(page.locator('.profile-actions button')).toHaveCount(2);
+  const avatarBounds = await page.locator('.profile-banner-avatar').boundingBox();
+  const idBounds = await page.getByRole('button',{name:'Copy ChainLens ID',exact:true}).boundingBox();
+  expect(idBounds.y).toBeGreaterThan(avatarBounds.y + avatarBounds.height);
+  await page.getByRole('button',{name:'Copy ChainLens ID',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Copy ChainLens ID',exact:true})).toContainText('Copied');
+  await page.getByRole('button',{name:'Change profile picture',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Change Profile Picture',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Close profile picture editor',exact:true}).click();
   for (const wallet of wallets.slice(0,2)) for (const chain of EVM_CHAINS) expect(requests).toContain(`/api/nfts/${chain.id}/${wallet.address}`);
   expect(requests).toContain('/api/nfts/solana/fixtureSolanaAddress');
   expect(requests).toContain('/api/nfts/cardano/addr1fixture');
@@ -95,7 +105,7 @@ test('profile preloads all linked wallets, retains mounted artwork, filters star
   await page.screenshot({path:'test-results/profile-portfolio-mobile.png'});
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.setViewportSize({width:1440,height:1000});
-  await page.getByRole('button',{name:'Sign Out',exact:true}).click();
+  await page.getByRole('button',{name:'Sign out',exact:true}).click();
   await expect(page.locator('.profile-art')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

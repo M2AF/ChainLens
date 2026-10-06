@@ -4259,78 +4259,14 @@
                         </div>
                       )}
 
-                      {/* Header card */}
-                      <div className={`rounded-[3rem] border p-8 glass-card ${darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-100 shadow-xl'}`}>
-                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                          <div className="flex items-center gap-5">
-                            {/* Avatar — circular like Twitter */}
-                            <div className="relative flex-shrink-0">
-                              <button
-                                type="button"
-                                onClick={openAvatarEditor}
-                                aria-label="Change profile picture"
-                                title="Change profile picture"
-                                className="relative block rounded-full group focus:outline-none focus:ring-4 focus:ring-amber-400/40">
-                                {userProfile.avatar_url
-                                  ? <img src={userProfile.avatar_url} alt={`${userProfile.display_name || 'User'} profile`} className="w-20 h-20 rounded-full object-cover ring-4 ring-amber-400/40" referrerPolicy="no-referrer" />
-                                  : <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-3xl font-heading font-black text-slate-900 ring-4 ring-amber-400/40">
-                                      {(userProfile.display_name || '?').charAt(0).toUpperCase()}
-                                    </div>
-                                }
-                                <span className="absolute inset-0 rounded-full bg-slate-950/60 flex items-center justify-center text-xl opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity">📷</span>
-                              </button>
-                              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-400 rounded-full border-2 border-slate-900 flex items-center justify-center">
-                                <span className="text-[9px] font-black">✓</span>
-                              </div>
-                            </div>
-
-                            {/* Name — click to edit */}
-                            <div>
-                              {editingName ? (
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    autoFocus
-                                    value={nameInput}
-                                    onChange={e => setNameInput(e.target.value)}
-                                    onKeyDown={e => { if(e.key==='Enter') saveName(); if(e.key==='Escape') setEditingName(false); }}
-                                    maxLength={32}
-                                    className={`text-xl font-heading font-extrabold bg-transparent border-b-2 border-amber-400 outline-none w-48 pb-0.5 ${darkMode ? 'text-white' : 'text-slate-900'}`}
-                                  />
-                                  <button onClick={saveName} className="text-emerald-400 text-xs font-black uppercase tracking-widest hover:text-emerald-300">Save</button>
-                                  <button onClick={() => setEditingName(false)} className={`text-xs font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>✕</button>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setNameInput(userProfile.display_name || ''); setEditingName(true); }}>
-                                  <h2 className="text-1xl font-heading font-extrabold">{userProfile.display_name}</h2>
-                                  <span className={`text-[1px] opacity-0 group-hover:opacity-60 transition-opacity font-bold uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>✏ Edit</span>
-                                </div>
-                              )}
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(userProfile.id).catch(() => {});
-                                  setCopiedProfileId(true);
-                                  setTimeout(() => setCopiedProfileId(false), 1800);
-                                }}
-                                title="Copy ChainLens ID"
-                                className={`mt-1 flex max-w-full items-center gap-2 font-mono text-[10px] tracking-tight text-left transition-colors ${darkMode ? 'text-slate-500 hover:text-cyan-400' : 'text-slate-400 hover:text-cyan-600'}`}>
-                                <span className="break-all">{userProfile.id}</span>
-                                <span className="flex-shrink-0 font-sans text-[8px] font-black uppercase tracking-widest">{copiedProfileId ? 'Copied ✓' : 'Copy'}</span>
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <button onClick={loadMyPortfolio}
-                              disabled={!(userProfile.cl_wallets?.length)}
-                              className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed">
-                              <span>⚡</span> Scan My Wallets
-                            </button>
-                            <button onClick={logout}
-                              className={`px-4 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest border transition-all ${darkMode ? 'border-slate-800 text-slate-500 hover:border-red-900 hover:text-red-400' : 'border-slate-200 text-slate-400 hover:border-red-200 hover:text-red-500'}`}>
-                              Sign Out
-                            </button>
-                          </div>
-                        </div>
+                      {/* Profile actions; identity now lives in the banner */}
+                      <div className="profile-actions">
+                        <button onClick={loadMyPortfolio} disabled={!(userProfile.cl_wallets?.length)} className="profile-scan-action">
+                          <span className="profile-scan-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9V5a1 1 0 0 1 1-1h4m6 0h4a1 1 0 0 1 1 1v4m0 6v4a1 1 0 0 1-1 1h-4m-6 0H5a1 1 0 0 1-1-1v-4"/><path d="M8 10h8v6H8zM8 10V8h6"/><path d="M14 13h2"/></svg></span>
+                          <span>Scan my wallets</span>
+                          <svg className="profile-scan-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+                        </button>
+                        <button onClick={logout} className="profile-signout-action">Sign out</button>
                       </div>
 
                       {/* Add more wallets — always visible even when wallets exist */}
@@ -4571,7 +4507,65 @@
                       <div className="profile-summary"><span>YOUR COLLECTION</span><b>{profilePortfolio.assets.length}</b><span>NFTs across {new Set(profilePortfolio.assets.map(a => a.chain)).size} chains</span></div>
                     </aside>
                     <div className="min-w-0">
-                      <window.ProfileBanner profile={userProfile} authFetch={authFetch} onSave={(id, url) => setUserProfile(p => p?.id === id ? { ...p, banner_url: url || null } : p)} />
+                      <window.ProfileBanner profile={userProfile} identity={<><div className="profile-banner-person">
+                            {/* Avatar — circular like Twitter */}
+                            <div className="profile-banner-avatar relative flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={openAvatarEditor}
+                                aria-label="Change profile picture"
+                                title="Change profile picture"
+                                className="relative block rounded-full group focus:outline-none focus:ring-4 focus:ring-amber-400/40">
+                                {userProfile.avatar_url
+                                  ? <img src={userProfile.avatar_url} alt={`${userProfile.display_name || 'User'} profile`} className="w-20 h-20 rounded-full object-cover ring-4 ring-amber-400/40" referrerPolicy="no-referrer" />
+                                  : <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-3xl font-heading font-black text-slate-900 ring-4 ring-amber-400/40">
+                                      {(userProfile.display_name || '?').charAt(0).toUpperCase()}
+                                    </div>
+                                }
+                                <span className="absolute inset-0 rounded-full bg-slate-950/60 flex items-center justify-center text-xl opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity">📷</span>
+                              </button>
+                              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-400 rounded-full border-2 border-slate-900 flex items-center justify-center">
+                                <span className="text-[9px] font-black">✓</span>
+                              </div>
+                            </div>
+
+
+                            {/* Name — click to edit */}
+                            <div className="profile-banner-name"><small>Your multichain collection</small>
+                              {editingName ? (
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    autoFocus
+                                    value={nameInput}
+                                    onChange={e => setNameInput(e.target.value)}
+                                    onKeyDown={e => { if(e.key==='Enter') saveName(); if(e.key==='Escape') setEditingName(false); }}
+                                    maxLength={32}
+                                    className={`text-xl font-heading font-extrabold bg-transparent border-b-2 border-amber-400 outline-none w-48 pb-0.5 ${darkMode ? 'text-white' : 'text-slate-900'}`}
+                                  />
+                                  <button onClick={saveName} className="text-emerald-400 text-xs font-black uppercase tracking-widest hover:text-emerald-300">Save</button>
+                                  <button onClick={() => setEditingName(false)} className={`text-xs font-bold uppercase tracking-widest ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}>✕</button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setNameInput(userProfile.display_name || ''); setEditingName(true); }}>
+                                  <h1 className="font-heading font-extrabold"><span>{userProfile.display_name}</span><span className="profile-gallery-suffix">'s gallery</span></h1>
+                                  <span className={`text-[1px] opacity-0 group-hover:opacity-60 transition-opacity font-bold uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>✏ Edit</span>
+                                </div>
+                              )}
+                            </div>
+</div>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(userProfile.id).catch(() => {});
+                                  setCopiedProfileId(true);
+                                  setTimeout(() => setCopiedProfileId(false), 1800);
+                                }}
+                                title="Copy ChainLens ID"
+                                aria-label="Copy ChainLens ID"
+                                className="profile-banner-id">
+                                <span className="profile-id-label">ChainLens ID</span><span className="break-all">{userProfile.id}</span>
+                                <span className="flex-shrink-0 font-sans text-[8px] font-black uppercase tracking-widest">{copiedProfileId ? 'Copied ✓' : 'Copy'}</span>
+                              </button>
+</>} authFetch={authFetch} onSave={(id, url) => setUserProfile(p => p?.id === id ? { ...p, banner_url: url || null } : p)} />
                       <window.ProfilePortfolio portfolio={profilePortfolio} favorites={nftFavorites} toggleFavorite={toggleNftFavorite} onSelect={setSelectedAsset} resolveImg={resolveImg} darkMode={darkMode} filterEntries={filterEntries} toggleSpam={toggleSpam} />
                     </div>
                     </div>

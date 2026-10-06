@@ -7,22 +7,24 @@ task: -
 lease_until: -
 repo: -
 verify: npm run check && npm test
-verified: no-git · 156unit tests;6browser checks; syntax/precompile6scripts; live DB column and NFT routes verified · 2026-10-06T01:52-03:00
+verified: no-git · Banner layout:2 Profile browser checks passed;6-script homepage precompile passed · 2026-10-06T02:27-03:00
 head: no-git
-updated: 2026-10-06T01:52-03:00 · codex
+updated: 2026-10-06T02:27-03:00 · codex
 
 ## Now
+- Banner identity complete locally:150px desktop/96px mobile avatar and editable title in lower-left banner; ID-copy below; left action card modern Scan my wallets plus Sign out. Both Profile browser checks and6-script precompile pass; desktop/mobile screenshots reviewed.
+- User confirms changes now work live after pushing their commit; screenshot shows uploaded banner, per-NFT spam buttons, Spam tab and correct REDACTED artwork,817 NFTs across13 chains. User confirmation, not an independent production audit.
 - Profile spam/image/Monad fixes complete locally:156unit tests,6browser checks,syntax and6-script precompile pass. Fixtures verify spam sync/restoration, banner crop/save, image fallback and retained artwork.
-- Banner production schema fixed: cl_profile_banner applied to configured Supabase project, nullable text verified and PostgREST reload requested. No user profile/banner rows changed; real upload retry remains to verify.
+- Banner production schema fixed: cl_profile_banner applied to configured Supabase project, nullable text verified and PostgREST reload requested. No user profile/banner rows changed; uploaded banner visible in user production screenshot.
 - Live local backend returns53 Monad NFTs for linked wallet. REDACTED contract metadata repair returns correct #1/#2/#8/#9 artwork; original #51 remains correct. Real-data preview screenshots reviewed.
 - New alternate CDN/original/IPFS image sources used by Profile/Scanner/details; bounded content-addressed metadata repair preserves existing art on failure. Monad Alchemy-first with cursor-safe Moralis fallback.
 - Floor ordering: favorites pinned then descending verified floor USD; unknown floors last. Legacy uncurrencied floors converted only on known ETH networks after live Monad preview exposed wrong ETH assumption.
 - Profile compact account/banner/mosaic/session cache and shared ChainLens-ID favorites remain implemented locally. Frontend metadata normalization prevents dictionary-trait render crash.
 - Market/New Listings favicon and Market Watch/App Hub logos implemented locally. Production feed configured/live; free socket never replays history and restarts clear its memory buffer.
-- Code changes await deployment; no commit/deployment. Wallet source only read during this pass; wallet lease untouched.
+- User pushed/deployed changes and confirms success; Codex performed no commit/deployment. Wallet source only read during implementation; wallet lease untouched.
 
 ## Next
-- Redeploy exact files in docs/PROFILE-PORTFOLIO.md, refresh Profile, retry banner and verify same-ID spam sync.
+- User pushes/deploys public/index.html and public/profile-portfolio.jsx/css; screenshot previews in test-results/profile-portfolio-desktop.png and profile-portfolio-mobile.png.
 
 ## Traps
 - Alchemy legacy floor currency is missing on Monad; require explicit currency outside known ETH networks. Never assume ETH/native blindly.

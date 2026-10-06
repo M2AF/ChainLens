@@ -191,3 +191,30 @@
 ### 2026-10-06T01:52-03:00 · codex · handoff · no-git
 - Same-pass spam/banner/Monad/artwork changes verified; REDACTED artwork user-confirmed.156unit/6browser checks pass; live banner schema fixed, code awaits deployment.
 - next: Redeploy exact files in docs/PROFILE-PORTFOLIO.md, refresh Profile, retry banner and verify same-ID spam sync.
+
+### 2026-10-06T02:10-03:00 · codex · claim · no-git
+- task: Record user-confirmed live Profile success
+- lease until 2026-10-06T05:10-03:00
+
+### 2026-10-06T02:10-03:00 · codex · handoff · no-git
+- User confirms all working after pushing commit. Production screenshot shows saved banner, Spam tab/buttons and correct REDACTED images,817 NFTs/13chains. No new code changes or independent production audit.
+- next: No action for resolved report; cross-device signed-in sync remains a separate QA check.
+
+### 2026-10-06T02:20-03:00 · codex · claim · no-git
+- task: Move Profile avatar and ID into banner; modernize scan action
+- lease until 2026-10-06T05:20-03:00
+
+### 2026-10-06T02:22-03:00 · codex · checkpoint · no-git
+- Moved existing avatar/name editor and ChainLens ID copy control into banner; desktop avatar150px vs prior50px, mobile96px. Left card only Scan/Sign Out with new scan icon/gradient/arrow styling. Homepage precompile pass; starting Profile browser screenshots.
+
+### 2026-10-06T02:26-03:00 · codex · checkpoint · no-git
+- verified: Homepage precompile passes6 scripts; layout main browser flow passes
+- Banner identity implemented: desktop150px/mobile96px avatar, title alongside, ID-copy below, modern Scan my wallets action and Sign out in sidebar. Screenshots reviewed on1920px and390px; mobile overflow and title wrapping corrected. Browser main flow passes; spam flow finishing.
+
+### 2026-10-06T02:27-03:00 · codex · verify · no-git
+- verified: Banner layout:2 Profile browser checks passed;6-script homepage precompile passed
+- Banner layout verified:2 Profile browser checks passed44s, including avatar sizing/editing, ID copy, banner save/crop, mobile width, logout and shared spam restoration. Reviewed desktop/mobile screenshots with fixture artwork. Updated docs/PROFILE-PORTFOLIO.md.
+
+### 2026-10-06T02:27-03:00 · codex · handoff · no-git
+- Banner identity and modern scan action complete locally, verified and documented. No commit or deployment performed.
+- next: User pushes/deploys public/index.html and public/profile-portfolio.jsx/css; screenshot previews in test-results/profile-portfolio-desktop.png and profile-portfolio-mobile.png.
