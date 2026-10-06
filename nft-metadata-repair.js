@@ -9,6 +9,18 @@ const gateways = uri => {
 };
 function createMetadataRepair({ fetchImpl, apiKey }) {
   const cache = new Map();
+  // A failed RPC/gateway read must not put an already repaired token back on
+  // Alchemy's stale thumbnail. The contract is still checked on every call;
+  // these values are only the last known good fallback for transient faults.
+  const repaired = new Map();
+  const tokenKey = (network, nft) => `${network}:${String(nft.contract.address).toLowerCase()}:${String(nft.tokenId)}`;
+  const apply = (nft, value) => {
+    nft.image = { originalUrl: value.image };
+    if (value.name !== null) nft.name = value.name;
+    if (value.description !== null) nft.description = value.description;
+    nft.raw = { ...nft.raw, metadata: value.metadata };
+    nft.tokenUri = value.tokenUri;
+  };
   const document = async url => {
     const signal = AbortSignal.timeout(2500);
     for (let redirects = 0; redirects < 4; redirects++) {
@@ -23,6 +35,12 @@ function createMetadataRepair({ fetchImpl, apiKey }) {
     throw new Error('Too many redirects');
   };
   return async (network, nfts) => {
+    for (const nft of nfts) {
+      if (!/^0x[0-9a-f]{40}$/i.test(nft.contract?.address || '')) continue;
+      const key = tokenKey(network, nft), hit = repaired.get(key);
+      if (hit && hit.until > Date.now()) apply(nft, hit.value);
+      else if (hit) repaired.delete(key);
+    }
     const requests = nfts.map((nft,index) => {
       try {
         if (!/^0x[0-9a-f]{40}$/i.test(nft.contract?.address || '')) return null;
@@ -78,11 +96,13 @@ function createMetadataRepair({ fetchImpl, apiKey }) {
         }
         const image = metadata.image || metadata.image_url;
         if (typeof image !== 'string' || (!gateways(image) && !/^https:\/\/[^\s]+$/i.test(image) && !/^data:image\//i.test(image))) continue;
-        nft.image = { originalUrl: gateways(image) || image }; // discard stale thumbnails too
-        if (typeof metadata.name === 'string') nft.name = metadata.name;
-        if (typeof metadata.description === 'string') nft.description = metadata.description;
-        nft.raw = {...nft.raw,metadata};
-        nft.tokenUri = url;
+        const value = { image: gateways(image) || image,
+          name: typeof metadata.name === 'string' ? metadata.name : null,
+          description: typeof metadata.description === 'string' ? metadata.description : null,
+          metadata, tokenUri: url };
+        apply(nft, value); // discard stale thumbnails too
+        if (repaired.size >= 1000) repaired.delete(repaired.keys().next().value);
+        repaired.set(tokenKey(network, nft), { value, until: Date.now() + 60*60*1000 });
       }
     };
     await Promise.all(Array.from({length:Math.min(6,selected.length)},worker));

@@ -21,7 +21,7 @@
       signal?.removeEventListener('abort', cancel);
     }
   }
-  function create({ key, normalize = asset => asset, fetchPage = request } = {}) {
+  function create({ key, normalize = asset => asset, fetchPage = request, maxAgeMs = Infinity } = {}) {
     const entries = new Map(), queue = [];
     let active = 0;
     const drain = () => {
@@ -34,7 +34,7 @@
     function load(chain, address, onPage) {
       const id = targetKey(chain, address);
       let entry = entries.get(id);
-      if (entry && !entry.error) {
+      if (entry && !entry.error && (!entry.complete || Date.now() - entry.completedAt < maxAgeMs)) {
         if (onPage) { if (!entry.complete) entry.listeners.add(onPage); onPage([...entry.assets.values()]); }
         return entry.promise;
       }
@@ -59,6 +59,7 @@
               seen.add(cursor);
             } while (cursor);
             entry.complete = true;
+            entry.completedAt = Date.now();
             resolve([...entry.assets.values()]);
           } catch (error) { entry.error = error; reject(error); }
           finally { clearTimeout(deadline); entry.listeners.clear(); }

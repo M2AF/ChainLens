@@ -35,6 +35,20 @@ test('retains partial data on repeated pagination and retries failed targets', a
   assert.equal((await cache.load('base','wallet')).length,1);
 });
 
+test('completed artwork results can revalidate while keeping the previous assets visible', async () => {
+  let image = 'https://old.example/1.png', calls = 0;
+  const cache = create({ key, maxAgeMs: 0, fetchPage: async () => {
+    calls++;
+    return { nfts: [{ tokenId: '1', image }], nextPageKey: null };
+  } });
+  assert.equal((await cache.load('robinhood','wallet'))[0].image,'https://old.example/1.png');
+  image = 'https://new.example/1.png';
+  const pages = [];
+  assert.equal((await cache.load('robinhood','wallet', assets => pages.push(assets[0].image)))[0].image,'https://new.example/1.png');
+  assert.equal(calls,2);
+  assert.equal(pages.at(-1),'https://new.example/1.png');
+});
+
 test('a stalled response body times out and caller cancellation stays distinguishable', async t => {
   const original = global.fetch;
   t.after(() => { global.fetch = original; });

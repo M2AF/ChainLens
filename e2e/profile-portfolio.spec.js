@@ -6,6 +6,30 @@ const token = 'fixture.' + Buffer.from(JSON.stringify({ sub: profileId })).toStr
 const traitShapes = [{ category: 'PFP' }, 'not-an-array', 42, null, [null, 'bad', { trait_type: 'category', value: 'art' }], [{ trait_type: null, value: 'unknown' }]];
 const art = i => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500"><rect width="500" height="500" fill="${['#a591ff','#66d6c3','#ffa8b2','#ffce68','#6daee5','#c9b2d5'][i%6]}"/><circle cx="250" cy="255" r="150" fill="#fff" opacity=".3"/><path d="m130 290 120-160 120 160-120 90z" fill="${i%2?'#182b49':'#fff'}" opacity=".8"/><circle cx="220" cy="247" r="12" fill="#13243b"/><circle cx="280" cy="247" r="12" fill="#13243b"/><path d="M226 275Q250 298 274 275" fill="none" stroke="#13243b" stroke-width="8" stroke-linecap="round"/></svg>`)}`;
 
+test('profile revalidates stale session artwork when revisited', async ({ page }) => {
+  let reads = 0;
+  await page.addInitScript(t => localStorage.setItem('cl_token',t),token);
+  await page.route('**/api/**',route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/profile') return route.fulfill({json:{id:profileId,display_name:'Artwork test',cl_wallets:[{chain:'evm',address:'0x1111111111111111111111111111111111111111'}],cl_linked_accounts:[]}});
+    if (path === '/api/profile/filters') return route.fulfill({json:{entries:{}}});
+    if (path.startsWith('/api/nfts/')) {
+      if (path.includes('/robinhood/')) reads++;
+      return route.fulfill({json:{nfts:path.includes('/robinhood/') ? [{chain:'robinhood',contractAddress:'0xcollection',tokenId:'1',name:'REDACTED #1',collectionName:'REDACTED',image:reads === 1 ? art(0) : art(1)}] : [],nextPageKey:null}});
+    }
+    return route.fulfill({json:{available:true,coins:[],nfts:[],transactions:[]}});
+  });
+  await page.goto('/?tab=profile');
+  const image = page.locator('.profile-art img[alt="REDACTED #1"]');
+  await expect(image).toHaveAttribute('src',art(0));
+  await page.evaluate(() => { const now = Date.now(); Date.now = () => now + 6 * 60 * 1000; });
+  const nav = page.getByRole('navigation',{name:'Main navigation'});
+  await nav.getByRole('button',{name:'Market',exact:true}).click();
+  await nav.getByRole('button',{name:'Profile',exact:true}).click();
+  await expect(image).toHaveAttribute('src',art(1));
+  expect(reads).toBe(2);
+});
+
 test('profile preloads all linked wallets, retains mounted artwork, filters stars and saves a 3:1 banner', async ({ page }) => {
   test.setTimeout(90000);
   await page.setViewportSize({width:1920,height:1080});

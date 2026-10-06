@@ -17,6 +17,26 @@ test('contract metadata repairs each token independently, clears stale previews 
   assert.equal(items[0].image.thumbnailUrl,undefined);
   await repair('robinhood-mainnet',[nft(1),nft(2)]);assert.equal(documents,2);
 });
+test('a transient contract read failure keeps last known good art for the same token only', async () => {
+  let rpcWorks = true;
+  const repair = createMetadataRepair({apiKey:'fixture',fetchImpl:async(url,options)=>{
+    if(options.method === 'POST') {
+      if(!rpcWorks) throw Error('RPC unavailable');
+      return {ok:true,json:async()=>[{id:0,result:abi.encodeFunctionResult('tokenURI',['ar://fresh/1'])}]};
+    }
+    return {ok:true,status:200,text:async()=>JSON.stringify({name:'Correct #1',image:'ar://art/1.png'})};
+  }});
+  const first = nft(1);
+  await repair('robinhood-mainnet',[first]);
+  assert.equal(first.image.originalUrl,'https://arweave.net/art/1.png');
+  rpcWorks = false;
+  const later = nft(1), different = nft(2);
+  await repair('robinhood-mainnet',[later,different]);
+  assert.equal(later.name,'Correct #1');
+  assert.equal(later.image.originalUrl,'https://arweave.net/art/1.png');
+  assert.equal(later.image.cachedUrl,undefined);
+  assert.equal(different.name,'Wrong #10');
+});
 test('RPC or gateway errors preserve provider art and arbitrary HTTPS metadata is not followed', async()=>{
   const item=nft(1);let calls=0;
   const repair=createMetadataRepair({apiKey:'fixture',fetchImpl:async(_url,options)=>{calls++;assert.equal(options.method,'POST');return {ok:true,json:async()=>[{id:0,result:abi.encodeFunctionResult('tokenURI',['https://private.example/meta'])}]};}});

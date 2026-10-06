@@ -1,3 +1,5 @@
+export { NewListingsCollector } from './new-listings';
+
 const MAX_QUERY_LENGTH = 200;
 const MAX_UPSTREAM_BYTES = 2 * 1024 * 1024;
 const SEARCH_TIMEOUT_MS = 65_000;
@@ -148,6 +150,18 @@ const handleRequest = async (request: Request, env: Env, fetchImpl: Fetcher = fe
       : jsonResponse({ error: 'Origin not allowed.' }, 403, origin, env);
   }
 
+  if (url.pathname === '/api/market/new-listings') {
+    if (request.method !== 'GET') return jsonResponse({ error: 'Method not allowed.' }, 405, origin, env);
+    if (origin && !isAllowedOrigin) return jsonResponse({ error: 'Origin not allowed.' }, 403, origin, env);
+    try {
+      const response = jsonResponse(await env.NEW_LISTINGS.getByName('newlistings-full-v2').snapshot(), 200, origin, env);
+      response.headers.set('Cache-Control', 'no-store');
+      return response;
+    } catch {
+      return jsonResponse({ error: 'Listing feed temporarily unavailable.' }, 503, origin, env);
+    }
+  }
+
   if (url.pathname === '/api/search/status') {
     if (request.method !== 'GET') return jsonResponse({ error: 'Method not allowed.' }, 405, origin, env);
     return jsonResponse({ provider: 'searxng-cloudflare-worker', configured: true }, 200, origin, env);
@@ -188,5 +202,8 @@ const handleRequest = async (request: Request, env: Env, fetchImpl: Fetcher = fe
 export default {
   fetch(request: Request, env: Env): Promise<Response> {
     return handleRequest(request, env);
+  },
+  async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
+    await env.NEW_LISTINGS.getByName('newlistings-full-v2').ensureConnected();
   },
 } satisfies ExportedHandler<Env>;

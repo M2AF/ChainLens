@@ -1546,7 +1546,7 @@
       const [authToken, setAuthToken] = useState(() => localStorage.getItem('cl_token'));
       const [userProfile, setUserProfile] = useState(null);
       const { favorites: nftFavorites, toggleFavorite: toggleNftFavorite } = window.useProfileNftFavorites(userProfile?.id, authToken);
-      const profilePortfolio = window.useProfilePortfolio(userProfile, authToken);
+      const profilePortfolio = window.useProfilePortfolio(userProfile, authToken, activeTab === 'profile');
       const [authLoading, setAuthLoading] = useState(false);
       const [walletConnecting, setWalletConnecting] = useState(null); // 'evm'|'solana'|'cardano'|'google'|'discord'
       const [walletPickerType, setWalletPickerType] = useState(null);
@@ -3942,14 +3942,14 @@
                               <a href={event.url} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-cyan-500 hover:underline">View announcement ↗</a>
                             </article>)}
                             {listingsFeed.events.length === 0 && <div className="py-12 text-center text-sm opacity-60">
-                              <p>{listingsFeed.state === 'live' ? 'Connected. Waiting for listing announcements published after this server connected.' : 'Listing announcements will appear when the feed connects.'}</p>
+                              <p>{listingsFeed.state === 'live' ? 'Connected. Waiting for new listing announcements.' : 'Listing announcements will appear when the feed connects.'}</p>
                               {listingsFeed.state === 'live' && <p className="mt-2">The free feed does not replay earlier listings.</p>}
                               {listingsFeed.diagnostics?.connectedAt && <p className="mt-2">Connected: {new Date(listingsFeed.diagnostics.connectedAt).toLocaleString()}</p>}
                               {listingsFeed.state === 'live' && <a href="https://newlistings.pro" target="_blank" rel="noopener noreferrer" className="inline-block mt-3 text-cyan-500 underline">View recent listings on New Listings Feed ↗</a>}
                             </div>}
                             {listingsFeed.events.length > 0 && !listingsFeed.events.some(event => `${event.symbols.join(' ')} ${event.exchange} ${event.title}`.toLowerCase().includes(listingsSearch.toLowerCase())) && <p className="py-12 text-center text-sm opacity-60">No matching listings.</p>}
                           </div>
-                          <p className="mt-6 text-xs opacity-50">Powered by <a href="https://newlistings.pro" target="_blank" rel="noopener noreferrer" className="underline">New Listings Feed</a>. Recent announcements received by ChainLens; reconnects may leave gaps.</p>
+                          <p className="mt-6 text-xs opacity-50">Powered by <a href="https://newlistings.pro" target="_blank" rel="noopener noreferrer" className="underline">New Listings Feed</a>. Listings are collected and saved even when ChainLens is idle. Provider reconnects may leave gaps.</p>
                         </section> : <>
                         
                         <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">

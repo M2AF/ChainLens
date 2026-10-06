@@ -27,7 +27,7 @@ const { createPrecompiledPage, COMPILED_PREFIX } = require('./precompile-page');
 const { createSwapService, registerSwapRoutes, withSwapIdentity } = require('./swap-service');
 const { createExchangeService, registerExchangeRoutes } = require('./exchange-service');
 const { createTickerService } = require('./market-ticker-service');
-const { createNewListingsService } = require('./new-listings-service');
+const { readNewListings } = require('./new-listings-proxy');
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -3484,10 +3484,14 @@ const saveTop100 = (data) => {
 };
 
 const tickerService = createTickerService(fetch);
-const newListingsService = createNewListingsService({ key: process.env.NEW_LISTINGS_KEY });
-newListingsService.start();
-app.get('/api/market/new-listings', (_req, res) => {
-  res.set('Cache-Control', 'no-store').json(newListingsService.snapshot());
+const NEW_LISTINGS_WORKER_BASE_URL = process.env.NEW_LISTINGS_WORKER_BASE_URL || 'https://chainlens-search.guildfordking.workers.dev';
+app.get('/api/market/new-listings', async (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    res.json(await readNewListings(fetch, NEW_LISTINGS_WORKER_BASE_URL));
+  } catch (_) {
+    res.status(503).json({ state: 'unavailable', events: [], delayMs: null });
+  }
 });
 app.get('/api/market/ticker', async (_req, res) => {
   try {

@@ -36,7 +36,7 @@
     };
     return <><div className="profile-banner">{profile.banner_url && <img src={profile.banner_url} alt="Profile banner" />}<div className="profile-banner-caption">{identity}</div><div className="profile-banner-tools"><button disabled={busy} onClick={() => input.current.click()}>{busy ? 'Saving…' : 'Edit banner · 3:1'}</button>{profile.banner_url && <button disabled={busy} onClick={() => save('')}>Remove</button>}</div><input ref={input} type="file" aria-label="Upload profile banner" hidden accept="image/png,image/jpeg,image/webp" onChange={upload}/></div>{profileId}{error && <p role="alert" className="profile-banner-error">{error}</p>}</>;
   };
-  window.useProfilePortfolio = function (profile, token) {
+  window.useProfilePortfolio = function (profile, token, active = false) {
     const [state, setState] = useState({ owner: null, assets: [], loading: false, issues: [] });
     let subject;
     try { subject = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub; } catch {}
@@ -47,10 +47,20 @@
       session.current?.cache.clear();
       session.current = { owner, cache: window.NftSession.create({
         key: window.nftFavoriteKey,
+        maxAgeMs: 5 * 60 * 1000,
         normalize: nft => ({ ...nft, metadata: { ...nft.metadata, traits: window.nftMetadata.traits(nft.metadata?.traits) } })
       }) };
     }
     const cache = session.current.cache;
+    const [refreshEpoch, setRefreshEpoch] = useState(0);
+    useEffect(() => {
+      if (!active) return;
+      const refresh = () => { if (document.visibilityState === 'visible') setRefreshEpoch(n => n + 1); };
+      window.addEventListener('focus', refresh);
+      document.addEventListener('visibilitychange', refresh);
+      const timer = setInterval(refresh, 5 * 60 * 1000);
+      return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); clearInterval(timer); };
+    }, [active]);
     const previews = useRef({ owner: null, images: new Map(), queue: [], active: 0 });
     useEffect(() => {
       if (previews.current.owner !== owner) {
@@ -113,7 +123,7 @@
       }
       Promise.all(Array.from({ length: Math.min(6, queue.length) }, worker)).then(() => publish(false));
       return () => { cancelled = true; };
-    }, [owner, token, signature]);
+    }, [owner, token, signature, active, refreshEpoch]);
     return { ...(owner && state.owner === owner && token ? state : { assets: [], loading: false, issues: [] }), cache };
   };
   const category = asset => {

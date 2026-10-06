@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index';
+import { env } from 'cloudflare:workers';
 
 const workerEnv = {
   SEARXNG_BASE_URL: 'https://chainlens-search-searxng.onrender.com',
   ALLOWED_ORIGINS: 'https://chainlensnft.info,https://www.chainlensnft.info,http://localhost:3001,http://127.0.0.1:3001',
+  NEW_LISTINGS_KEY: '',
+  NEW_LISTINGS: env.NEW_LISTINGS,
 } satisfies Env;
 
 const request = (path: string, origin = 'https://chainlensnft.info', method = 'GET') => new Request(`https://worker.example.com${path}`, {

@@ -6,12 +6,19 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "workers_dev": true,
   "preview_urls": true,
+  "secrets": { "required": ["NEW_LISTINGS_KEY"] },
+  "durable_objects": {
+    "bindings": [{ "name": "NEW_LISTINGS", "class_name": "NewListingsCollector" }]
+  },
+  "migrations": [{ "tag": "new-listings-v1", "new_sqlite_classes": ["NewListingsCollector"] }],
+  "triggers": { "crons": ["* * * * *"] },
   "vars": {
     "SEARXNG_BASE_URL": "https://chainlens-search-searxng.onrender.com",
     "ALLOWED_ORIGINS": "https://chainlensnft.info,https://www.chainlensnft.info,http://localhost:3001,http://127.0.0.1:3001"
   },
   "observability": {
     "enabled": true,
-    "head_sampling_rate": 1
+    "head_sampling_rate": 1,
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
   }
 }

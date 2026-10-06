@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [
     cloudflareTest({
       wrangler: { configPath: './wrangler.jsonc' },
+      miniflare: { bindings: { NEW_LISTINGS_KEY: 'test-key-not-a-real-credential' } },
     }),
   ],
 });
