@@ -2444,7 +2444,7 @@ app.post('/api/swap/evm/quote', async (req, res) => {
 
 // --- ASSET HELPERS ---
 
-const fetchAlchemyNFTs = require('./nft-source-page').createAlchemyNFTPage({ fetchImpl: fetch, apiKey: API_KEYS.alchemy });
+const fetchAlchemyNFTs = require('./nft-source-page').createAlchemyNFTPage({ fetchImpl: fetch, apiKey: API_KEYS.alchemy, getNativePrice: fetchNativePrice });
 
 const fetchAlchemyTokens = async (network, address, chainId) => {
   try {

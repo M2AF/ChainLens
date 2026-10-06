@@ -133,3 +133,35 @@
 ### 2026-10-06T00:47-03:00 · codex · handoff · no-git
 - OpenSea-inspired Profile gallery, condensed left account panel,3:1banner upload, all-linked-wallet NFT preload/pagination and session retention implemented and locally verified. docs/PROFILE-PORTFOLIO.md and screenshots record behavior and coverage limits. Prepared banner SQL remains unapplied; existing DB credential rejected. Trading tabs question pending; implemented Overview/Holdings/Favorites.
 - next: Review profile-portfolio screenshots with user. Deployment when authorized: apply sql/cl_profile_banner.sql via normal DB workflow, deploy backend/static assets, verify live banner persistence and linked-wallet portfolio loading with valid credentials. Retain existing pending favorites Worker and logos/feed deployment requirements.
+
+### 2026-10-06T01:03-03:00 · codex · claim · no-git
+- task: Fix Profile category crash from non-array NFT traits
+- lease until 2026-10-06T04:03-03:00
+
+### 2026-10-06T01:05-03:00 · codex · checkpoint · no-git
+- Confirmed render crash at profile category lookup: truthy object/scalar traits passed to Array.find. Added shared metadata normalizer for trait dictionaries, arrays and JSON strings; drops malformed members/compound React children. Profile loader/category and NFT detail modal use it.2targeted unit tests and homepage6script precompile pass. Browser fixtures now include dictionaries, scalars, nulls and malformed arrays; full browser/profile detail checks next.
+
+### 2026-10-06T01:06-03:00 · codex · verify · no-git
+- verified: 145unit tests;5browser checks; syntax/precompile6scripts; Profile screenshot reviewed
+- Mixed-metadata browser fixture reproduced render failure before fix. After normalization all5browser tests pass, including dictionary/scalar trait details, favorites and visibility regressions;145unit tests, syntax and6script homepage precompile pass. Screenshot reviewed. No deployment, database or wallet change.
+
+### 2026-10-06T01:06-03:00 · codex · handoff · no-git
+- Profile non-array trait crash fixed locally and verified. Updated frontend index.html/profile-portfolio.jsx and added nft-metadata.js; normalization also prevents detail-view crashes. Expanded fixture/regression tests and docs recorded.
+- next: Deploy frontend fix including public/nft-metadata.js, then refresh and verify the real profile. This crash fix needs no SQL; existing banner deployment SQL and valid DB credentials remain separate pending work.
+
+### 2026-10-06T01:08-03:00 · codex · claim · no-git
+- task: Sort Profile NFT portfolio by descending collection floor USD
+- lease until 2026-10-06T04:08-03:00
+
+### 2026-10-06T01:11-03:00 · codex · checkpoint · no-git
+- Profile Overview/Holdings/Favorites now sort by floor USD within pinned-favorite groups; Alchemy adapter preserves collection floor data and converts using shared bounded quotes. New floor helper and source/order regression tests prepared.
+- next: Run syntax/unit/precompile and Profile browser tests; inspect screenshots.
+
+### 2026-10-06T01:13-03:00 · codex · verify · no-git
+- verified: 148 unit tests;5 browser checks; syntax and6-script precompile pass; live floor adapter100/96/96
+- Profile floor sorting finished; desktop/mobile screenshots reviewed. Read-only live Alchemy Ethereum sample:100 NFTs,96 native floors and96 USD conversions. No deploy/SQL/commit.
+- next: Deploy backend/frontend changes together and verify real profile; non-Alchemy floor coverage remains unavailable.
+
+### 2026-10-06T01:13-03:00 · codex · handoff · no-git
+- Floor USD ordering, captions and regression checks complete locally; favorites remain pinned. Handoff board/docs updated.
+- next: Deploy floor sorting and previous metadata crash fix; refresh Profile.

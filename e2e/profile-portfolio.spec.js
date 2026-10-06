@@ -2,6 +2,8 @@ const { test, expect } = require('@playwright/test');
 const { EVM_CHAINS } = require('../public/chain-catalog');
 const profileId = '00000000-0000-4000-8000-000000000001';
 const token = 'fixture.' + Buffer.from(JSON.stringify({ sub: profileId })).toString('base64url') + '.fixture';
+// Provider metadata varies: objects, scalar values and malformed array members.
+const traitShapes = [{ category: 'PFP' }, 'not-an-array', 42, null, [null, 'bad', { trait_type: 'category', value: 'art' }], [{ trait_type: null, value: 'unknown' }]];
 const art = i => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500"><rect width="500" height="500" fill="${['#a591ff','#66d6c3','#ffa8b2','#ffce68','#6daee5','#c9b2d5'][i%6]}"/><circle cx="250" cy="255" r="150" fill="#fff" opacity=".3"/><path d="m130 290 120-160 120 160-120 90z" fill="${i%2?'#182b49':'#fff'}" opacity=".8"/><circle cx="220" cy="247" r="12" fill="#13243b"/><circle cx="280" cy="247" r="12" fill="#13243b"/><path d="M226 275Q250 298 274 275" fill="none" stroke="#13243b" stroke-width="8" stroke-linecap="round"/></svg>`)}`;
 
 test('profile preloads all linked wallets, retains mounted artwork, filters stars and saves a 3:1 banner', async ({ page }) => {
@@ -28,7 +30,8 @@ test('profile preloads all linked wallets, retains mounted artwork, filters star
     if (url.pathname.startsWith('/api/nfts/')) {
       requests.push(url.pathname);
       const chain = url.pathname.split('/')[3];
-      const nfts = chain === 'base' ? Array.from({length:18}, (_,offset) => { const i = offset + (url.searchParams.has('pageKey') ? 18 : 0); return { chain, contractAddress: `0xcollection${i < 16 ? Math.floor(i/4) : i}`, tokenId: String(i), name: `Gallery NFT #${i}`, collectionName: ['Dreamers','Chromatic Club','Soft Shapes','Orbit Friends'][Math.floor(i/4)] || `Edition ${i}`, image: art(i), category: i%4 === 0 ? 'pfp' : i%4 === 1 ? 'art' : i%4 === 2 ? 'gaming' : 'music' }; }) : ['solana','cardano'].includes(chain) ? [{chain,contractAddress:'policy', tokenId:'mint'+chain, name:chain+' collectible',collectionName:'Cross-chain editions',image:art(4)}] : [];
+      const nfts = chain === 'base' ? Array.from({length:18}, (_,offset) => { const i = offset + (url.searchParams.has('pageKey') ? 18 : 0); return { chain, contractAddress: `0xcollection${i < 16 ? Math.floor(i/4) : i}`, tokenId: String(i), name: `Gallery NFT #${i}`, collectionName: ['Dreamers','Chromatic Club','Soft Shapes','Orbit Friends'][Math.floor(i/4)] || `Edition ${i}`, image: art(i), floorPriceUsd: i < 16 ? [5,500,50,100][Math.floor(i/4)] : i === 16 ? 0 : null, category: i%4 === 0 ? 'pfp' : i%4 === 1 ? 'art' : i%4 === 2 ? 'gaming' : 'music' }; }) : ['solana','cardano'].includes(chain) ? [{chain,contractAddress:'policy', tokenId:'mint'+chain, name:chain+' collectible',collectionName:'Cross-chain editions',image:art(4),floorPriceUsd:chain === 'solana' ? 200 : null}] : [];
+      nfts.forEach((nft, i) => { nft.metadata = { traits: traitShapes[i % traitShapes.length] }; });
       return route.fulfill({json:{nfts,nextPageKey:chain === 'base' && !url.searchParams.has('pageKey') ? 'next-page' : null}});
     }
     if (url.pathname.includes('/passkey/available')) return route.fulfill({json:{available:true}});
@@ -41,6 +44,11 @@ test('profile preloads all linked wallets, retains mounted artwork, filters star
   for (const wallet of wallets.slice(0,2)) for (const chain of EVM_CHAINS) expect(requests).toContain(`/api/nfts/${chain.id}/${wallet.address}`);
   expect(requests).toContain('/api/nfts/solana/fixtureSolanaAddress');
   expect(requests).toContain('/api/nfts/cardano/addr1fixture');
+  await expect(page.locator('.profile-tile-caption strong').first()).toHaveText('Chromatic Club');
+  await expect(page.locator('.profile-tile-caption strong').nth(1)).toHaveText('Cross-chain editions');
+  await expect(page.locator('.profile-tile-caption strong').nth(2)).toHaveText('Orbit Friends');
+  await expect(page.locator('.profile-tile-caption').first()).toContainText('Floor $500.00');
+  await expect(page.locator('.profile-tile-caption').last()).toContainText('Floor unavailable');
   await page.screenshot({path:'test-results/profile-portfolio-desktop.png'});
   await page.getByText('Linked wallets · 4', {exact:true}).click();
   await expect(page.getByRole('heading',{name:'Linked Wallets',exact:true})).toBeVisible();
@@ -61,6 +69,16 @@ test('profile preloads all linked wallets, retains mounted artwork, filters star
   await expect(page.locator('.profile-tile')).toHaveCount(1);
   await page.getByRole('button',{name:'Holdings',exact:true}).click();
   await expect(page.locator('.profile-tile')).toHaveCount(38);
+  await expect(page.locator('.profile-tile-caption strong').first()).toHaveText('Gallery NFT #0');
+  await expect(page.locator('.profile-tile-caption strong').nth(1)).toHaveText('Gallery NFT #4');
+  await expect(page.locator('.profile-tile-caption').last()).toContainText('Floor unavailable');
+  await page.getByRole('button',{name:'View Gallery NFT #0',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Attributes',exact:true})).toBeVisible();
+  await expect(page.getByText('PFP',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Back to Gallery',exact:true}).click();
+  await page.getByRole('button',{name:'View Gallery NFT #1',exact:true}).click();
+  await expect(page.getByText('No metadata found.',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Back to Gallery',exact:true}).click();
   await page.getByLabel('Filter profile chain').selectOption('solana');
   await expect(page.locator('.profile-tile')).toHaveCount(1);
   await page.getByLabel('Filter profile chain').selectOption('all');

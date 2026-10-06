@@ -17,3 +17,19 @@ Before deployment, run the additive deployment SQL `sql/cl_profile_banner.sql` i
 Verification:143 unit tests; backend syntax and six-script homepage precompile; browser profile journey with38 fixture NFTs across multiple wallets/chains and a second provider page, canonical dedupe, preserved image DOM after navigation, favorites and chain filtering,1500×500 upload, mobile overflow and logout. Favorites and visibility browser regressions are also checked. Screenshots use clearly synthetic artwork and mocked accounts/providers; these are layout and functional evidence, not live portfolio QA.
 
 Screenshots: `test-results/profile-portfolio-desktop.png`, `profile-portfolio-mobile.png`, `profile-portfolio-banner.png`, `profile-portfolio-account.png` (expanded account controls). Browser command: `npx playwright test e2e/profile-portfolio.spec.js e2e/profile-favorites.spec.js e2e/spam-assets.spec.js` (five checks pass). The profile journey was repeated successfully after compact account styling and expanded-panel assertions.
+
+## Metadata render crash fix
+
+The first production report showed `((intermediate value) || []).find is not a function` in the category renderer. Traits were assumed to be an array; Cardano/provider dictionaries and scalar metadata violate that assumption. `public/nft-metadata.js` now normalizes dictionaries, arrays and serialized JSON into scalar trait pairs, dropping malformed members and nested values that React cannot render. The portfolio loader, category lookup and NFT detail modal use this same normalizer.
+
+The browser fixture now includes trait objects, strings, numbers, nulls and malformed arrays; before the fix it crashed the page and detached navigation. Targeted tests cover normalization and safe React values, and the profile journey opens both dictionary-trait and malformed-trait NFT details. Deploy the updated frontend including the new `public/nft-metadata.js` file; this fix requires no additional SQL or backend change. Local unit count is now145.
+
+## Collection floor ordering
+
+Profile Overview collection tiles and Holdings/Favorites sort by descending floorPriceUsd, after favorite pinning. Zero floors follow positive floors; unavailable/invalid floors follow known zero floors. Collection floors are not multiplied by the number of owned NFTs and token spot/totalValue fields never stand in for a collection floor. Each tile shows its USD floor or Floor unavailable.
+
+The Alchemy adapter now retains collection.floorPrice with its explicit priceCurrency, falling back to contract.openSeaMetadata.floorPrice (documented by Alchemy as ETH). Conversion reuses the existing backend native/USD price helper, shares quotes across concurrent pages for 90 seconds, and gives up after five seconds without failing the NFT page. No additional per-NFT requests. Missing prices and unsupported currencies remain unknown. Monad Moralis, Solana Helius and Cardano Blockfrost adapters currently supply no collection floors, so those assets remain at the bottom unless their adapters gain floor coverage; this is not a spam classification.
+
+Deploy backend-server.js, nft-source-page.js, public/nft-floor.js, public/index.html and public/profile-portfolio.jsx together (including the previous public/nft-metadata.js crash fix). No SQL change for sorting. Unit tests cover currency conversion, quote sharing, failed/missing/invalid values; browser fixture verifies collection order across chains, favorite pinning, Holdings order and unavailable floors at the bottom. Screenshots use fixture artwork/prices, not a live account.
+
+Validation 2026-10-06:148 unit tests,5 targeted browser tests,syntax checks and6-script homepage precompile pass. A read-only live Ethereum adapter probe against a public sample wallet returned100 NFTs with96 reported floors and96 successful USD conversions. This verifies provider mapping/conversion, not the deployed UI or the user account.

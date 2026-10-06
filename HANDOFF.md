@@ -7,11 +7,13 @@ task: -
 lease_until: -
 repo: -
 verify: npm run check && npm test
-verified: no-git · 143unit tests;5browser checks; final profile test pass; syntax/precompile6scripts; screenshots reviewed · 2026-10-06T00:47-03:00
+verified: no-git · 148 unit tests;5 browser checks; syntax and6-script precompile pass; live floor adapter100/96/96 · 2026-10-06T01:13-03:00
 head: no-git
-updated: 2026-10-06T00:47-03:00 · codex
+updated: 2026-10-06T01:13-03:00 · codex
 
 ## Now
+- Profile floor sorting implemented locally: Alchemy collection floors converted to USD, favorites pinned then descending floor in Overview/Holdings/Favorites; unknowns last and tile price labels. 148 unit tests,5 browser checks,syntax/precompile pass; desktop/mobile screenshots reviewed. Live Ethereum adapter probe:100 NFTs,96 reported/converted floors; no deployment.
+- Production Profile render crash from non-array traits fixed locally: public/nft-metadata.js normalizes dictionaries/arrays/JSON/scalars for categories and NFT details;145unit tests,5browser checks and6script precompile pass. Mixed-metadata screenshots reviewed; fix awaits deployment.
 - Profile portfolio redesign implemented locally: compact left account disclosures,3:1banner,Overview/Holdings/Favorites mosaic, all-linked-wallet session cache and background previews; scanner state independent and Profile stays mounted through navigation.
 - 143 unit tests, syntax/precompile6scripts and5browser checks pass; profile test repeated after compact account styling and expanded-panel assertions (pass). Desktop/mobile/expanded account screenshots reviewed. Banner SQL prepared, not applied; existing local DB read rejected (Unregistered API key).
 - Shared ChainLens-ID NFT favorites complete locally in website and Magic Money: profile-scoped favorites/unfavorite tombstones, offline retry, wallet legacy migration and account/network isolation. Stars pin NFTs; existing sorts remain within groups.
@@ -29,9 +31,10 @@ updated: 2026-10-06T00:47-03:00 · codex
 - Official favicon saved locally in public/new-listings-favicon.png and used in switcher; gitignore covers secrets, runtime/test artifacts, ephemeral .handoff.lock.
 
 ## Next
-- Review profile-portfolio screenshots with user. Deployment when authorized: apply sql/cl_profile_banner.sql via normal DB workflow, deploy backend/static assets, verify live banner persistence and linked-wallet portfolio loading with valid credentials. Retain existing pending favorites Worker and logos/feed deployment requirements.
+- Deploy floor sorting and previous metadata crash fix; refresh Profile.
 
 ## Traps
+- NFT provider traits can be dictionaries, serialized JSON, scalars or arrays with null entries; normalize before array methods or React rendering. Deploy public/nft-metadata.js with the frontend fix.
 - Free feed contains exchange announcements, no price/history/contract data. Memory buffer clears on restart; reconnects can leave gaps.
 - One socket per backend process; key permits only 2 egress IPs. Use shared ingest before scaling replicas.
 - No .git found in this ChainLens folder. Wallet has its own lease; always check ownership before shared edits.

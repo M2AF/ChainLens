@@ -1,7 +1,22 @@
 'use strict';
 // Each browser worker follows provider cursors without holding a giant response
 // open on the backend. Scanner consumers can continue to use just `nfts`.
-function createAlchemyNFTPage({ fetchImpl, apiKey }) {
+const { amount } = require('./public/nft-floor');
+function createAlchemyNFTPage({ fetchImpl, apiKey, getNativePrice = async () => 0 }) {
+  // Share a quote across concurrently loaded chains/pages; failed quotes remain
+  // unknown rather than making valuable collections look like zero-price NFTs.
+  const quotes = new Map();
+  const quote = symbol => {
+    const previous = quotes.get(symbol);
+    if (previous && Date.now() - previous.at < 90000) return previous.promise;
+    let timer;
+    const promise = Promise.race([
+      Promise.resolve().then(() => getNativePrice(symbol)).catch(() => null),
+      new Promise(resolve => { timer = setTimeout(() => resolve(null), 5000); }),
+    ]).finally(() => clearTimeout(timer));
+    quotes.set(symbol, { at: Date.now(), promise });
+    return promise;
+  };
   return async (network, address, chain, pageKey = '') => {
     const url = new URL(`https://${network}.g.alchemy.com/nft/v3/${apiKey}/getNFTsForOwner`);
     url.searchParams.set('owner', address);
@@ -10,9 +25,23 @@ function createAlchemyNFTPage({ fetchImpl, apiKey }) {
     const response = await fetchImpl(url.toString(), { signal: AbortSignal.timeout(20000) });
     if (!response.ok) throw new Error(`NFT provider HTTP ${response.status}`);
     const data = await response.json();
+    const floors = await Promise.all((data.ownedNfts || []).map(async nft => {
+      const explicit = nft.collection?.floorPrice;
+      const explicitAmount = amount(explicit?.floorPrice);
+      // Alchemy documents openSeaMetadata.floorPrice in ETH, even on other
+      // networks. Never assume a collection uses the chain's native currency.
+      const value = explicitAmount ?? amount(nft.contract?.openSeaMetadata?.floorPrice);
+      const currency = explicitAmount !== null ? explicit.priceCurrency : 'ETH';
+      const symbol = typeof currency === 'string' ? currency.toUpperCase() : '';
+      if (value === null || !symbol) return { floorPrice: value, floorPriceCurrency: symbol || null, floorPriceUsd: null };
+      const rate = amount(await quote(symbol === 'WETH' ? 'ETH' : symbol));
+      const converted = rate !== null && rate > 0 ? amount(value * rate) : null;
+      return { floorPrice: value, floorPriceCurrency: symbol, floorPriceUsd: converted };
+    }));
     return {
       nextPageKey: data.pageKey || null,
-      nfts: (data.ownedNfts || []).map(nft => ({
+      nfts: (data.ownedNfts || []).map((nft, index) => ({
+        ...floors[index],
         id: `${chain}-${nft.contract.address}-${nft.tokenId}`,
         name: nft.name || nft.title || 'Unnamed NFT',
         image: nft.image?.cachedUrl || nft.image?.originalUrl || nft.image?.thumbnailUrl || '',

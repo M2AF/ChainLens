@@ -32,6 +32,8 @@
   <link rel="stylesheet" href="/market-ticker.css">
   <script type="text/babel" src="/market-ticker.jsx"></script>
   <script src="/asset-filter-key.js"></script>
+  <script src="/nft-metadata.js"></script>
+  <script src="/nft-floor.js"></script>
   <script type="text/babel" src="/nft-favorites.jsx"></script>
   <script type="text/babel" src="/profile-portfolio.jsx"></script>
   <link rel="stylesheet" href="/profile-portfolio.css">
@@ -4892,7 +4894,7 @@
                           <div>
                              <h3 className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-3">Attributes</h3>
                              <div className="flex flex-wrap gap-2">
-                                {selectedAsset.metadata?.traits?.length > 0 ? selectedAsset.metadata.traits.map((t, i) => (
+                                {window.nftMetadata.traits(selectedAsset.metadata?.traits).length > 0 ? window.nftMetadata.traits(selectedAsset.metadata?.traits).map((t, i) => (
                                   <div key={i} className="px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20">
                                     <p className="text-[8px] uppercase opacity-60">{t.trait_type}</p>
                                     <p className="text-[10px] font-bold">{t.value}</p>

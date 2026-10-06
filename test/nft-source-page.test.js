@@ -20,3 +20,26 @@ test('provider failure remains an error, never a successful empty portfolio', as
   const read = createAlchemyNFTPage({apiKey:'fixture', fetchImpl:async()=>({ok:false,status:429})});
   await assert.rejects(read('base-mainnet','0xowner','base'),/429/);
 });
+test('provider collection floors retain currency and convert to comparable USD, sharing quotes across pages', async () => {
+  const prices = [];
+  const read = createAlchemyNFTPage({ apiKey:'fixture', getNativePrice:async symbol => { prices.push(symbol); return symbol === 'ETH' ? 2000 : symbol === 'SOL' ? 100 : 0; }, fetchImpl:async()=>({ok:true,json:async()=>({ownedNfts:[
+    {contract:{address:'eth',openSeaMetadata:{floorPrice:.5}},tokenId:'1'},
+    {contract:{address:'sol'},tokenId:'2',collection:{floorPrice:{floorPrice:20,priceCurrency:'SOL'}}},
+    {contract:{address:'none'},tokenId:'3'},
+    {contract:{address:'bad',openSeaMetadata:{floorPrice:-1}},tokenId:'4'},
+    {contract:{address:'unknown'},tokenId:'5',collection:{floorPrice:{floorPrice:3,priceCurrency:'UNKNOWN'}}},
+    {contract:{address:'zero',openSeaMetadata:{floorPrice:0}},tokenId:'6'},
+  ]})}) });
+  const first = await read('base-mainnet','owner','base');
+  await read('base-mainnet','owner','base','page2');
+  assert.deepEqual(first.nfts.map(n=>n.floorPriceUsd),[1000,2000,null,null,null,0]);
+  assert.equal(first.nfts[0].floorPriceCurrency,'ETH');
+  assert.equal(first.nfts[1].floorPriceCurrency,'SOL');
+  assert.deepEqual(prices,['ETH','SOL','UNKNOWN']);
+});
+test('failed conversion does not discard NFTs or invent zero floors', async () => {
+  const read = createAlchemyNFTPage({apiKey:'fixture',getNativePrice:async()=>{throw Error('unavailable');},fetchImpl:async()=>({ok:true,json:async()=>({ownedNfts:[{contract:{address:'abc',openSeaMetadata:{floorPrice:1}},tokenId:'1'}]})})});
+  const result = await read('base-mainnet','owner','base');
+  assert.equal(result.nfts.length,1);
+  assert.equal(result.nfts[0].floorPriceUsd,null);
+});
