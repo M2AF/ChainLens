@@ -1,0 +1,17 @@
+# NFT favorites on the ChainLens profile
+
+ChainLens and all Magic Money wallet targets share favorites through the existing `cl_asset_filters.entries` profile preference document. Its `user_id` is the ChainLens user's UUID, not an install ID. The website uses the existing authenticated JWT subject; the wallet Worker resolves its ownership-proven EVM address through verified profile wallet links. Addresses linked to the same ChainLens profile therefore see the same favorite decisions.
+
+Additive wire format: `favorite:mainnet:<canonical NFT key>` or `favorite:testnet:<canonical NFT key>` with `{ s: 'f', t: <epoch ms> }` for a star or `s: 'u'` for an unfavorite tombstone. NFT identity is the existing shared chain/contract/token key, with special rules for Solana, Cardano and Bitcoin. Visibility keys remain independent; an NFT can be starred and marked as spam without either choice overwriting the other. Existing visibility hooks strip favorite decisions from their legacy caches and outgoing lists.
+
+No new database schema or credentials are required. Both server sanitizers and the shared client parser recognize the two additional states only under favorite namespaces. Existing profile writes retain their authorization: JWT on the website, wallet ownership signature on the Worker. No service-role key is bundled in a client. Table RLS and account verification are unchanged.
+
+Local storage is an offline cache. Wallet caches are owner/network scoped; website caches are profile-ID scoped. Anonymous website stars stay anonymous and are not automatically assigned to whichever profile next signs in. The website binds the loaded profile ID to the current JWT subject while profile requests are loading. Wallet requests carry an expected EVM address through all platform bridges; main refuses them if the active account has changed. Late responses are ignored on scope changes.
+
+Existing wallet favorite arrays migrate at timestamp zero so newer profile choices win. Unfavorite tombstones persist so a stale device cannot restore an older star. UI toggles are immediate; sync is debounced at 800ms and refreshed on focus, online and every30 seconds. Stars pin NFTs ahead of other holdings; the existing price sorting remains within each group. Offline failures retain local decisions for a later retry.
+
+Known inherited limits: all profile preferences share the existing 2,000-entry cap; merges use client wall-clock timestamps. Server writes use the existing read/merge/upsert flow, so simultaneous writes through different server instances can briefly lose an entry until a client re-pushes its retained local decision. This is eventual preference synchronization, not transactional storage.
+
+Deployment order: update the profile Worker and ChainLens backend first, then publish wallet builds and website UI. Old servers discard the new states. No deployment was performed by this implementation. Validate live sync with two devices signed into the same ChainLens ID after deployment. The local live database read probe returned `Unregistered API key` for the existing server credential, so production database behavior was not verified.
+
+Local evidence: wallet five-target typecheck/full Vitest suite/platform builds; ChainLens unit suite; `e2e/profile-favorites.spec.js` exercises the real wallet and website hooks against shared mocked profile transport, covering migration, unfavorite, offline retry, profile separation and network separation. Scanner UI test checks star and pinning. These checks are not live profile-account QA.

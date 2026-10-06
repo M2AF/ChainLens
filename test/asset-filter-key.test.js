@@ -7,6 +7,12 @@ const vm = require('node:vm');
 const context = { window: {} };
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'public', 'asset-filter-key.js'), 'utf8'), context);
 const { convertHiddenToSpam, mergeEntries } = context.window.assetFilterKey;
+test('favorites share NFT identity and retain unfavorite tombstones independently of spam', () => {
+  const key = 'favorite:mainnet:' + context.window.assetFilterKey.canonicalNftKey('Base', '0xABC', '1');
+  const merged = mergeEntries({ [key]: { s: 'f', t: 1 }, 'base:n:0xabc:1': { s: 's', t: 1 } }, { [key]: { s: 'u', t: 2 } });
+  assert.equal(merged[key].s, 'u'); assert.equal(merged['base:n:0xabc:1'].s, 's');
+  assert.equal(Object.keys(context.window.assetFilterKey.sanitizeEntries({ wrong: { s: 'f', t: 1 } })).length, 0);
+});
 
 test('old hidden decisions become spam and outrank the synced hide', () => {
   const entries = {

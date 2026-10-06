@@ -133,7 +133,7 @@ function createPrecompiledPage(publicDir, log = console) {
   let stamp = '';
 
   const sourcesStamp = () => {
-    const files = ['index.html', 'search-page.jsx'];
+    const files = ['index.html', 'search-page.jsx', 'nft-favorites.jsx'];
     return files.map(f => {
       try { return fs.statSync(path.join(publicDir, f)).mtimeMs; } catch { return 0; }
     }).join(':');

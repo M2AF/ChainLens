@@ -98,3 +98,20 @@
 ### 2026-10-05T19:36-03:00 · codex · handoff · no-git
 - App Hub logo replacement complete locally, verified and logged.
 - next: Deploy local ChainLens App Hub/Market Watch logos and feed diagnostics when authorized; wallet remains deferred.
+
+### 2026-10-05T20:59-03:00 · codex · claim · no-git
+- task: NFT stars with shared ChainLens ID preferences
+- lease until 2026-10-05T23:59-03:00
+
+### 2026-10-05T21:14-03:00 · codex · checkpoint · no-git
+- verified: 140 ChainLens tests; syntax check; homepage precompile; scanner stars and cross-product hook tests pass
+- Shared ChainLens-ID NFT favorites implemented locally in both products via existing cl_asset_filters entries. Namespaced favorite/unfavorite decisions, profile-scoped caches, offline retries, legacy migration and stale-owner request binding. Visibility caches exclude favorites. No schema changes or live writes; existing local database credential returned Unregistered API key.
+- next: Finish final browser regressions, update boards and release leases; backend/Worker must deploy before clients when authorized.
+
+### 2026-10-05T21:15-03:00 · codex · verify · no-git
+- verified: npm run check; npm test (140 pass); homepage precompile 5 scripts; profile-favorites browser tests 2 pass
+- Final scanner and real wallet/website hook tests pass after layout adjustment; desktop and wallet screenshots reviewed. Shared preferences architecture/deployment order documented. No new schema or credentials; production remains unverified due to existing rejected local API key.
+
+### 2026-10-05T21:15-03:00 · codex · handoff · no-git
+- NFT favorites sync through shared ChainLens-ID preferences implemented and locally verified in both products; offline decisions and unfavorite tombstones retained. No live writes, commit or deployment.
+- next: When deployment is authorized, update ChainLens backend and wallet profile Worker first, then website/wallet clients. Verify same-ID star/unstar across devices using valid server credentials. Existing App Hub/Market Watch logo and feed updates await deployment too.

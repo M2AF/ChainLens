@@ -32,6 +32,7 @@
   <link rel="stylesheet" href="/market-ticker.css">
   <script type="text/babel" src="/market-ticker.jsx"></script>
   <script src="/asset-filter-key.js"></script>
+  <script type="text/babel" src="/nft-favorites.jsx"></script>
   <script src="/theme-engine.js"></script>
   <script src="/app-hub-data.js"></script>
 
@@ -271,6 +272,7 @@
     const { discoverWalletProviders, requestLinkedAddress } = window.ChainLensWalletProviders;
     const { keyFor: assetKeyFor, legacyKeyToCanonical, mergeEntries: mergeFilterEntries,
             sanitizeEntries: sanitizeFilterEntries, convertHiddenToSpam } = window.assetFilterKey;
+    const visibilityEntries = value => Object.fromEntries(Object.entries(sanitizeFilterEntries(value)).filter(([, e]) => ['h', 's', 'a'].includes(e.s)));
 
     // ── Spam assets ───────────────────────────────────────────────────────────
     //
@@ -314,7 +316,7 @@
 
     const loadStoredFilters = () => {
       try {
-        const entries = migrateLegacyFilters(sanitizeFilterEntries(JSON.parse(localStorage.getItem(FILTERS_STORE) || '{}')));
+        const entries = migrateLegacyFilters(visibilityEntries(JSON.parse(localStorage.getItem(FILTERS_STORE) || '{}')));
         const converted = convertHiddenToSpam(entries);
         if (converted !== entries) saveStoredFilters(converted);
         return converted;
@@ -348,7 +350,7 @@
     //    across NFT↔Token tab switches, preserving all <img> loaded states ──
     const AssetGrid = React.memo(({ assets, isListView, darkMode, chainStyles,
         resolveImg, handleImgError, toggleSpam, setSelectedAsset,
-        nativePrices, tokenMode }) => {
+        nativePrices, tokenMode, favorites, onToggleFavorite }) => {
       return (
         <div className={`max-w-6xl mx-auto ${isListView ? "flex flex-col gap-3" : "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8"}`}>
           {assets.map((nft) => {
@@ -365,9 +367,12 @@
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     onError={(e) => handleImgError(e, nft)}
                   />
+                  {!tokenMode && !nft.isToken && <button type="button" aria-label={`${favorites?.has(window.nftFavoriteKey(nft)) ? 'Unfavorite' : 'Favorite'} ${nft.name || 'NFT'}`} aria-pressed={!!favorites?.has(window.nftFavoriteKey(nft))} onClick={e => { e.stopPropagation(); onToggleFavorite?.(nft); }} className="absolute top-2 left-2 z-20 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-950/80 border border-white/20 text-amber-400">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill={favorites?.has(window.nftFavoriteKey(nft)) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" /></svg>
+                  </button>}
                   <div
                     style={{ background: chainStyles[nft.chain]?.background || '#64748b', color: chainStyles[nft.chain]?.foreground || '#fff' }}
-                    className={`absolute ${isListView ? 'top-1 left-1 px-1.5 py-0.5 text-[6px]' : 'top-4 left-4 px-3 py-1 text-[9px]'} rounded-full font-bold tracking-widest uppercase backdrop-blur-md border border-white/20 shadow-lg z-10`}>
+                    className={`absolute ${isListView ? `${!tokenMode && !nft.isToken ? 'bottom-1' : 'top-1'} left-1 px-1.5 py-0.5 text-[6px]` : !tokenMode && !nft.isToken ? 'bottom-4 left-4 px-3 py-1 text-[9px]' : 'top-4 left-4 px-3 py-1 text-[9px]'} rounded-full font-bold tracking-widest uppercase backdrop-blur-md border border-white/20 shadow-lg z-10`}>
                     {chainStyles[nft.chain]?.label || nft.chain}
                   </div>
                 </div>
@@ -1523,6 +1528,7 @@
       // ── Auth & Profile state ───────────────────────────────────────────────
       const [authToken, setAuthToken] = useState(() => localStorage.getItem('cl_token'));
       const [userProfile, setUserProfile] = useState(null);
+      const { favorites: nftFavorites, toggleFavorite: toggleNftFavorite } = window.useProfileNftFavorites(userProfile?.id, authToken);
       const [authLoading, setAuthLoading] = useState(false);
       const [walletConnecting, setWalletConnecting] = useState(null); // 'evm'|'solana'|'cardano'|'google'|'discord'
       const [walletPickerType, setWalletPickerType] = useState(null);
@@ -1806,7 +1812,7 @@
             if (!res.ok) return;
             const body = await res.json();
             if (cancelled || !body || !body.entries) return;
-            const merged = convertHiddenToSpam(mergeFilterEntries(filterEntriesRef.current, body.entries));
+            const merged = convertHiddenToSpam(mergeFilterEntries(visibilityEntries(filterEntriesRef.current), visibilityEntries(body.entries)));
             filterEntriesRef.current = merged;
             saveStoredFilters(merged);
             setFilterEntries(merged);
@@ -1837,7 +1843,7 @@
             if (!res.ok) return;
             const body = await res.json();
             if (!body || !body.entries) return;
-            const received = mergeFilterEntries(filterEntriesRef.current, body.entries);
+            const received = mergeFilterEntries(visibilityEntries(filterEntriesRef.current), visibilityEntries(body.entries));
             const merged = convertHiddenToSpam(received);
             if (merged !== received) filtersDirty.current = true;
             filterEntriesRef.current = merged;
@@ -3027,8 +3033,8 @@
 
       // NFT grid — always computed so its <img> elements stay mounted
       const nftAssets = useMemo(() =>
-        [...baseVisible.filter(nft => !nft.isToken)].sort(sortFn),
-        [baseVisible, sortFn]);
+        [...baseVisible.filter(nft => !nft.isToken)].sort((a, b) => Number(nftFavorites.has(window.nftFavoriteKey(b))) - Number(nftFavorites.has(window.nftFavoriteKey(a))) || sortFn(a, b)),
+        [baseVisible, sortFn, nftFavorites]);
 
       // Token grid — always computed so its <img> elements stay mounted
       const tokenAssets = useMemo(() =>
@@ -3874,7 +3880,7 @@
                   <AssetGrid assets={nftAssets} isListView={isListView} darkMode={darkMode}
                     chainStyles={chainStyles} resolveImg={resolveImg} handleImgError={handleImgError}
                     toggleSpam={toggleSpam} setSelectedAsset={setSelectedAsset}
-                    nativePrices={nativePrices} tokenMode={false} />
+                    nativePrices={nativePrices} tokenMode={false} favorites={nftFavorites} onToggleFavorite={toggleNftFavorite} />
                 </div>
 
                 {/* Token grid — always mounted (never unmounted) so images stay cached */}

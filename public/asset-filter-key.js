@@ -139,7 +139,8 @@
       var e = value[key];
       if (!key || key.length > 256) return;
       if (!e || typeof e !== 'object') return;
-      if (e.s !== 'h' && e.s !== 's' && e.s !== 'a') return;
+      if (e.s !== 'h' && e.s !== 's' && e.s !== 'a' && e.s !== 'f' && e.s !== 'u') return;
+      if ((e.s === 'f' || e.s === 'u') && !/^favorite:(mainnet|testnet):[^:]+:n:/.test(key)) return;
       if (typeof e.t !== 'number' || !isFinite(e.t)) return;
       out[key] = { s: e.s, t: e.t };
     });

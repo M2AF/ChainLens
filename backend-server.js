@@ -1703,7 +1703,7 @@ app.delete('/api/profile/wallet/:walletId', requireAuth, async (req, res) => {
 // stop the portfolio rendering — the client keeps its localStorage copy, which
 // is what it renders from anyway.
 
-const FILTER_STATES = new Set(['h', 's', 'a']);
+const FILTER_STATES = new Set(['h', 's', 'a', 'f', 'u']);
 const MAX_FILTER_ENTRIES = 2000;
 
 const sanitizeFilterEntries = (value) => {
@@ -1713,6 +1713,7 @@ const sanitizeFilterEntries = (value) => {
     if (!key || key.length > 256) continue;
     if (!e || typeof e !== 'object') continue;
     if (!FILTER_STATES.has(e.s)) continue;
+    if ((e.s === 'f' || e.s === 'u') && !/^favorite:(mainnet|testnet):[^:]+:n:/.test(key)) continue;
     if (typeof e.t !== 'number' || !Number.isFinite(e.t)) continue;
     out[key] = { s: e.s, t: e.t };
   }
