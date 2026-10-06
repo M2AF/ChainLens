@@ -250,3 +250,18 @@
 ### 2026-10-06T03:06-03:00 · codex · handoff · no-git
 - Scanner/Profile NFT session reuse and stalled-source fix complete locally; screenshot reviewed.160unit tests,5browser checks plus isolation rerun,syntax and precompile pass. No commit/deployment performed.
 - next: User pushes/deploys public/index.html,public/profile-portfolio.jsx and NEW public/nft-session.js together. Tokens/transactions still request separately; cached NFTs render immediately.
+
+### 2026-10-06T03:24-03:00 · codex · claim · no-git
+- task: Restore Scanner Grid/List control and center asset tabs
+- lease until 2026-10-06T06:24-03:00
+
+### 2026-10-06T03:25-03:00 · codex · checkpoint · no-git
+- Located old Grid/List switch fixed behind desktop sidebar; moved into Scanner toolbar right edge and centered asset tabs with symmetric columns. Mobile puts tabs centered on second row. Existing state reused; switch is keyboard accessible. Precompile passes; running Scanner toolbar/browser checks.
+
+### 2026-10-06T03:26-03:00 · codex · verify · no-git
+- verified: Scanner toolbar browser check passed;6-script precompile passed
+- Scanner toolbar restored: Grid/List right, centered asset tabs, Spam left; mobile tabs second row. Existing Scanner browser check passed22.1s including actual list/grid switching, keyboard Space, tab persistence, desktop centering and mobile width. Desktop/mobile screenshots reviewed;6-script precompile passes. Docs updated.
+
+### 2026-10-06T03:26-03:00 · codex · handoff · no-git
+- Scanner toolbar change complete locally; no commit/deployment. Existing NFT cache work retained.
+- next: User pushes/deploys public/index.html for toolbar change. Include new public/nft-session.js and public/profile-portfolio.jsx if previous Scanner cache change has not been deployed.

@@ -28,6 +28,31 @@ test('scanner NFT stars sit over the image and pin favorites without opening det
   expect(await page.getByRole('button', { name: /^(Unfavorite|Favorite) (Lower|Higher) NFT$/ }).allTextContents()).toHaveLength(2);
   await expect.poll(() => page.locator('button[aria-label="Unfavorite Lower NFT"]').evaluate(button => button.parentElement.parentElement.parentElement.querySelector('button[aria-pressed]') === button)).toBe(true);
   await page.screenshot({ path: 'test-results/profile-favorites-scanner.png' });
+  const toolbar = page.locator('.scanner-toolbar');
+  const tabs = page.getByRole('group', { name:'Scanner asset type' });
+  const layout = page.getByRole('switch', { name:'List view' });
+  const toolbarBox = await toolbar.boundingBox(), tabsBox = await tabs.boundingBox();
+  expect(Math.abs(tabsBox.x + tabsBox.width/2 - toolbarBox.x - toolbarBox.width/2)).toBeLessThan(2);
+  await expect(layout).toHaveAttribute('aria-checked','false');
+  await layout.click();
+  await expect(layout).toHaveAttribute('aria-checked','true');
+  await expect(page.locator('.group.cursor-pointer > div.w-16')).toHaveCount(2);
+  await tabs.getByRole('button', { name:'Tokens', exact:true }).click();
+  await expect(layout).toHaveAttribute('aria-checked','true');
+  await tabs.getByRole('button', { name:'NFTs', exact:true }).click();
+  await expect(page.locator('.group.cursor-pointer > div.w-16')).toHaveCount(2);
+  await toolbar.scrollIntoViewIfNeeded();
+  await page.screenshot({ path:'test-results/scanner-controls-desktop.png' });
+  await layout.focus();
+  await page.keyboard.press('Space');
+  await expect(layout).toHaveAttribute('aria-checked','false');
+  await expect(page.locator('.group.cursor-pointer > div.aspect-square')).toHaveCount(2);
+  await page.setViewportSize({ width:390,height:844 });
+  await toolbar.scrollIntoViewIfNeeded();
+  await expect(layout).toBeVisible();
+  await expect(tabs).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path:'test-results/scanner-controls-mobile.png' });
 });
 
 test('real wallet and website hooks share stars, tombstones, offline edits and separate profiles/networks', async ({ browser }) => {
