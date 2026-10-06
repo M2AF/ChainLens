@@ -10,6 +10,7 @@ test('profile preloads all linked wallets, retains mounted artwork, filters star
   test.setTimeout(90000);
   await page.setViewportSize({width:1920,height:1080});
   const errors = []; page.on('pageerror', e => errors.push(e.message));
+  await page.route('**/failed-preview.png',route=>route.fulfill({status:404,body:''}));
   const wallets = [
     { id: 'one', chain: 'evm', address: '0x1111111111111111111111111111111111111111', is_primary: true },
     { id: 'two', chain: 'evm', address: '0x2222222222222222222222222222222222222222', watch_only: true },
@@ -31,7 +32,7 @@ test('profile preloads all linked wallets, retains mounted artwork, filters star
       requests.push(url.pathname);
       const chain = url.pathname.split('/')[3];
       const nfts = chain === 'base' ? Array.from({length:18}, (_,offset) => { const i = offset + (url.searchParams.has('pageKey') ? 18 : 0); return { chain, contractAddress: `0xcollection${i < 16 ? Math.floor(i/4) : i}`, tokenId: String(i), name: `Gallery NFT #${i}`, collectionName: ['Dreamers','Chromatic Club','Soft Shapes','Orbit Friends'][Math.floor(i/4)] || `Edition ${i}`, image: art(i), floorPriceUsd: i < 16 ? [5,500,50,100][Math.floor(i/4)] : i === 16 ? 0 : null, category: i%4 === 0 ? 'pfp' : i%4 === 1 ? 'art' : i%4 === 2 ? 'gaming' : 'music' }; }) : ['solana','cardano'].includes(chain) ? [{chain,contractAddress:'policy', tokenId:'mint'+chain, name:chain+' collectible',collectionName:'Cross-chain editions',image:art(4),floorPriceUsd:chain === 'solana' ? 200 : null}] : [];
-      nfts.forEach((nft, i) => { nft.metadata = { traits: traitShapes[i % traitShapes.length] }; });
+      nfts.forEach((nft, i) => { nft.metadata = { traits: traitShapes[i % traitShapes.length] }; if (nft.tokenId === '0') nft.thumbnailUrl='/failed-preview.png'; });
       return route.fulfill({json:{nfts,nextPageKey:chain === 'base' && !url.searchParams.has('pageKey') ? 'next-page' : null}});
     }
     if (url.pathname.includes('/passkey/available')) return route.fulfill({json:{available:true}});
@@ -73,6 +74,7 @@ test('profile preloads all linked wallets, retains mounted artwork, filters star
   await expect(page.locator('.profile-tile-caption strong').nth(1)).toHaveText('Gallery NFT #4');
   await expect(page.locator('.profile-tile-caption').last()).toContainText('Floor unavailable');
   await page.getByRole('button',{name:'View Gallery NFT #0',exact:true}).click();
+  await expect(page.locator('img[alt="Gallery NFT #0"].w-full')).toHaveAttribute('src',art(0));
   await expect(page.getByRole('heading',{name:'Attributes',exact:true})).toBeVisible();
   await expect(page.getByText('PFP',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Back to Gallery',exact:true}).click();
@@ -96,4 +98,46 @@ test('profile preloads all linked wallets, retains mounted artwork, filters star
   await page.getByRole('button',{name:'Sign Out',exact:true}).click();
   await expect(page.locator('.profile-art')).toHaveCount(0);
   expect(errors).toEqual([]);
+});
+
+test('Profile spam shares manual decisions, catches scanner/provider suspects and restores them across refresh', async ({ page }) => {
+  const names = ['Seal One','Seal Two','Claim reward voucher','Provider suspect','Already marked'];
+  let entries = {'base:n:0xcollection:4':{s:'s',t:1000}}, pushes = 0;
+  const nfts = names.map((name,i)=>({chain:'base',contractAddress:'0xcollection',tokenId:String(i),id:`base-0xcollection-${i}`,name,image:art(i),isSpam:i===3,floorPriceUsd:5}));
+  await page.addInitScript(t=>{localStorage.setItem('cl_token',t);localStorage.setItem('darkMode','true');},token);
+  await page.route('**/api/**',async route=>{
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/profile') return route.fulfill({json:{id:profileId,display_name:'Spam test',cl_wallets:[{chain:'evm',address:'0x1111111111111111111111111111111111111111'}],cl_linked_accounts:[]}});
+    if (path === '/api/profile/filters') {
+      const body = route.request().postDataJSON();
+      if (body?.entries) { pushes++; entries = {...entries,...body.entries}; }
+      return route.fulfill({json:{entries}});
+    }
+    if (path.startsWith('/api/nfts/')) return route.fulfill({json:{nfts:path.includes('/base/') ? nfts:[]}});
+    return route.fulfill({json:{available:true,passkeys:[],coins:[],transactions:[]}});
+  });
+  await page.goto('/?tab=profile');
+  const gallery = page.getByRole('region',{name:'Profile NFT portfolio'});
+  await gallery.getByRole('button',{name:'Holdings',exact:true}).click();
+  await expect(gallery.locator('.profile-tile')).toHaveCount(2);
+  await expect(gallery.getByRole('button',{name:'Spam (3)',exact:true})).toBeVisible();
+  await gallery.getByRole('button',{name:'Mark as spam Seal One',exact:true}).click();
+  await expect(gallery.locator('.profile-tile')).toHaveCount(1);
+  await expect.poll(()=>entries['base:n:0xcollection:0']?.s).toBe('s');
+  expect(pushes).toBeGreaterThan(0);
+  await gallery.getByRole('button',{name:'Spam (4)',exact:true}).click();
+  await expect(gallery.locator('.profile-tile')).toHaveCount(4);
+  await page.screenshot({path:'test-results/profile-spam.png'});
+  await gallery.getByRole('button',{name:'Not spam Claim reward voucher',exact:true}).click();
+  await expect.poll(()=>entries['base:n:0xcollection:2']?.s).toBe('a');
+  await gallery.getByRole('button',{name:'Holdings',exact:true}).click();
+  await expect(gallery.getByRole('button',{name:'View Claim reward voucher',exact:true})).toBeVisible();
+  // Simulate the wallet updating the same profile document while Profile stays open.
+  entries['base:n:0xcollection:1']={s:'s',t:Date.now()+1000};
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await expect(gallery.getByRole('button',{name:'View Seal Two',exact:true})).toHaveCount(0);
+  await page.reload();
+  await gallery.getByRole('button',{name:'Holdings',exact:true}).click();
+  await expect(gallery.getByRole('button',{name:'View Claim reward voucher',exact:true})).toBeVisible();
+  await expect(gallery.getByRole('button',{name:'View Seal One',exact:true})).toHaveCount(0);
 });

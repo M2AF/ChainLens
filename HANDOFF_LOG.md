@@ -165,3 +165,29 @@
 ### 2026-10-06T01:13-03:00 · codex · handoff · no-git
 - Floor USD ordering, captions and regression checks complete locally; favorites remain pinned. Handoff board/docs updated.
 - next: Deploy floor sorting and previous metadata crash fix; refresh Profile.
+
+### 2026-10-06T01:39-03:00 · codex · claim · no-git
+- task: Profile shared spam controls and banner upload failure
+- lease until 2026-10-06T04:39-03:00
+
+### 2026-10-06T01:40-03:00 · codex · checkpoint · no-git
+- Live Supabase schema read confirms cl_users.banner_url missing; matching configured project vxrhosrktbknogyeyewy. Applying existing additive banner SQL under requested upload fix. Profile manual spam filters already share canonical keys; scanner heuristic filtering bypasses Profile.
+
+### 2026-10-06T01:42-03:00 · codex · checkpoint · no-git
+- Live banner migration applied and nullable text column verified. Profile per-art spam/restore buttons and Spam tab share scanner/manual canonical filters; scanner suspects retained for restore and shared heuristic reused. Focus/30s pulls added for cross-device changes. Starting syntax/unit/precompile and6 browser checks; screenshots in test-results.
+
+### 2026-10-06T01:47-03:00 · codex · checkpoint · no-git
+- Scope includes missing images/Monad/REDACTED. Live Alchemy gives53 Monad NFTs; contract metadata probe and repaired adapter confirm REDACTED #1/#2/#8/#9 distinct correct artwork. Alchemy Robinhood RPC endpoint unsuitable: verified public Robinhood RPC required. Arweave redirects to trusted subdomains; bounded redirect allowlist needed.
+- next: Finish alternate image loading and validate unit/browser tests; capture repaired live sample preview.
+
+### 2026-10-06T01:52-03:00 · codex · verify · no-git
+- verified: 156unit tests;6browser checks; syntax/precompile6scripts; live DB column and NFT routes verified
+- All requested issues handled in same pass: Profile spam sync/restore and shared scanner rules; banner DB migration live; Monad Alchemy primary; contract-based REDACTED repair and alternate image/CDN/IPFS sources. Live local routes53 Monad/27 Robinhood; real artwork screenshots captured. Legacy Monad floor currency unknown, protected against ETH misvaluation.
+- next: Deploy code files in docs/PROFILE-PORTFOLIO.md and verify actual profile/banner retry; DB migration already applied.
+
+### 2026-10-06T01:52-03:00 · codex · checkpoint · no-git
+- User visually confirmed repaired REDACTED artwork is correct. Live-data Monad preview now uses safe unknown-currency floor handling.
+
+### 2026-10-06T01:52-03:00 · codex · handoff · no-git
+- Same-pass spam/banner/Monad/artwork changes verified; REDACTED artwork user-confirmed.156unit/6browser checks pass; live banner schema fixed, code awaits deployment.
+- next: Redeploy exact files in docs/PROFILE-PORTFOLIO.md, refresh Profile, retry banner and verify same-ID spam sync.

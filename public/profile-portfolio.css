@@ -238,6 +238,19 @@
 .profile-tile-caption {
   padding: 10px 2px;
 }
+.profile-spam {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  background: #061324dd;
+  border: 1px solid #ffffff33;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  font-size: 14px;
+}
+.profile-spam:hover { background: #b91c1c; }
 .profile-tile-caption strong {
   display: block;
   font-size: 12px;

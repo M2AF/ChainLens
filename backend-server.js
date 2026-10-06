@@ -1665,7 +1665,11 @@ app.patch('/api/profile', requireAuth, async (req, res) => {
 
   const { data, error } = await supabase
     .from('cl_users').update(updates).eq('id', req.user.sub).select().single();
-  if (error) return res.status(500).json({ error: 'Failed to update profile' });
+  if (error) {
+    const failure = require('./profile-banner').profileUpdateError(error, updates);
+    console.error('Profile update failed:', { code: error.code || 'unknown', bannerSchemaMissing: failure.code === 'BANNER_SCHEMA_MISSING' });
+    return res.status(failure.status).json({ error: failure.error, ...(failure.code ? { code: failure.code } : {}) });
+  }
   res.json(data);
 });
 
@@ -2444,7 +2448,8 @@ app.post('/api/swap/evm/quote', async (req, res) => {
 
 // --- ASSET HELPERS ---
 
-const fetchAlchemyNFTs = require('./nft-source-page').createAlchemyNFTPage({ fetchImpl: fetch, apiKey: API_KEYS.alchemy, getNativePrice: fetchNativePrice });
+const fetchAlchemyNFTs = require('./nft-source-page').createAlchemyNFTPage({ fetchImpl: fetch, apiKey: API_KEYS.alchemy, getNativePrice: fetchNativePrice,
+  repairMetadata: require('./nft-metadata-repair').createMetadataRepair({ fetchImpl: fetch, apiKey: API_KEYS.alchemy }) });
 
 const fetchAlchemyTokens = async (network, address, chainId) => {
   try {
@@ -2647,9 +2652,18 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
   try {
     console.log(`📡 Fetching Monad ${mode} for ${address} via Moralis...`);
 
+    if (mode === 'nfts' && !String(req.query.pageKey || '').startsWith('moralis:')) {
+      try {
+        return res.json(await fetchAlchemyNFTs('monad-mainnet', address, 'monad', req.query.pageKey || ''));
+      } catch {
+        // Never switch indexers mid-pagination: their cursors/ownership views differ.
+        if (req.query.pageKey) return res.status(502).json({error:'Monad NFT source unavailable',nfts:[]});
+      }
+    }
+
     if (!API_KEYS.moralis) {
       console.error('❌ MORALIS_KEY is missing from .env!');
-      return res.json({ nfts: [] });
+      return mode === 'nfts' ? res.status(502).json({error:'Monad NFT source unavailable',nfts:[]}) : res.json({ nfts: [] });
     }
 
     const moralisHeaders = {
@@ -2918,14 +2932,14 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
     } else {
       // Fetch NFTs
       const response = await fetch(
-        `https://deep-index.moralis.io/api/v2.2/${address}/nft?chain=0x8f&format=decimal&media_items=true${req.query.pageKey ? `&cursor=${encodeURIComponent(String(req.query.pageKey))}` : ''}`,
+        `https://deep-index.moralis.io/api/v2.2/${address}/nft?chain=0x8f&format=decimal&normalizeMetadata=true&media_items=true${req.query.pageKey ? `&cursor=${encodeURIComponent(String(req.query.pageKey).replace(/^moralis:/,''))}` : ''}`,
         { headers: moralisHeaders }
       );
 
       if (!response.ok) {
         const errBody = await response.text();
         console.error(`❌ Moralis NFT error ${response.status}:`, errBody);
-        return res.json({ nfts: [] });
+        return res.status(502).json({error:'Monad NFT source unavailable',nfts:[]});
       }
 
       const data = await response.json();
@@ -2938,7 +2952,6 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
         const rawImage = nft.media?.media_collection?.medium?.url
           || nft.media?.original_media_url
           || meta.image
-          || nft.token_uri
           || '';
         const imageUrl = rawImage.startsWith('ipfs://')
           ? `https://cloudflare-ipfs.com/ipfs/${rawImage.slice(7)}`
@@ -2951,6 +2964,8 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
           chain: 'monad',
           contractAddress: nft.token_address,
           tokenId: nft.token_id,
+          isSpam: nft.possible_spam === true,
+          imageSources: [nft.media?.original_media_url, meta.image].filter(value => typeof value === 'string' && value),
           isToken: false,
           metadata: {
             traits: meta.attributes || [],
@@ -2960,7 +2975,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
       });
 
       console.log(`✅ Monad: Found ${nfts.length} NFTs via Moralis`);
-      res.json({ nfts, nextPageKey: data.cursor || null });
+      res.json({ nfts, nextPageKey: data.cursor ? `moralis:${data.cursor}` : null });
     }
   } catch (err) {
     console.error('❌ Monad Moralis error:', err);
@@ -3181,7 +3196,8 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
         id: asset.id,
         name: asset.content?.metadata?.name || 'Solana NFT',
         chain: 'solana',
-        image: asset.content?.links?.image || '',
+        image: asset.content?.files?.find(f => f.cdn_uri)?.cdn_uri || asset.content?.links?.image || asset.content?.files?.find(f => /^image\//.test(f.mime || ''))?.uri || '',
+        imageSources: [asset.content?.links?.image, ...(asset.content?.files || []).flatMap(f => /^image\//.test(f.mime || '') || f.cdn_uri ? [f.cdn_uri, f.uri] : [])].filter(Boolean),
         collection: asset.grouping?.[0]?.collection_metadata?.name || 'Solana',
         collectionId: asset.grouping?.find(g => g.group_key === 'collection')?.group_value || asset.id,
         isToken: false,

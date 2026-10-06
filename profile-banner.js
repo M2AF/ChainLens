@@ -6,4 +6,10 @@ function validateBanner(value) {
   if (url && !/^https:\/\/[^\s]+$/i.test(url) && !/^data:image\/(jpeg|png|webp);base64,[a-z0-9+/]+=*$/i.test(url)) return { error: 'Banner must use HTTPS or a JPG, PNG or WebP image', status: 400 };
   return { value: url || null };
 }
-module.exports = { validateBanner };
+function profileUpdateError(error, updates) {
+  if (Object.hasOwn(updates, 'banner_url') && ['42703', 'PGRST204'].includes(error?.code) && /banner_url/i.test(error.message || '')) {
+    return { status: 503, error: 'Banner uploads are not configured yet. Please contact support.', code: 'BANNER_SCHEMA_MISSING' };
+  }
+  return { status: 500, error: 'Failed to update profile' };
+}
+module.exports = { validateBanner, profileUpdateError };

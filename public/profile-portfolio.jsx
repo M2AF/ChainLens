@@ -1,6 +1,13 @@
 // Session-owned data, independent of scanner selections and tab mounting.
 (function () {
   const { useState, useEffect, useMemo, useRef } = React;
+  window.NftArtwork = function ({ asset, preview = true, className }) {
+    const candidates = window.nftImage.sources(asset, preview);
+    const signature = JSON.stringify(candidates);
+    const [failed, setFailed] = useState({signature,index:0});
+    const index = failed.signature === signature ? failed.index : 0;
+    return <img className={className} src={candidates[index] || '/profile-art-fallback.svg'} alt={asset.name || 'NFT'} decoding="async" onError={() => { if (index < candidates.length) setFailed({signature,index:index+1}); }} />;
+  };
   window.ProfileBanner = function ({ profile, authFetch, onSave }) {
     const [busy, setBusy] = useState(false), [error, setError] = useState('');
     const input = React.useRef(null);
@@ -43,15 +50,21 @@
       }
       const cache = previews.current;
       for (const asset of state.owner === owner ? state.assets : []) {
-        const url = asset.thumbnailUrl || asset.image;
-        if (url && !cache.images.has(url)) { cache.images.set(url, null); cache.queue.push(url); }
+        const candidates = window.nftImage.sources(asset), url = candidates[0];
+        if (url && !cache.images.has(url)) { cache.images.set(url, null); cache.queue.push({url,candidates}); }
       }
       const drain = () => {
         while (cache.active < 6 && cache.queue.length && previews.current === cache) {
-          const url = cache.queue.shift(), image = new Image(); cache.images.set(url, image); cache.active++;
-          let done = false;
-          const finish = () => { if (done) return; done = true; clearTimeout(timer); cache.active--; drain(); };
-          const timer = setTimeout(finish, 15000); image.previewTimer = timer; image.onload = finish; image.onerror = finish; image.src = url;
+          const {url,candidates} = cache.queue.shift(), image = new Image(); cache.images.set(url, image); cache.active++;
+          let done = false, index = 0;
+          const finish = () => { if (done) return; done = true; clearTimeout(image.previewTimer); cache.active--; drain(); };
+          const next = () => {
+            clearTimeout(image.previewTimer);
+            if (done || previews.current !== cache) return;
+            if (index >= candidates.length) { finish(); return; }
+            image.previewTimer = setTimeout(next, 5000); image.src = candidates[index++];
+          };
+          image.onload = finish; image.onerror = next; next();
         }
       };
       drain();
@@ -125,9 +138,11 @@
     if (/art/.test(raw)) return 'Art';
     return 'Collectibles';
   };
-  window.ProfilePortfolio = function ({ portfolio, favorites, toggleFavorite, onSelect, resolveImg, darkMode, hidden }) {
+  window.ProfilePortfolio = function ({ portfolio, favorites, toggleFavorite, onSelect, resolveImg, darkMode, filterEntries, toggleSpam }) {
     const [tab, setTab] = useState('Overview'), [filter, setFilter] = useState('All'), [search, setSearch] = useState(''), [chain, setChain] = useState('all');
-    const assets = useMemo(() => portfolio.assets.filter(a => !hidden.has(window.nftFavoriteKey(a)) && (tab !== 'Favorites' || favorites.has(window.nftFavoriteKey(a))) && (filter === 'All' || category(a) === filter) && (chain === 'all' || chain === a.chain) && `${a.name || ''} ${a.collectionName || (typeof a.collection === 'string' ? a.collection : a.collection?.name) || ''}`.toLowerCase().includes(search.toLowerCase())).sort((a,b) => Number(favorites.has(window.nftFavoriteKey(b))) - Number(favorites.has(window.nftFavoriteKey(a))) || window.nftFloor.compare(a,b)), [portfolio.assets, hidden, favorites, tab, filter, search, chain]);
+    const isSpam = a => window.nftSpam.isSpam(a, filterEntries[window.nftFavoriteKey(a)]);
+    const spamCount = portfolio.assets.filter(isSpam).length;
+    const assets = useMemo(() => portfolio.assets.filter(a => (tab === 'Spam' ? isSpam(a) : !isSpam(a)) && (tab !== 'Favorites' || favorites.has(window.nftFavoriteKey(a))) && (filter === 'All' || category(a) === filter) && (chain === 'all' || chain === a.chain) && `${a.name || ''} ${a.collectionName || (typeof a.collection === 'string' ? a.collection : a.collection?.name) || ''}`.toLowerCase().includes(search.toLowerCase())).sort((a,b) => Number(favorites.has(window.nftFavoriteKey(b))) - Number(favorites.has(window.nftFavoriteKey(a))) || window.nftFloor.compare(a,b)), [portfolio.assets, filterEntries, favorites, tab, filter, search, chain]);
     const groups = useMemo(() => {
       const map = new Map();
       for (const asset of assets) {
@@ -144,19 +159,19 @@
       }
       return groups.sort((a,b) => Number(b.favorite) - Number(a.favorite) || window.nftFloor.compare(a,b));
     }, [assets, favorites]);
-    const tiles = tab === 'Holdings' || tab === 'Favorites' ? assets.map(a => ({ id: window.nftFavoriteKey(a), name: a.name || 'Untitled NFT', floorPriceUsd: window.nftFloor.usd(a), assets: [a] })) : groups;
+    const tiles = tab !== 'Overview' ? assets.map(a => ({ id: window.nftFavoriteKey(a), name: a.name || 'Untitled NFT', floorPriceUsd: window.nftFloor.usd(a), assets: [a] })) : groups;
     return <section className="profile-gallery" aria-label="Profile NFT portfolio">
-      <div className="profile-tabs">{['Overview', 'Holdings', 'Favorites'].map(t => <button key={t} aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}<span>{portfolio.assets.length} NFTs · {new Set(portfolio.assets.map(a => a.chain)).size} chains</span></div>
+      <div className="profile-tabs">{['Overview', 'Holdings', 'Favorites', 'Spam'].map(t => <button key={t} aria-pressed={tab === t} onClick={() => setTab(t)}>{t === 'Spam' ? `Spam (${spamCount})` : t}</button>)}<span>{portfolio.assets.length} NFTs · {new Set(portfolio.assets.map(a => a.chain)).size} chains</span></div>
       <div className="profile-gallery-tools"><input aria-label="Search profile NFTs" placeholder="Search your collection…" value={search} onChange={e => setSearch(e.target.value)} /><select aria-label="Filter profile chain" value={chain} onChange={e => setChain(e.target.value)}><option value="all">All chains</option>{[...new Set(portfolio.assets.map(a => a.chain))].map(c => <option key={c}>{c}</option>)}</select></div>
       <div className="profile-categories">{['All', ...new Set(portfolio.assets.map(category))].map(c => <button key={c} aria-pressed={filter === c} onClick={() => setFilter(c)}>{c}</button>)}</div>
       <p className="profile-load-status">Highest floor first · USD · favorites pinned</p>
       {portfolio.loading && <p role="status" className="profile-load-status">Loading linked wallets… {portfolio.assets.length} NFTs ready</p>}
       {!!portfolio.issues.length && <details className="profile-load-status"><summary>{portfolio.issues.length} sources unavailable · loaded NFTs retained</summary>{portfolio.issues.map((issue,i) => <p key={i}>{issue}</p>)}</details>}
-      {!tiles.length && <div className="profile-empty">{portfolio.loading ? 'Your collection is taking shape…' : search || filter !== 'All' || tab === 'Favorites' ? 'No NFTs match this view.' : 'Your linked-wallet NFTs will appear here.'}</div>}
+      {!tiles.length && <div className="profile-empty">{portfolio.loading ? 'Your collection is taking shape…' : search || filter !== 'All' || tab === 'Favorites' || tab === 'Spam' ? 'No NFTs match this view.' : 'Your linked-wallet NFTs will appear here.'}</div>}
       <div className="profile-mosaic">{tiles.map((tile,index) => <article key={tile.id} className={`profile-tile ${index % 7 === 4 ? 'profile-tile-tall' : ''}`}>
         <div className={`profile-tile-media ${tile.assets.length > 1 ? 'profile-quilt' : ''}`}>{tile.assets.slice(0,4).map(asset => {
           const key = window.nftFavoriteKey(asset);
-          return <div className="profile-art" key={key}><button className="profile-art-open" aria-label={`View ${asset.name || 'NFT'}`} onClick={() => onSelect(asset)}><img src={resolveImg(asset.thumbnailUrl || asset.image || '', asset.symbol) || '/profile-art-fallback.svg'} alt={asset.name || 'NFT'} decoding="async" onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = '/profile-art-fallback.svg'; }} /></button><button className="profile-star" aria-label={`${favorites.has(key) ? 'Unfavorite' : 'Favorite'} ${asset.name || 'NFT'}`} aria-pressed={favorites.has(key)} onClick={() => toggleFavorite(asset)}>{favorites.has(key) ? '★' : '☆'}</button></div>;
+          return <div className="profile-art" key={key}><button className="profile-art-open" aria-label={`View ${asset.name || 'NFT'}`} onClick={() => onSelect(asset)}><window.NftArtwork asset={asset} /></button><button className="profile-star" aria-label={`${favorites.has(key) ? 'Unfavorite' : 'Favorite'} ${asset.name || 'NFT'}`} aria-pressed={favorites.has(key)} onClick={() => toggleFavorite(asset)}>{favorites.has(key) ? '★' : '☆'}</button><button className="profile-spam" title={isSpam(asset) ? 'Not spam' : 'Mark as spam'} aria-label={`${isSpam(asset) ? 'Not spam' : 'Mark as spam'} ${asset.name || 'NFT'}`} onClick={e => toggleSpam(e, asset)}>{isSpam(asset) ? '↩' : '🚫'}</button></div>;
         })}</div><div className="profile-tile-caption"><strong>{tile.name}</strong><span>{window.nftFloor.label(tile)}</span><span>{tile.assets[0].chain} · {tile.assets.length > 1 ? `${tile.assets.length} items` : category(tile.assets[0])}</span></div>
       </article>)}</div>
     </section>;

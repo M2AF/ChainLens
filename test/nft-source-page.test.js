@@ -43,3 +43,12 @@ test('failed conversion does not discard NFTs or invent zero floors', async () =
   assert.equal(result.nfts.length,1);
   assert.equal(result.nfts[0].floorPriceUsd,null);
 });
+test('uncurrencied floors on Monad never receive a misleading ETH valuation',async()=>{
+  let quotes=0;
+  const read=createAlchemyNFTPage({apiKey:'fixture',getNativePrice:async()=>{quotes++;return 3000;},fetchImpl:async()=>({ok:true,json:async()=>({ownedNfts:[{contract:{address:'abc',openSeaMetadata:{floorPrice:8.9}},tokenId:'1'}]})})});
+  const result=await read('monad-mainnet','owner','monad');
+  assert.equal(result.nfts[0].floorPrice,8.9);
+  assert.equal(result.nfts[0].floorPriceCurrency,null);
+  assert.equal(result.nfts[0].floorPriceUsd,null);
+  assert.equal(quotes,0);
+});

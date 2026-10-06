@@ -34,6 +34,8 @@
   <script src="/asset-filter-key.js"></script>
   <script src="/nft-metadata.js"></script>
   <script src="/nft-floor.js"></script>
+  <script src="/nft-spam.js"></script>
+  <script src="/nft-image.js"></script>
   <script type="text/babel" src="/nft-favorites.jsx"></script>
   <script type="text/babel" src="/profile-portfolio.jsx"></script>
   <link rel="stylesheet" href="/profile-portfolio.css">
@@ -366,11 +368,11 @@
                   <button type="button" title="Mark as spam" aria-label="Mark this item as spam" onClick={(e) => toggleSpam(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-red-600 text-white backdrop-blur-sm border border-white/10">🚫</button>
                 </div>
                 <div className={isListView ? "w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative" : "aspect-square relative overflow-hidden bg-slate-100"}>
-                  <img
+                  {nft.isToken ? <img
                     src={resolveImg(nft.image || '', nft.symbol)}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     onError={(e) => handleImgError(e, nft)}
-                  />
+                  /> : <window.NftArtwork asset={nft} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />}
                   {!tokenMode && !nft.isToken && <button type="button" aria-label={`${favorites?.has(window.nftFavoriteKey(nft)) ? 'Unfavorite' : 'Favorite'} ${nft.name || 'NFT'}`} aria-pressed={!!favorites?.has(window.nftFavoriteKey(nft))} onClick={e => { e.stopPropagation(); onToggleFavorite?.(nft); }} className="absolute top-2 left-2 z-20 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-950/80 border border-white/20 text-amber-400">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill={favorites?.has(window.nftFavoriteKey(nft)) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" /></svg>
                   </button>}
@@ -1811,7 +1813,10 @@
       useEffect(() => {
         if (!authToken) return;
         let cancelled = false;
-        (async () => {
+        let busy = false;
+        const sync = async (seed = false) => {
+          if (busy || cancelled) return;
+          busy = true;
           try {
             const res = await fetch('/api/profile/filters', { headers: { Authorization: `Bearer ${authToken}` } });
             if (!res.ok) return;
@@ -1821,14 +1826,19 @@
             filterEntriesRef.current = merged;
             saveStoredFilters(merged);
             setFilterEntries(merged);
-            await fetch('/api/profile/filters', {
+            if (seed) await fetch('/api/profile/filters', {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
               body: JSON.stringify({ entries: merged }),
             });
-          } catch {}
-        })();
-        return () => { cancelled = true; };
+          } catch {} finally { busy = false; }
+        };
+        sync(true);
+        const timer = setInterval(() => sync(), 30000);
+        const refresh = () => { if (!document.hidden) sync(); };
+        window.addEventListener('focus', refresh);
+        document.addEventListener('visibilitychange', refresh);
+        return () => { cancelled = true; clearInterval(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); };
       }, [authToken]);
 
       // Push after a user decision, debounced — marking five scam tokens in a row
@@ -3027,7 +3037,7 @@
       const baseVisible = useMemo(() => {
         return nfts.filter(nft => {
           const entry = filterEntries[assetKeyFor(nft)];
-          if (entry && (entry.s === 'h' || entry.s === 's')) return false;
+          if (window.nftSpam.isSpam(nft, entry)) return false;
           if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             return nft.name?.toLowerCase().includes(query) || nft.symbol?.toLowerCase().includes(query);
@@ -3057,8 +3067,10 @@
         return visibleAssets.reduce((sum, asset) => sum + (parseFloat(asset.totalValue) || 0), 0).toFixed(2);
       }, [visibleAssets]);
 
-      const spamList = useMemo(
-        () => nfts.filter(nft => (filterEntries[assetKeyFor(nft)] || {}).s === 's'), [nfts, filterEntries]);
+      const spamList = useMemo(() => {
+        const assets = new Map([...nfts, ...profilePortfolio.assets].map(asset => [assetKeyFor(asset), asset]));
+        return [...assets.values()].filter(asset => window.nftSpam.isSpam(asset, filterEntries[assetKeyFor(asset)]));
+      }, [nfts, profilePortfolio.assets, filterEntries]);
 
       const appHubApps = useMemo(() => {
         const apps = appHubData?.apps || [];
@@ -3099,11 +3111,11 @@
       const toggleSpam = (e, nft) => {
         e.stopPropagation();
         const key = assetKeyFor(nft);
-        setFilterState(key, (filterEntries[key] || {}).s === 's' ? 'a' : 's');
+        setFilterState(key, window.nftSpam.isSpam(nft, filterEntries[key]) ? 'a' : 's');
       };
 
       const restoreAllSpam = () => {
-        setFilterState(Object.keys(filterEntries).filter(k => filterEntries[k].s !== 'a'), 'a');
+        setFilterState([...new Set([...Object.keys(filterEntries).filter(k => filterEntries[k].s !== 'a'), ...spamList.map(assetKeyFor)])], 'a');
       };
 
       const handleScanAll = async () => {
@@ -3232,13 +3244,8 @@
             }
           });
 
-          // Filter spam NFTs
-          const spamWords = ['voucher','wen','airdrop','promo','lucky','ticket','pass','jup','jupiter','unprotected','box','redeem','claim','gift','reward'];
-          const filtered = Array.from(nftMap.values()).filter(asset => {
-            if (asset.isToken) return true;
-            const name = (asset.name || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9\s]/g,"");
-            return !spamWords.some(w => name.includes(w));
-          });
+          // Keep suspected NFTs available for restoration in the shared manager.
+          const filtered = Array.from(nftMap.values());
           setNfts(filtered);
 
           // Merge transactions — dedup by hash
@@ -4565,7 +4572,7 @@
                     </aside>
                     <div className="min-w-0">
                       <window.ProfileBanner profile={userProfile} authFetch={authFetch} onSave={(id, url) => setUserProfile(p => p?.id === id ? { ...p, banner_url: url || null } : p)} />
-                      <window.ProfilePortfolio portfolio={profilePortfolio} favorites={nftFavorites} toggleFavorite={toggleNftFavorite} onSelect={setSelectedAsset} resolveImg={resolveImg} darkMode={darkMode} hidden={new Set(Object.keys(filterEntries).filter(k => ['h', 's'].includes(filterEntries[k].s)))} />
+                      <window.ProfilePortfolio portfolio={profilePortfolio} favorites={nftFavorites} toggleFavorite={toggleNftFavorite} onSelect={setSelectedAsset} resolveImg={resolveImg} darkMode={darkMode} filterEntries={filterEntries} toggleSpam={toggleSpam} />
                     </div>
                     </div>
                   )}
@@ -4868,7 +4875,7 @@
                   <button onClick={() => setSelectedAsset(null)} className="absolute top-10 right-10 w-12 h-12 flex items-center justify-center rounded-full bg-slate-800 hover:bg-red-500 text-white transition-all font-bold">✕</button>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div className="rounded-[2.5rem] overflow-hidden shadow-2xl">
-                              <img src={resolveImg(selectedAsset.image, selectedAsset.symbol)} className="w-full h-auto rounded-2xl" onError={(e)=>{e.currentTarget.onerror=null;e.currentTarget.src=imgFallbackSvg(selectedAsset.symbol,selectedAsset.chain);}} />
+                              {selectedAsset.isToken ? <img src={resolveImg(selectedAsset.image, selectedAsset.symbol)} className="w-full h-auto rounded-2xl" onError={(e)=>{e.currentTarget.onerror=null;e.currentTarget.src=imgFallbackSvg(selectedAsset.symbol,selectedAsset.chain);}} /> : <window.NftArtwork asset={selectedAsset} preview={false} className="w-full h-auto rounded-2xl" />}
                     </div>
                     <div>
                        <div

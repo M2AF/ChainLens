@@ -7,33 +7,26 @@ task: -
 lease_until: -
 repo: -
 verify: npm run check && npm test
-verified: no-git · 148 unit tests;5 browser checks; syntax and6-script precompile pass; live floor adapter100/96/96 · 2026-10-06T01:13-03:00
+verified: no-git · 156unit tests;6browser checks; syntax/precompile6scripts; live DB column and NFT routes verified · 2026-10-06T01:52-03:00
 head: no-git
-updated: 2026-10-06T01:13-03:00 · codex
+updated: 2026-10-06T01:52-03:00 · codex
 
 ## Now
-- Profile floor sorting implemented locally: Alchemy collection floors converted to USD, favorites pinned then descending floor in Overview/Holdings/Favorites; unknowns last and tile price labels. 148 unit tests,5 browser checks,syntax/precompile pass; desktop/mobile screenshots reviewed. Live Ethereum adapter probe:100 NFTs,96 reported/converted floors; no deployment.
-- Production Profile render crash from non-array traits fixed locally: public/nft-metadata.js normalizes dictionaries/arrays/JSON/scalars for categories and NFT details;145unit tests,5browser checks and6script precompile pass. Mixed-metadata screenshots reviewed; fix awaits deployment.
-- Profile portfolio redesign implemented locally: compact left account disclosures,3:1banner,Overview/Holdings/Favorites mosaic, all-linked-wallet session cache and background previews; scanner state independent and Profile stays mounted through navigation.
-- 143 unit tests, syntax/precompile6scripts and5browser checks pass; profile test repeated after compact account styling and expanded-panel assertions (pass). Desktop/mobile/expanded account screenshots reviewed. Banner SQL prepared, not applied; existing local DB read rejected (Unregistered API key).
-- Shared ChainLens-ID NFT favorites complete locally in website and Magic Money: profile-scoped favorites/unfavorite tombstones, offline retry, wallet legacy migration and account/network isolation. Stars pin NFTs; existing sorts remain within groups.
-- 140 unit tests, syntax/precompile, scanner-star and real wallet+website hook browser checks pass. Existing local DB credential returned Unregistered API key; no live DB writes, commit or deployment.
-- App Hub text heading replaced locally with supplied public/apphub.png logo; unchanged source artwork, responsive padding clip and light-mode inversion. Desktop/mobile screenshots reviewed; homepage precompile passes.
-- User clarified missed-new-listing report was a misread; no confirmed ingestion defect. MON spot timestamp18:26 Halifax predates key-config verification19:14.
-- Added local sanitized connection/receive/filter counters and explicit free-feed empty state with connection time. 139 unit tests and homepage compilation pass; existing desktop/mobile feed test passes.
-- Production endpoint verified HTTP200/live/3000ms with events=[] and updatedAt=null. Key now configured; no listing stored in current process.
-- Provider FAQ confirms sockets never replay; free key cannot fetch history. Website historical rows do not seed ChainLens. Production homepage still lacks local logo update.
-- Market Watch h2 now uses user's public/marketwatch.png logo, copied unchanged; responsive CSS clips transparent padding and inverts only in light mode for contrast.
-- ChainLens Market / New Listings implementation complete locally; wallet untouched.
-- Server-only NEW_LISTINGS_KEY configured in ignored local .env. No deployment or commit.
-- Added ws dependency, feed service/tests, Market UI/e2e, docs/NEW-LISTINGS.md.
-- Syntax and precompile pass; 139 unit tests and 2 browser tests pass. Real backend endpoint HTTP 200/live/no-store with 3000ms delay; no event arrived during brief probe.
-- Official favicon saved locally in public/new-listings-favicon.png and used in switcher; gitignore covers secrets, runtime/test artifacts, ephemeral .handoff.lock.
+- Profile spam/image/Monad fixes complete locally:156unit tests,6browser checks,syntax and6-script precompile pass. Fixtures verify spam sync/restoration, banner crop/save, image fallback and retained artwork.
+- Banner production schema fixed: cl_profile_banner applied to configured Supabase project, nullable text verified and PostgREST reload requested. No user profile/banner rows changed; real upload retry remains to verify.
+- Live local backend returns53 Monad NFTs for linked wallet. REDACTED contract metadata repair returns correct #1/#2/#8/#9 artwork; original #51 remains correct. Real-data preview screenshots reviewed.
+- New alternate CDN/original/IPFS image sources used by Profile/Scanner/details; bounded content-addressed metadata repair preserves existing art on failure. Monad Alchemy-first with cursor-safe Moralis fallback.
+- Floor ordering: favorites pinned then descending verified floor USD; unknown floors last. Legacy uncurrencied floors converted only on known ETH networks after live Monad preview exposed wrong ETH assumption.
+- Profile compact account/banner/mosaic/session cache and shared ChainLens-ID favorites remain implemented locally. Frontend metadata normalization prevents dictionary-trait render crash.
+- Market/New Listings favicon and Market Watch/App Hub logos implemented locally. Production feed configured/live; free socket never replays history and restarts clear its memory buffer.
+- Code changes await deployment; no commit/deployment. Wallet source only read during this pass; wallet lease untouched.
 
 ## Next
-- Deploy floor sorting and previous metadata crash fix; refresh Profile.
+- Redeploy exact files in docs/PROFILE-PORTFOLIO.md, refresh Profile, retry banner and verify same-ID spam sync.
 
 ## Traps
+- Alchemy legacy floor currency is missing on Monad; require explicit currency outside known ETH networks. Never assume ETH/native blindly.
+- Arweave redirects to its subdomains; bounded gateway allowlist is required. Alchemy Robinhood RPC host failed while public Robinhood RPC works.
 - NFT provider traits can be dictionaries, serialized JSON, scalars or arrays with null entries; normalize before array methods or React rendering. Deploy public/nft-metadata.js with the frontend fix.
 - Free feed contains exchange announcements, no price/history/contract data. Memory buffer clears on restart; reconnects can leave gaps.
 - One socket per backend process; key permits only 2 egress IPs. Use shared ingest before scaling replicas.
