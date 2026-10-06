@@ -4547,12 +4547,13 @@
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setNameInput(userProfile.display_name || ''); setEditingName(true); }}>
-                                  <h1 className="font-heading font-extrabold"><span>{userProfile.display_name}</span><span className="profile-gallery-suffix">'s gallery</span></h1>
+                                  <h1 className="font-sans font-extrabold"><span>{userProfile.display_name}</span><span className="profile-gallery-suffix">'s gallery</span></h1>
                                   <span className={`text-[1px] opacity-0 group-hover:opacity-60 transition-opacity font-bold uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>✏ Edit</span>
                                 </div>
                               )}
                             </div>
 </div>
+</>} profileId={
                               <button
                                 onClick={() => {
                                   navigator.clipboard.writeText(userProfile.id).catch(() => {});
@@ -4565,7 +4566,7 @@
                                 <span className="profile-id-label">ChainLens ID</span><span className="break-all">{userProfile.id}</span>
                                 <span className="flex-shrink-0 font-sans text-[8px] font-black uppercase tracking-widest">{copiedProfileId ? 'Copied ✓' : 'Copy'}</span>
                               </button>
-</>} authFetch={authFetch} onSave={(id, url) => setUserProfile(p => p?.id === id ? { ...p, banner_url: url || null } : p)} />
+} authFetch={authFetch} onSave={(id, url) => setUserProfile(p => p?.id === id ? { ...p, banner_url: url || null } : p)} />
                       <window.ProfilePortfolio portfolio={profilePortfolio} favorites={nftFavorites} toggleFavorite={toggleNftFavorite} onSelect={setSelectedAsset} resolveImg={resolveImg} darkMode={darkMode} filterEntries={filterEntries} toggleSpam={toggleSpam} />
                     </div>
                     </div>

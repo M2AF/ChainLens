@@ -73,7 +73,7 @@
   border-radius: 24px;
   position: relative;
   overflow: hidden;
-  margin-bottom: 28px;
+  margin-bottom: 0;
   background:
     radial-gradient(
       ellipse at 15% 25%,
@@ -118,6 +118,7 @@
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 16px;
+  margin-bottom: 24px;
   font: 11px ui-monospace, monospace;
   color: #d2e0ec;
   padding: 8px 12px;

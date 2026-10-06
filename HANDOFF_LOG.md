@@ -218,3 +218,19 @@
 ### 2026-10-06T02:27-03:00 · codex · handoff · no-git
 - Banner identity and modern scan action complete locally, verified and documented. No commit or deployment performed.
 - next: User pushes/deploys public/index.html and public/profile-portfolio.jsx/css; screenshot previews in test-results/profile-portfolio-desktop.png and profile-portfolio-mobile.png.
+
+### 2026-10-06T02:38-03:00 · codex · claim · no-git
+- task: Restore gallery title font; move ChainLens ID below banner
+- lease until 2026-10-06T05:38-03:00
+
+### 2026-10-06T02:38-03:00 · codex · checkpoint · no-git
+- Restored gallery username/title to prior Space Grotesk font. ID-copy row moved outside banner into gap before tabs. Precompile passes; running2 Profile browser checks and refreshing screenshots.
+- next: Review refreshed desktop/mobile screenshots and release lease after browser checks.
+
+### 2026-10-06T02:39-03:00 · codex · verify · no-git
+- verified: Banner refinement:2 Profile browser checks passed;6-script precompile passed
+- Restored prior Space Grotesk title font and moved ID-copy between banner and tabs. Both Profile browser tests pass45.8s, including font and ID position checks;6-script precompile passes. Desktop/mobile fixture screenshots reviewed; docs updated.
+
+### 2026-10-06T02:39-03:00 · codex · handoff · no-git
+- Font and ID placement refinement complete locally. No commit or deployment performed.
+- next: User pushes/deploys public/index.html and public/profile-portfolio.jsx/css; refreshed desktop/mobile screenshot previews in test-results.

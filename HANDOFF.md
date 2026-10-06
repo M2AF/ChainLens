@@ -7,12 +7,12 @@ task: -
 lease_until: -
 repo: -
 verify: npm run check && npm test
-verified: no-git · Banner layout:2 Profile browser checks passed;6-script homepage precompile passed · 2026-10-06T02:27-03:00
+verified: no-git · Banner refinement:2 Profile browser checks passed;6-script precompile passed · 2026-10-06T02:39-03:00
 head: no-git
-updated: 2026-10-06T02:27-03:00 · codex
+updated: 2026-10-06T02:39-03:00 · codex
 
 ## Now
-- Banner identity complete locally:150px desktop/96px mobile avatar and editable title in lower-left banner; ID-copy below; left action card modern Scan my wallets plus Sign out. Both Profile browser checks and6-script precompile pass; desktop/mobile screenshots reviewed.
+- Banner identity refinement complete locally: title restored to previous Space Grotesk font; ID-copy moved outside banner above tabs.150px desktop/96px mobile avatar and modern sidebar actions retained. Desktop/mobile screenshots reviewed; homepage precompile passes.
 - User confirms changes now work live after pushing their commit; screenshot shows uploaded banner, per-NFT spam buttons, Spam tab and correct REDACTED artwork,817 NFTs across13 chains. User confirmation, not an independent production audit.
 - Profile spam/image/Monad fixes complete locally:156unit tests,6browser checks,syntax and6-script precompile pass. Fixtures verify spam sync/restoration, banner crop/save, image fallback and retained artwork.
 - Banner production schema fixed: cl_profile_banner applied to configured Supabase project, nullable text verified and PostgREST reload requested. No user profile/banner rows changed; uploaded banner visible in user production screenshot.
@@ -24,7 +24,7 @@ updated: 2026-10-06T02:27-03:00 · codex
 - User pushed/deployed changes and confirms success; Codex performed no commit/deployment. Wallet source only read during implementation; wallet lease untouched.
 
 ## Next
-- User pushes/deploys public/index.html and public/profile-portfolio.jsx/css; screenshot previews in test-results/profile-portfolio-desktop.png and profile-portfolio-mobile.png.
+- User pushes/deploys public/index.html and public/profile-portfolio.jsx/css; refreshed desktop/mobile screenshot previews in test-results.
 
 ## Traps
 - Alchemy legacy floor currency is missing on Monad; require explicit currency outside known ETH networks. Never assume ETH/native blindly.

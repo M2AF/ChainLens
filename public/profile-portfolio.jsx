@@ -8,7 +8,7 @@
     const index = failed.signature === signature ? failed.index : 0;
     return <img className={className} src={candidates[index] || '/profile-art-fallback.svg'} alt={asset.name || 'NFT'} decoding="async" onError={() => { if (index < candidates.length) setFailed({signature,index:index+1}); }} />;
   };
-  window.ProfileBanner = function ({ profile, identity, authFetch, onSave }) {
+  window.ProfileBanner = function ({ profile, identity, profileId, authFetch, onSave }) {
     const [busy, setBusy] = useState(false), [error, setError] = useState('');
     const input = React.useRef(null);
     const save = async value => {
@@ -34,7 +34,7 @@
         await save(canvas.toDataURL('image/jpeg', .86));
       } catch(e) { setError('Could not read this image.'); setBusy(false); } finally { URL.revokeObjectURL(url); }
     };
-    return <><div className="profile-banner">{profile.banner_url && <img src={profile.banner_url} alt="Profile banner" />}<div className="profile-banner-caption">{identity}</div><div className="profile-banner-tools"><button disabled={busy} onClick={() => input.current.click()}>{busy ? 'Saving…' : 'Edit banner · 3:1'}</button>{profile.banner_url && <button disabled={busy} onClick={() => save('')}>Remove</button>}</div><input ref={input} type="file" aria-label="Upload profile banner" hidden accept="image/png,image/jpeg,image/webp" onChange={upload}/></div>{error && <p role="alert" className="profile-banner-error">{error}</p>}</>;
+    return <><div className="profile-banner">{profile.banner_url && <img src={profile.banner_url} alt="Profile banner" />}<div className="profile-banner-caption">{identity}</div><div className="profile-banner-tools"><button disabled={busy} onClick={() => input.current.click()}>{busy ? 'Saving…' : 'Edit banner · 3:1'}</button>{profile.banner_url && <button disabled={busy} onClick={() => save('')}>Remove</button>}</div><input ref={input} type="file" aria-label="Upload profile banner" hidden accept="image/png,image/jpeg,image/webp" onChange={upload}/></div>{profileId}{error && <p role="alert" className="profile-banner-error">{error}</p>}</>;
   };
   window.useProfilePortfolio = function (profile, token) {
     const [state, setState] = useState({ owner: null, assets: [], loading: false, issues: [] });

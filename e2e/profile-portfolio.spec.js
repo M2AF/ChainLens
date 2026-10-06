@@ -46,7 +46,11 @@ test('profile preloads all linked wallets, retains mounted artwork, filters star
   await expect(page.locator('.profile-actions button')).toHaveCount(2);
   const avatarBounds = await page.locator('.profile-banner-avatar').boundingBox();
   const idBounds = await page.getByRole('button',{name:'Copy ChainLens ID',exact:true}).boundingBox();
-  expect(idBounds.y).toBeGreaterThan(avatarBounds.y + avatarBounds.height);
+  const bannerBounds = await page.locator('.profile-banner').boundingBox();
+  const tabsBounds = await page.locator('.profile-tabs').boundingBox();
+  expect(idBounds.y).toBeGreaterThan(bannerBounds.y + bannerBounds.height);
+  expect(idBounds.y + idBounds.height).toBeLessThan(tabsBounds.y);
+  await expect(page.locator('.profile-banner-caption h1')).toHaveCSS('font-family','"Space Grotesk", sans-serif');
   await page.getByRole('button',{name:'Copy ChainLens ID',exact:true}).click();
   await expect(page.getByRole('button',{name:'Copy ChainLens ID',exact:true})).toContainText('Copied');
   await page.getByRole('button',{name:'Change profile picture',exact:true}).click();
