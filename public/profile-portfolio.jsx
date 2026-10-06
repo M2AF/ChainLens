@@ -1,12 +1,55 @@
 // Session-owned data, independent of scanner selections and tab mounting.
 (function () {
   const { useState, useEffect, useMemo, useRef } = React;
+  const artworkLoader = window.nftImage.createLoader();
   window.NftArtwork = function ({ asset, preview = true, className }) {
-    const candidates = window.nftImage.sources(asset, preview);
+    const identity = window.nftFavoriteKey(asset);
+    const [retryEpoch,setRetryEpoch] = useState(0);
+    const [repairedArt, setRepairedArt] = useState(null);
+    const candidates = window.nftImage.sources(repairedArt?.identity === identity ? {...asset,...repairedArt.artwork} : asset, preview);
     const signature = JSON.stringify(candidates);
-    const [failed, setFailed] = useState({signature,index:0});
-    const index = failed.signature === signature ? failed.index : 0;
-    return <img className={className} src={candidates[index] || '/profile-art-fallback.svg'} alt={asset.name || 'NFT'} decoding="async" onError={() => { if (index < candidates.length) setFailed({signature,index:index+1}); }} />;
+    const element = useRef(null);
+    const [active, setActive] = useState(!preview);
+    const [result, setResult] = useState({signature:'',url:'',status:'loading'});
+    useEffect(() => {
+      if (active || !element.current) return;
+      const observer = new IntersectionObserver(entries => {
+        if (entries.some(entry => entry.isIntersecting)) { setActive(true); observer.disconnect(); }
+      }, {rootMargin:'200px'});
+      observer.observe(element.current);
+      return () => observer.disconnect();
+    }, [active]);
+    useEffect(() => {
+      if (!active) return;
+      if (result.identity !== identity && element.current) element.current.src = '/profile-art-fallback.svg';
+      return artworkLoader.load(candidates, value => setResult(previous => ({...value,signature,identity,url:value.url || (previous.identity === identity ? previous.url : '')})), element.current);
+    }, [active, signature, retryEpoch, identity]);
+    useEffect(() => {
+      const retry = event => {
+        if (event.detail !== identity) return;
+        artworkLoader.forget(candidates); setRetryEpoch(n => n+1);
+      };
+      window.addEventListener('nft-art-retry',retry);
+      return () => window.removeEventListener('nft-art-retry',retry);
+    }, [identity,signature]);
+    useEffect(() => {
+      if (!active || !(asset.artRepairPending || retryEpoch || result.status === 'failed') || !(asset.chain === 'solana' && /^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(asset.id || '') || /^0x[0-9a-f]{40}$/i.test(asset.contractAddress || '') && /^\d{1,78}$/.test(String(asset.tokenId)))) return;
+      let cancelled = false, timer, attempts = 0;
+      const check = async () => {
+        try {
+          const data = await window.nftImage.readRepair(asset,(retryEpoch > 0 || result.status === 'failed') && attempts === 0);
+          if (cancelled) return;
+          if (data.artwork) setRepairedArt({identity,artwork:data.artwork});
+          if (data.pending && ++attempts < 60) timer = setTimeout(check,5000);
+        } catch {}
+      };
+      check();
+      return () => { cancelled = true; clearTimeout(timer); };
+    }, [active, asset.chain, asset.contractAddress, asset.tokenId, asset.artRepairPending, retryEpoch, result.status]);
+    const current = result.identity === identity ? result : {url:'',status:'loading'};
+    // The loader owns src on this displayed node. A constant React src avoids
+    // reassigning a just-decoded URL and refetching gateways with no-store.
+    return <img ref={element} className={className} src="/profile-art-fallback.svg" alt={asset.name || 'NFT'} decoding="async" data-art-status={current.status} />;
   };
   window.ProfileBanner = function ({ profile, identity, profileId, authFetch, onSave }) {
     const [busy, setBusy] = useState(false), [error, setError] = useState('');
@@ -61,33 +104,7 @@
       const timer = setInterval(refresh, 5 * 60 * 1000);
       return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); clearInterval(timer); };
     }, [active]);
-    const previews = useRef({ owner: null, images: new Map(), queue: [], active: 0 });
-    useEffect(() => {
-      if (previews.current.owner !== owner) {
-        for (const image of previews.current.images.values()) if (image) { clearTimeout(image.previewTimer); image.onload = image.onerror = null; image.src = ''; }
-        previews.current = { owner, images: new Map(), queue: [], active: 0 };
-      }
-      const cache = previews.current;
-      for (const asset of state.owner === owner ? state.assets : []) {
-        const candidates = window.nftImage.sources(asset), url = candidates[0];
-        if (url && !cache.images.has(url)) { cache.images.set(url, null); cache.queue.push({url,candidates}); }
-      }
-      const drain = () => {
-        while (cache.active < 6 && cache.queue.length && previews.current === cache) {
-          const {url,candidates} = cache.queue.shift(), image = new Image(); cache.images.set(url, image); cache.active++;
-          let done = false, index = 0;
-          const finish = () => { if (done) return; done = true; clearTimeout(image.previewTimer); cache.active--; drain(); };
-          const next = () => {
-            clearTimeout(image.previewTimer);
-            if (done || previews.current !== cache) return;
-            if (index >= candidates.length) { finish(); return; }
-            image.previewTimer = setTimeout(next, 5000); image.src = candidates[index++];
-          };
-          image.onload = finish; image.onerror = next; next();
-        }
-      };
-      drain();
-    }, [owner, state.assets]);
+    useEffect(() => { artworkLoader.clear(); }, [owner]);
     const signature = JSON.stringify(wallets.map(w => [w.chain, w.address]).sort());
     useEffect(() => {
       if (!owner || !token) { setState({ owner: null, assets: [], loading: false, issues: [] }); return; }

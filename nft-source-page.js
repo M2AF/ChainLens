@@ -2,6 +2,7 @@
 // Each browser worker follows provider cursors without holding a giant response
 // open on the backend. Scanner consumers can continue to use just `nfts`.
 const { amount } = require('./public/nft-floor');
+const { metadataSources } = require('./public/nft-image');
 const LEGACY_ETH_NETWORKS = new Set(['eth-mainnet','arb-mainnet','opt-mainnet','base-mainnet','blast-mainnet','abstract-mainnet','robinhood-mainnet','soneium-mainnet','zora-mainnet']);
 function createAlchemyNFTPage({ fetchImpl, apiKey, getNativePrice = async () => 0, repairMetadata }) {
   // Share a quote across concurrently loaded chains/pages; failed quotes remain
@@ -45,11 +46,14 @@ function createAlchemyNFTPage({ fetchImpl, apiKey, getNativePrice = async () => 
       nextPageKey: data.pageKey || null,
       nfts: (data.ownedNfts || []).map((nft, index) => ({
         ...floors[index],
+        artRepairPending: nft.artRepairPending === true,
         id: `${chain}-${nft.contract.address}-${nft.tokenId}`,
         name: nft.name || nft.title || 'Unnamed NFT',
         image: nft.image?.cachedUrl || nft.image?.originalUrl || nft.raw?.metadata?.image || nft.image?.thumbnailUrl || '',
         thumbnailUrl: nft.image?.thumbnailUrl || '',
-        imageSources: [nft.image?.cachedUrl, nft.image?.pngUrl, nft.image?.originalUrl, nft.raw?.metadata?.image, nft.raw?.metadata?.image_url].filter(url => typeof url === 'string' && url),
+        metadataUri: nft.tokenUri || nft.raw?.tokenUri || null,
+        media: { provider:'alchemy', mime:nft.image?.contentType || null, animationUrl:nft.raw?.metadata?.animation_url || null },
+        imageSources: [nft.image?.cachedUrl, nft.image?.pngUrl, nft.image?.originalUrl, nft.raw?.metadata?.image, nft.raw?.metadata?.image_url, ...(nft.imageSources || []), ...metadataSources(nft.raw?.metadata, nft.tokenUri || nft.raw?.tokenUri)].filter(url => typeof url === 'string' && url),
         collection: nft.contract.name || 'Collection',
         collectionName: nft.contract.name || 'Collection',
         contractAddress: nft.contract.address,

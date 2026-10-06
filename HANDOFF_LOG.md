@@ -159,3 +159,39 @@
 ### 2026-10-06T13:59-03:00 · codex · handoff · no-git
 - Cloudflare collector deployed and verified live with stable READY connection and advancing watchdog after idle interval. Prepared Render proxy and UI copy verified locally. Awaiting pending user choice to commit/push feed-only changes; no commits/pushes. Temporary local backend stopped. Existing Profile/Scanner dirty work preserved; wallet unchanged.
 - next: On user approval, stage feed-only changes including selective public/index.html listing copy hunks, commit/push main, and verify Render public endpoint reports cloudflare-sqlite. Otherwise user pushes prepared changes. Worker is already collecting.
+
+### 2026-10-06T19:41-03:00 · codex · claim · no-git
+- task: Plan broader NFT image coverage for ChainLens
+- lease until 2026-10-06T22:41-03:00
+
+### 2026-10-06T19:45-03:00 · codex · checkpoint · no-git
+- Created docs/NFT-IMAGE-COVERAGE-PLAN.md from current source, read-only Magic Money gallery review, official provider/metadata standards and user screenshot. Cardano prioritized; audit before claiming individual failure causes. Plan includes common media model, stall deadlines, safe metadata expansion, targeted per-token provider fallback and optional measured media relay. No runtime edits.
+
+### 2026-10-06T19:45-03:00 · codex · handoff · no-git
+- NFT image coverage plan delivered: Cardano-first audit/normalization, wallet loader patterns, token-specific metadata repair/provider fallback and optional measured media relay. Reviewed screenshot and current code; runtime unchanged, no new tests or deployment.
+- next: On implementation request, start docs/NFT-IMAGE-COVERAGE-PLAN.md Pass1: per-token baseline and Cardano media audit. Keep prior New Listings release decision separate; this planning task grants no commit/push/deployment authorization.
+
+### 2026-10-06T19:56-03:00 · codex · claim · no-git
+- task: Implement NFT image coverage plan
+- lease until 2026-10-06T22:56-03:00
+
+### 2026-10-06T20:04-03:00 · codex · checkpoint · no-git
+- Implementing Cardano URI/file normalization and stake pagination, shared 6-slot image loader with deadlines, bounded DNS-pinned metadata documents and deferred token repairs. Starting unit and Profile/Scanner browser regression checks; no commit or deployment.
+- next: Inspect test results and live Cardano evidence; finish repair retry/cache integration.
+
+### 2026-10-06T20:13-03:00 · codex · checkpoint · no-git
+- Live Blockfrost baseline:62 stake assets,54 with credible artwork candidates; CIP68 Lil Sappys metadata already resolved by provider. Old cloudflare-ipfs.com fails DNS for all7 sampled Cardano NFTs; Pinata returns image MIME for6/7, ipfs.io/dweb.link return429 here. Native IPFS now prefers measured working gateway; preserves supplied HTTPS gateways. Local Cardano adapter returns4 paginated pages; browser live decode/screenshot running.
+- next: Finish live decode, coverage/retry regression tests and docs; retain unresolved-content reasons.
+
+### 2026-10-06T20:17-03:00 · codex · checkpoint · no-git
+- Claude read-only audit supplied: Blockfrost gateway42/42 Range/MIME probes, old public gateways sunset429, CBOR USDM image and base58 CIDv1 cases. Independently verified Blockfrost206 image responses131-258ms forJAVELIN andLilSappys121. Switched nativeIPFS/fixedallowlist toBlockfrost,Pinata,Filebase; retired oldhosts dropped. CBOR media/CID decoding and fungible label tests pass. Starting final5 browser regressions and full live before/after gallery capture.
+- next: Review browser outputs and live full-image decode, update implementation report and handoff; no commit/deploy.
+
+### 2026-10-06T20:31-03:00 · codex · verify · no-git
+- verified: 176Node tests,6unique browser checks, syntax/precompile, diff check; live local Cardano52/52decoded including Spam, no deployment
+- Implemented NFT image coverage and integrated Claude read-only Cardano audit. Old gatewayDNS and sponsored gateway429 fixed by verifiedBlockfrost primary plusalternates; CID/CBOR/classification/pagination repaired. Real adapter52NFTs over4pages; all52decoded locally usingmockedprofilelogin. Screenshots inspected. Deferred known-token EVM/Solana metadata retries preserve owner-cache reuse; no DB mutations, wallet edits, commit or deployment.
+- next: User review/release; production and embedded-browser verification after deployment.
+
+### 2026-10-06T20:31-03:00 · codex · handoff · no-git
+- NFT image coverage complete locally;176unit tests,6browser checks,syntax/precompile/diff pass. Live Cardano52/52decoded in Holdings/Spam; desktop/mobile screenshots reviewed. Claude read-only audit integrated. Temporary backend stopped; no commit,push,deployment,wallet edits or DB mutations.
+- next: Review docs/NFT-IMAGE-COVERAGE-RESULTS.md and local screenshots; user-controlled commit/push then production/embedded-browser QA.

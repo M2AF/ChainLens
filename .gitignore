@@ -36,3 +36,6 @@ test-results/
 playwright-report/
 blob-report/
 coverage/
+
+# Local NFT coverage probes and before/after screenshots
+.local-artifacts/

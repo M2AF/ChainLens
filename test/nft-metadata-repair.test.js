@@ -39,7 +39,7 @@ test('a transient contract read failure keeps last known good art for the same t
 });
 test('RPC or gateway errors preserve provider art and arbitrary HTTPS metadata is not followed', async()=>{
   const item=nft(1);let calls=0;
-  const repair=createMetadataRepair({apiKey:'fixture',fetchImpl:async(_url,options)=>{calls++;assert.equal(options.method,'POST');return {ok:true,json:async()=>[{id:0,result:abi.encodeFunctionResult('tokenURI',['https://private.example/meta'])}]};}});
+  const repair=createMetadataRepair({apiKey:'fixture',lookup:async()=>[{address:'127.0.0.1',family:4}],fetchImpl:async(_url,options)=>{calls++;assert.equal(options.method,'POST');return {ok:true,json:async()=>[{id:0,result:abi.encodeFunctionResult('tokenURI',['https://private.example/meta'])}]};}});
   await repair('robinhood-mainnet',[item]);assert.equal(calls,1);assert.equal(item.name,'Wrong #10');
   await createMetadataRepair({apiKey:'fixture',fetchImpl:async()=>{throw Error('offline');}})('robinhood-mainnet',[item]);assert.equal(item.image.cachedUrl,'https://stale.example/10.png');
 });
@@ -58,5 +58,37 @@ test('ERC1155 templates use padded hexadecimal token identity',async()=>{
     if(options.method==='POST')return {ok:true,json:async()=>[{id:0,result:abi.encodeFunctionResult('uri',['ipfs://fresh/{id}.json'])}]};
     metadataUrl=url;return {ok:true,status:200,text:async()=>JSON.stringify({image:'ipfs://art/16.png'})};
   }});
-  await repair('base-mainnet',[item]);assert.equal(metadataUrl,'https://ipfs.io/ipfs/fresh/'+('10'.padStart(64,'0'))+'.json');
+  await repair('base-mainnet',[item]);assert.equal(metadataUrl,'https://ipfs.blockfrost.dev/ipfs/fresh/'+('10'.padStart(64,'0'))+'.json');
+});
+
+test('deferred repair covers documents beyond twelve without blocking ownership pages',async()=>{
+ let active=0,peak=0;
+ const repair=createMetadataRepair({apiKey:'fixture',waitMs:1,fetchImpl:async(url,options)=>{
+  if(options.method==='POST')return {ok:true,json:async()=>JSON.parse(options.body).map(r=>({id:r.id,result:abi.encodeFunctionResult('tokenURI',['ar://queued/'+r.id])}))};
+  active++;peak=Math.max(peak,active);await new Promise(resolve=>setTimeout(resolve,8));active--;
+  return {ok:true,status:200,text:async()=>JSON.stringify({image:'ar://art/'+url.split('/').pop()+'.png'})};
+ }});
+ const items=Array.from({length:18},(_,i)=>nft(i+1));await repair('robinhood-mainnet',items);
+ assert.ok(items.some(n=>n.artRepairPending));
+ await new Promise(resolve=>setTimeout(resolve,100));
+ assert.equal(peak,6);assert.equal(repair.artwork('robinhood-mainnet',items[17].contract.address,'18').artwork.image,'https://arweave.net/art/17.png');
+});
+
+test('Solana missing artwork repairs by exact asset ID and invalidates changed metadata URIs',async()=>{
+ const repair=createMetadataRepair({fetchImpl:async url=>({ok:true,status:200,text:async()=>JSON.stringify({image:'ar://art/'+url.split('/').pop()+'.png'})})});
+ const first={id:'mint-one',image:'',metadataUri:'ar://metadata/one'};repair.enrich('solana',[first]);
+ await new Promise(resolve=>setTimeout(resolve,10));
+ assert.equal(repair.assetArtwork('solana','mint-one').artwork.image,'https://arweave.net/art/one.png');
+ assert.equal(repair.assetArtwork('solana','mint-two').artwork,null);
+ const changed={id:'mint-one',image:'',metadataUri:'ar://metadata/two'};repair.enrich('solana',[changed]);
+ await new Promise(resolve=>setTimeout(resolve,10));
+ assert.equal(repair.assetArtwork('solana','mint-one').artwork.image,'https://arweave.net/art/two.png');
+});
+
+test('agreeing contract metadata retains provider thumbnails until a targeted retry',async()=>{
+ const item=nft(1);item.tokenUri='ar://fresh/1';item.name='Correct #1';item.raw={metadata:{image:'ar://art/1.png'}};
+ const repair=createMetadataRepair({apiKey:'fixture',fetchImpl:async(url,options)=>options.method==='POST'?{ok:true,json:async()=>[{id:0,result:abi.encodeFunctionResult('tokenURI',['ar://fresh/1'])}]}:{ok:true,status:200,text:async()=>JSON.stringify({name:'Correct #1',image:'ar://art/1.png'})}});
+ await repair('robinhood-mainnet',[item]);assert.equal(item.image.cachedUrl,'https://stale.example/10.png');
+ repair.retry('robinhood-mainnet',item.contract.address,'1');await new Promise(resolve=>setTimeout(resolve,20));
+ assert.equal(repair.artwork('robinhood-mainnet',item.contract.address,'1').artwork.image,'https://arweave.net/art/1.png');
 });

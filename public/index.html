@@ -4877,6 +4877,7 @@
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div className="rounded-[2.5rem] overflow-hidden shadow-2xl">
                               {selectedAsset.isToken ? <img src={resolveImg(selectedAsset.image, selectedAsset.symbol)} className="w-full h-auto rounded-2xl" onError={(e)=>{e.currentTarget.onerror=null;e.currentTarget.src=imgFallbackSvg(selectedAsset.symbol,selectedAsset.chain);}} /> : <window.NftArtwork asset={selectedAsset} preview={false} className="w-full h-auto rounded-2xl" />}
+                      {!selectedAsset.isToken && <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('nft-art-retry',{detail:window.nftFavoriteKey(selectedAsset)}))} className="mt-3 px-4 py-2 rounded-xl border border-slate-700 text-sm text-cyan-300">Retry artwork</button>}
                     </div>
                     <div>
                        <div
@@ -4912,7 +4913,7 @@
                           </div>
                           <div className="pt-6 border-t border-white/10 space-y-3">
                              {!selectedAsset.isToken && (
-                               <button onClick={() => downloadAsset(selectedAsset.image, selectedAsset.name || selectedAsset.symbol)} className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2">⬇ Download Image</button>
+                               <button onClick={event => downloadAsset(event.currentTarget.closest('.modal-enter')?.querySelector('img[data-art-status="loaded"]')?.currentSrc || window.nftImage.sources(selectedAsset,false)[0], selectedAsset.name || selectedAsset.symbol)} className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2">⬇ Download Image</button>
                              )}
                              <button onClick={() => setSelectedAsset(null)} className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase tracking-widest transition-all">Back to Gallery</button>
                           </div>

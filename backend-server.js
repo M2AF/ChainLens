@@ -1,3 +1,4 @@
+const { cardanoMedia, isCardanoNFT } = require('./cardano-media');
 require('dotenv').config({ path: __dirname + '/.env' });
 const _envCheck = { moralis: !!process.env.MORALIS_KEY, alchemy: !!process.env.ALCHEMY_KEY, cwd: process.cwd(), dir: __dirname };
 console.log('🔑 ENV check:', JSON.stringify(_envCheck));
@@ -2448,8 +2449,9 @@ app.post('/api/swap/evm/quote', async (req, res) => {
 
 // --- ASSET HELPERS ---
 
+const nftMetadataRepair = require('./nft-metadata-repair').createMetadataRepair({ fetchImpl: (url, options) => options.method === 'POST' ? fetch(url,options) : require('node-fetch')(url,options), apiKey: API_KEYS.alchemy });
 const fetchAlchemyNFTs = require('./nft-source-page').createAlchemyNFTPage({ fetchImpl: fetch, apiKey: API_KEYS.alchemy, getNativePrice: fetchNativePrice,
-  repairMetadata: require('./nft-metadata-repair').createMetadataRepair({ fetchImpl: fetch, apiKey: API_KEYS.alchemy }) });
+  repairMetadata: nftMetadataRepair });
 
 const fetchAlchemyTokens = async (network, address, chainId) => {
   try {
@@ -2946,26 +2948,32 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
       console.log('  Moralis NFT result count:', data.result?.length ?? 'no result field');
       console.log('  Moralis NFT raw sample:', JSON.stringify(data.result?.[0] || {}));
 
-      const nfts = (data.result || []).map(nft => {
-        const meta = nft.normalized_metadata || {};
+      const providerNFTs = (data.result || []).map(nft => ({...nft,
+        contract:{address:nft.token_address,tokenType:nft.contract_type},tokenId:nft.token_id,
+        tokenUri:nft.token_uri, raw:{metadata:nft.normalized_metadata || {}},
+        image:{cachedUrl:nft.media?.media_collection?.medium?.url,originalUrl:nft.media?.original_media_url}
+      }));
+      await nftMetadataRepair('monad-mainnet',providerNFTs);
+      const nfts = providerNFTs.map(nft => {
+        const meta = nft.raw?.metadata || {};
         // Try all possible image locations Moralis provides
-        const rawImage = nft.media?.media_collection?.medium?.url
-          || nft.media?.original_media_url
+        const rawImage = nft.image?.cachedUrl
+          || nft.image?.originalUrl
           || meta.image
           || '';
-        const imageUrl = rawImage.startsWith('ipfs://')
-          ? `https://cloudflare-ipfs.com/ipfs/${rawImage.slice(7)}`
-          : rawImage;
+        const imageUrl = require('./public/nft-image').urls(rawImage)[0] || '';
         return {
           id: `${nft.token_address}-${nft.token_id}`,
-          name: meta.name || nft.name || `Monad NFT #${nft.token_id}`,
+          name: nft.name || meta.name || `Monad NFT #${nft.token_id}`,
           image: imageUrl,
           collection: nft.name || 'Monad Collection',
           chain: 'monad',
           contractAddress: nft.token_address,
           tokenId: nft.token_id,
           isSpam: nft.possible_spam === true,
-          imageSources: [nft.media?.original_media_url, meta.image].filter(value => typeof value === 'string' && value),
+          artRepairPending:nft.artRepairPending === true, metadataUri:nft.tokenUri || null,
+          media:{provider:'moralis',animationUrl:meta.animation_url || null},
+          imageSources: [nft.image?.originalUrl, ...(nft.imageSources || []), ...require('./public/nft-image').metadataSources(meta,nft.tokenUri)].filter(value => typeof value === 'string' && value),
           isToken: false,
           metadata: {
             traits: meta.attributes || [],
@@ -3196,17 +3204,38 @@ app.get('/api/:mode(nfts|tokens)/solana/:address', async (req, res) => {
         id: asset.id,
         name: asset.content?.metadata?.name || 'Solana NFT',
         chain: 'solana',
-        image: asset.content?.files?.find(f => f.cdn_uri)?.cdn_uri || asset.content?.links?.image || asset.content?.files?.find(f => /^image\//.test(f.mime || ''))?.uri || '',
-        imageSources: [asset.content?.links?.image, ...(asset.content?.files || []).flatMap(f => /^image\//.test(f.mime || '') || f.cdn_uri ? [f.cdn_uri, f.uri] : [])].filter(Boolean),
+        image: asset.content?.files?.find(f => /^image\//i.test(f.mime || '') && f.cdn_uri)?.cdn_uri || asset.content?.links?.image || asset.content?.files?.find(f => /^image\//.test(f.mime || ''))?.uri || '',
+        imageSources: [asset.content?.links?.image, ...(asset.content?.files || []).flatMap(f => /^image\//i.test(f.mime || '') ? [f.cdn_uri, f.uri] : [])].filter(Boolean),
+        metadataUri: asset.content?.json_uri || null,
+        media: { provider:'helius', status:asset.content?.links?.image ? 'candidates' : 'missing-metadata' },
         collection: asset.grouping?.[0]?.collection_metadata?.name || 'Solana',
         collectionId: asset.grouping?.find(g => g.group_key === 'collection')?.group_value || asset.id,
         isToken: false,
         metadata: { traits: asset.content?.metadata?.attributes || [], description: asset.content?.metadata?.description || '' }
       }));
+      nftMetadataRepair.enrich('solana',nfts);
       res.json({ nfts, nextPageKey: items.length === 1000 ? String(Math.max(1, Number(req.query.pageKey) || 1) + 1) : null });
     }
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
+// Token-only read of already queued metadata; does not rescan ownership or
+// accept external URLs. Canonical chain/contract/token identity is mandatory.
+const artworkResponse = (req,res) => {
+  const {chain,contract,tokenId} = req.params;
+  const network = SCANNER_CHAINS.find(c => c.id === chain)?.alchemyNetwork;
+  if (!network || !/^0x[0-9a-f]{40}$/i.test(contract) || !/^\d{1,78}$/.test(tokenId)) return res.status(400).json({error:'Invalid NFT identity'});
+  if (req.method === 'POST') nftMetadataRepair.retry(network,contract,tokenId);
+  res.json(nftMetadataRepair.artwork(network,contract,tokenId));
+};
+const assetArtworkResponse = (req,res) => {
+  if (req.params.chain !== 'solana' || !/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(req.params.id)) return res.status(400).json({error:'Invalid NFT identity'});
+  res.json(nftMetadataRepair.assetArtwork(req.params.chain,req.params.id,req.method === 'POST'));
+};
+app.get('/api/nft-art/:chain/:id',assetArtworkResponse);
+app.post('/api/nft-art/:chain/:id',assetArtworkResponse);
+app.get('/api/nft-art/:chain/:contract/:tokenId',artworkResponse);
+app.post('/api/nft-art/:chain/:contract/:tokenId',artworkResponse);
 
 // --- Cardano ---
 // 4. Solana Name Service (SNS) — .sol domains via Bonfida public proxy
@@ -3259,6 +3288,8 @@ const resolveAdaHandle = async (handle) => {
   }
 };
 
+const cardanoHoldingsCache = new Map();
+const cardanoMetadataCache = new Map();
 app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
   let { mode, address } = req.params;
   try {
@@ -3272,7 +3303,7 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
       console.log(`✅ Resolved ${address} → ${resolvedAddress}`);
       address = resolvedAddress;
     }
-    const adaPrice = await fetchCoinGeckoPrice('cardano');
+    const adaPrice = mode === 'tokens' ? await fetchCoinGeckoPrice('cardano') : 0;
     
     // Add cache-busting headers
     const blockfrostHeaders = { 
@@ -3280,7 +3311,7 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
       'Cache-Control': 'no-cache, no-store, must-revalidate'
     };
     
-    const addrRes = await fetch(`https://cardano-mainnet.blockfrost.io/api/v0/addresses/${address}`, { headers: blockfrostHeaders });
+    const addrRes = await fetch(`https://cardano-mainnet.blockfrost.io/api/v0/addresses/${address}`, { headers: blockfrostHeaders, signal: AbortSignal.timeout(15000) });
     if (addrRes.status === 404) return res.json({ nfts: [] });
     if (addrRes.status === 403) {
       console.error('❌ Blockfrost 403 — invalid or missing API key');
@@ -3323,18 +3354,20 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
     }
 
     // Method 1: Get assets from stake address (standard approach)
-    let assets = [];
-    if (addrData.stake_address) {
-      const assetsRes = await fetch(
-        `https://cardano-mainnet.blockfrost.io/api/v0/accounts/${addrData.stake_address}/addresses/assets`,
-        { headers: blockfrostHeaders }
-      );
-      if (assetsRes.ok) {
+    const holdingsHit = cardanoHoldingsCache.get(address);
+    let assets = holdingsHit && holdingsHit.until > Date.now() ? [...holdingsHit.assets] : [];
+    if (!assets.length && addrData.stake_address) {
+      for (let page = 1; page <= 100; page++) {
+        const assetsRes = await fetch(
+          `https://cardano-mainnet.blockfrost.io/api/v0/accounts/${addrData.stake_address}/addresses/assets?count=100&page=${page}`,
+          { headers: blockfrostHeaders, signal: AbortSignal.timeout(15000) }
+        );
+        if (!assetsRes.ok) throw new Error(`Cardano stake assets HTTP ${assetsRes.status}`);
         const parsed = await assetsRes.json();
-        assets = Array.isArray(parsed) ? parsed : [];
-        console.log(`  Blockfrost stake assets: ${assets.length} total`);
-      } else {
-        console.warn(`  ⚠️ Stake assets fetch failed: ${assetsRes.status} — falling back to direct address assets`);
+        if (!Array.isArray(parsed)) throw new Error('Invalid Cardano stake assets response');
+        assets.push(...parsed);
+        if (parsed.length < 100) break;
+        if (page === 100) throw new Error('Cardano stake assets pagination limit reached');
       }
     }
     
@@ -3364,43 +3397,33 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
       } catch { return ''; }
     };
 
-    // Resolve image from all known Cardano metadata locations
-    const resolveCardanoImage = (meta) => {
-      const candidates = [
-        meta.onchain_metadata?.image, meta.onchain_metadata?.logo,
-        meta.onchain_metadata?.icon,
-        meta.metadata?.logo,   // CIP-26 registry: base64 or URL (USDCx, HUNT, COPI live here)
-        meta.metadata?.url,
-      ];
-      for (let img of candidates) {
-        if (!img) continue;
-        if (Array.isArray(img)) img = img.join('');
-        if (typeof img !== 'string') continue;
-        img = img.trim();
-        if (!img) continue;
-        if (img.startsWith('data:'))  return img;
-        if (img.startsWith('ipfs://')) return `https://cloudflare-ipfs.com/ipfs/${img.slice(7)}`;
-        if (img.startsWith('http'))   return img;
-        if (img.length >= 46)         return `https://cloudflare-ipfs.com/ipfs/${img}`;
-      }
-      return '';
-    };
-
+    assets.sort((a,b) => a.unit.localeCompare(b.unit));
+    if (cardanoHoldingsCache.size > 200) cardanoHoldingsCache.delete(cardanoHoldingsCache.keys().next().value);
+    cardanoHoldingsCache.set(address,{assets:[...assets],until:Date.now()+5*60*1000});
+    const page = Number(req.query.pageKey || 0);
+    if (!Number.isInteger(page) || page < 0 || page > 500) return res.status(400).json({error:'Invalid Cardano page cursor'});
+    const hasNext = mode === 'nfts' && (page+1)*20 < assets.length;
+    if (mode === 'nfts') assets = assets.slice(page*20,(page+1)*20);
     // Process ALL assets (removed .slice(0, 30) limit!)
-    const tasks = assets.map(async (a) => {
+    const processAsset = async (a) => {
       try {
-        const metaRes = await fetch(
-          `https://cardano-mainnet.blockfrost.io/api/v0/assets/${a.unit}`,
-          { headers: blockfrostHeaders }
-        );
-        if (!metaRes.ok) {
-          if (metaRes.status === 429) console.warn(`  ⚠️ Blockfrost rate limit on asset ${a.unit.substring(0, 16)}…`);
-          return null;
+        const hit = cardanoMetadataCache.get(a.unit);
+        let meta = hit && hit.until > Date.now() ? hit.meta : null;
+        if (!meta) {
+          let metaRes;
+          for (let attempt = 0; attempt < 2; attempt++) {
+            metaRes = await fetch(`https://cardano-mainnet.blockfrost.io/api/v0/assets/${a.unit}`,
+              { headers:blockfrostHeaders,signal:AbortSignal.timeout(5000) });
+            if (metaRes.status !== 429) break;
+            await new Promise(resolve => setTimeout(resolve,500));
+          }
+          if (!metaRes.ok) throw Error(`Cardano metadata HTTP ${metaRes.status}`);
+          meta = await metaRes.json();
+          if (cardanoMetadataCache.size > 3000) cardanoMetadataCache.delete(cardanoMetadataCache.keys().next().value);
+          cardanoMetadataCache.set(a.unit,{meta,until:Date.now()+5*60*1000});
         }
-
-        const meta = await metaRes.json();
         if (meta.error || meta.statusCode) return null;
-        const isNFT = parseInt(a.quantity) === 1;
+        const isNFT = isCardanoNFT(meta);
         if ((mode === 'tokens' && isNFT) || (mode === 'nfts' && !isNFT)) return null;
 
         // ── Name: onchain first, then decode hex asset_name ──────────────────
@@ -3426,8 +3449,9 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
         }
 
         // ── Image — symbol is defined before this call ────────────────────────
-        let imageUrl = resolveCardanoImage(meta);
-        if (!imageUrl) {
+        const artwork = cardanoMedia(meta, mode === 'tokens');
+        let imageUrl = artwork.image;
+        if (!imageUrl && mode === 'tokens') {
           try { imageUrl = await fetchTokenImage(symbol); } catch {}
         }
 
@@ -3438,7 +3462,8 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
           id: a.unit,
           name: tokenName,
           chain: 'cardano',
-          image: imageUrl,
+          ...artwork, image: imageUrl,
+          policyId: meta.policy_id, assetName: meta.asset_name,
           balance: mode === 'tokens' ? balance.toFixed(2) : null,
           usdPrice, nativePrice: nativePrice.toFixed(4),
           totalValue: (balance * usdPrice).toFixed(2),
@@ -3449,13 +3474,21 @@ app.get('/api/:mode(nfts|tokens)/cardano/:address', async (req, res) => {
         console.error(`  Error processing asset ${a.unit}:`, e.message);
         return null;
       }
-    });
-    
-    const taskResults = await Promise.all(tasks);
+    };
+    // Avoid a burst of hundreds of Blockfrost calls and lost rate-limited assets.
+    const taskResults = new Array(assets.length);
+    let assetCursor = 0;
+    const assetWorker = async () => {
+      while (assetCursor < assets.length) {
+        const index = assetCursor++;
+        taskResults[index] = await processAsset(assets[index]);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(6, assets.length) }, assetWorker));
     results.push(...taskResults.filter(n => n !== null));
     
     console.log(`✅ Cardano: Returning ${results.length} ${mode}`);
-    res.json({ nfts: results });
+    res.json({ nfts:results, nextPageKey:hasNext ? String(page+1) : null });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
