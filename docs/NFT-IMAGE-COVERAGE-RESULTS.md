@@ -34,3 +34,18 @@ Favorites, spam filtering, floor sorting and fresh Profile-to-Scanner ownership-
 ## Limits
 
 Deploy frontend/backend together and verify the same tokens in production. Render production and the wallet embedded browser have not been validated for this release. No new OpenSea subscription/key, relay/storage/CDN or ERC4906 subscriber was added: the measured Cardano delivery failures resolve through gateway and normalization changes. Unsupported NFT discovery on Bitcoin/Polkadot/Tron/Dogecoin is separate work. Unavailable content retains a placeholder and Retry action; this is not universal coverage.
+
+## Monad and Robinhood follow-up
+
+The user committed the previous release as4a5794d and confirmed the public gallery improvement. This follow-up remains local and uncommitted.
+
+Read-only Alchemy owner responses from two associated EVM addresses returned80 NFT records. Initial browser probes with5second candidate deadlines decoded58 and left22 unresolved. Direct contract reads separated unavailable delivery from absent metadata:
+
+- Robinhood REDACTED8/9 and Macarune2 have valid token-specific on-chain artwork; existing repair resolves them. Peng3845/6572/8845 use correct contract metadata paths without the provider's erroneous `.json` suffix. Pinata delivery sometimes stalls, while the identical CID/path returns JSON through Blockfrost/Filebase.
+- Ten Monad ERC1155 tokens across four contracts return an empty `uri`; five Robinhood ERC721 tokens in the Chog contract return an empty `tokenURI`. Alchemy supplies neither image candidates nor metadata for these15 records. No collection image or token-ID guess is substituted. These records expose missing-metadata status and a tooltip, retaining the existing Retry action for future publication.
+- Monad's public RPC returned per-item request-limit errors in a53-call batch. Repair now serializes each network's reads in10-call chunks, spaces Monad bursts, and retries only unresolved transient/rate-limited identities through fixed documented alternate RPC endpoints. Successful reads and last-good artwork survive failures. Endpoint references: [Monad RPC documentation](https://docs.monad.xyz/reference/json-rpc/overview) and [Robinhood network documentation](https://docs.robinhood.com/chain/add-network-to-wallet/).
+- Metadata documents prefer the measured Blockfrost gateway and fall back across up to three gateways for the exact content identity, with3.5second candidate deadlines and existing DNS-pinning, redirect and body-size protections.
+
+The local Profile gallery using real repaired adapter data and mocked login decoded seven of the22 initially unresolved records: the six Robinhood tokens above and criptoejesus.nad on Monad. The15 empty-URI tokens remain placeholders with the explanatory tooltip. The initial5second probe is stricter than the production12second image deadline; the Nad name's successful recheck is not evidence of a new source repair.
+
+Validation:179 Node tests, three image-retry/Scanner-cache browser regressions, syntax and homepage precompile checks. Screenshot and per-image outcomes: `.local-artifacts/nft-coverage/evm-after-desktop.png` and `evm-after-browser.json`; raw provider/RPC/audit artifacts are ignored. Production deployment and embedded-browser verification remain user-controlled next steps.

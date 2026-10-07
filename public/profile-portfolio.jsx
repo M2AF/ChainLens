@@ -49,7 +49,7 @@
     const current = result.identity === identity ? result : {url:'',status:'loading'};
     // The loader owns src on this displayed node. A constant React src avoids
     // reassigning a just-decoded URL and refetching gateways with no-store.
-    return <img ref={element} className={className} src="/profile-art-fallback.svg" alt={asset.name || 'NFT'} decoding="async" data-art-status={current.status} />;
+    return <img ref={element} className={className} src="/profile-art-fallback.svg" alt={asset.name || 'NFT'} title={asset.media?.status === 'missing-metadata' ? 'No artwork URI published by this token; Retry artwork can check again.' : undefined} decoding="async" data-art-status={current.status} />;
   };
   window.ProfileBanner = function ({ profile, identity, profileId, authFetch, onSave }) {
     const [busy, setBusy] = useState(false), [error, setError] = useState('');
@@ -169,12 +169,19 @@
       }
       const groups = [...map.values()];
       for (const group of groups) {
+        const stem = group.assets[0].name?.replace(/\s*#\d+.*$/,'');
+        if (group.assets.length>1 && group.name===group.assets[0].name && stem && group.assets.every(a=>a.name?.replace(/\s*#\d+.*$/,'')===stem)) group.name=stem;
         group.favorite = group.assets.some(a => favorites.has(window.nftFavoriteKey(a)));
         group.floorPriceUsd = group.assets.map(window.nftFloor.usd).filter(n => n !== null).sort((a,b) => b-a)[0] ?? null;
       }
       return groups.sort((a,b) => Number(b.favorite) - Number(a.favorite) || window.nftFloor.compare(a,b));
     }, [assets, favorites]);
-    const tiles = tab !== 'Overview' ? assets.map(a => ({ id: window.nftFavoriteKey(a), name: a.name || 'Untitled NFT', floorPriceUsd: window.nftFloor.usd(a), assets: [a] })) : groups;
+    const tiles = tab !== 'Overview' ? assets.map(a => ({ id: window.nftFavoriteKey(a), name: a.name || 'Untitled NFT', floorPriceUsd: window.nftFloor.usd(a), assets: [a] })) : groups.flatMap(group => {
+      const chunks = [];
+      for (let offset=0; offset<group.assets.length; offset+=4) chunks.push({...group,id:`${group.id}:${offset}`,assets:group.assets.slice(offset,offset+4),total:group.assets.length,offset});
+      return chunks;
+    });
+    const viewerAssets = tiles.flatMap(tile => tile.assets);
     return <section className="profile-gallery" aria-label="Profile NFT portfolio">
       <div className="profile-tabs">{['Overview', 'Holdings', 'Favorites', 'Spam'].map(t => <button key={t} aria-pressed={tab === t} onClick={() => setTab(t)}>{t === 'Spam' ? `Spam (${spamCount})` : t}</button>)}<span>{portfolio.assets.length} NFTs · {new Set(portfolio.assets.map(a => a.chain)).size} chains</span></div>
       <div className="profile-gallery-tools"><input aria-label="Search profile NFTs" placeholder="Search your collection…" value={search} onChange={e => setSearch(e.target.value)} /><select aria-label="Filter profile chain" value={chain} onChange={e => setChain(e.target.value)}><option value="all">All chains</option>{[...new Set(portfolio.assets.map(a => a.chain))].map(c => <option key={c}>{c}</option>)}</select></div>
@@ -184,11 +191,57 @@
       {!!portfolio.issues.length && <details className="profile-load-status"><summary>{portfolio.issues.length} sources unavailable · loaded NFTs retained</summary>{portfolio.issues.map((issue,i) => <p key={i}>{issue}</p>)}</details>}
       {!tiles.length && <div className="profile-empty">{portfolio.loading ? 'Your collection is taking shape…' : search || filter !== 'All' || tab === 'Favorites' || tab === 'Spam' ? 'No NFTs match this view.' : 'Your linked-wallet NFTs will appear here.'}</div>}
       <div className="profile-mosaic">{tiles.map((tile,index) => <article key={tile.id} className={`profile-tile ${index % 7 === 4 ? 'profile-tile-tall' : ''}`}>
-        <div className={`profile-tile-media ${tile.assets.length > 1 ? 'profile-quilt' : ''}`}>{tile.assets.slice(0,4).map(asset => {
+        <div className={`profile-tile-media ${tile.assets.length > 1 ? `profile-quilt profile-quilt-${tile.assets.length}` : ''}`}>{tile.assets.map(asset => {
           const key = window.nftFavoriteKey(asset);
-          return <div className="profile-art" key={key}><button className="profile-art-open" aria-label={`View ${asset.name || 'NFT'}`} onClick={() => onSelect(asset)}><window.NftArtwork asset={asset} /></button><button className="profile-star" aria-label={`${favorites.has(key) ? 'Unfavorite' : 'Favorite'} ${asset.name || 'NFT'}`} aria-pressed={favorites.has(key)} onClick={() => toggleFavorite(asset)}>{favorites.has(key) ? '★' : '☆'}</button><button className="profile-spam" title={isSpam(asset) ? 'Not spam' : 'Mark as spam'} aria-label={`${isSpam(asset) ? 'Not spam' : 'Mark as spam'} ${asset.name || 'NFT'}`} onClick={e => toggleSpam(e, asset)}>{isSpam(asset) ? '↩' : '🚫'}</button></div>;
-        })}</div><div className="profile-tile-caption"><strong>{tile.name}</strong><span>{window.nftFloor.label(tile)}</span><span>{tile.assets[0].chain} · {tile.assets.length > 1 ? `${tile.assets.length} items` : category(tile.assets[0])}</span></div>
+          return <div className="profile-art" key={key}><button className="profile-art-open" aria-label={`View ${asset.name || 'NFT'}`} onClick={() => onSelect(asset,viewerAssets)}><window.NftArtwork asset={asset} /></button><button className="profile-star" aria-label={`${favorites.has(key) ? 'Unfavorite' : 'Favorite'} ${asset.name || 'NFT'}`} aria-pressed={favorites.has(key)} onClick={() => toggleFavorite(asset)}>{favorites.has(key) ? '★' : '☆'}</button><button className="profile-spam" title={isSpam(asset) ? 'Not spam' : 'Mark as spam'} aria-label={`${isSpam(asset) ? 'Not spam' : 'Mark as spam'} ${asset.name || 'NFT'}`} onClick={e => toggleSpam(e, asset)}>{isSpam(asset) ? '↩' : '🚫'}</button></div>;
+        })}</div><div className="profile-tile-caption"><strong>{tile.name}</strong><span>{window.nftFloor.label(tile)}</span><span>{tile.assets[0].chain} · {tile.total > 4 ? `${tile.offset+1}–${tile.offset+tile.assets.length} of ${tile.total} items` : tile.assets.length > 1 ? `${tile.assets.length} items` : category(tile.assets[0])}</span></div>
       </article>)}</div>
     </section>;
+  };
+
+  window.AssetViewer = function ({asset, assets, onChange, onClose, darkMode, chainStyles, resolveImg, fallback, download}) {
+    const dialog = useRef(null);
+    const index = assets.findIndex(a => window.nftFavoriteKey(a) === window.nftFavoriteKey(asset));
+    const previous = index > 0, next = index >= 0 && index < assets.length-1;
+    const move = direction => { const target = assets[index+direction]; if (target) onChange(target); };
+    useEffect(() => {
+      const focus = document.activeElement, overflow = document.body.style.overflow;
+      document.body.style.overflow='hidden'; dialog.current?.querySelector('[aria-label="Close asset viewer"]')?.focus();
+      return () => { document.body.style.overflow=overflow; if (focus?.isConnected) focus.focus(); };
+    }, []);
+    useEffect(() => {
+      const keydown = event => {
+        if (event.key==='Escape') { event.preventDefault(); onClose(); }
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) return;
+        if (event.key==='ArrowLeft' || event.key==='ArrowRight') { event.preventDefault(); move(event.key==='ArrowLeft'?-1:1); }
+        if (event.key==='Tab') {
+          const controls = [...dialog.current.querySelectorAll('button:not(:disabled),a[href]')].filter(el=>el.getClientRects().length);
+          const first=controls[0], last=controls[controls.length-1];
+          if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
+          else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
+        }
+      };
+      document.addEventListener('keydown',keydown);return ()=>document.removeEventListener('keydown',keydown);
+    }, [index,assets,onClose]);
+    const collection = asset.collectionName || (typeof asset.collection==='string' ? asset.collection : asset.collection?.name) || (asset.isToken ? asset.symbol : asset.name?.replace(/\s*#\d+.*$/,'')) || 'Your collection';
+    const traits = window.nftMetadata.traits(asset.metadata?.traits);
+    return <div className="asset-viewer-backdrop modal-enter" onClick={event=>{if(event.target===event.currentTarget)onClose();}}>
+      <div ref={dialog} className={`asset-viewer ${darkMode?'asset-viewer-dark':''}`} role="dialog" aria-modal="true" aria-labelledby="asset-viewer-title">
+        <header className="asset-viewer-header"><span>{collection}</span><span className="asset-viewer-position" aria-live="polite">{index>=0?`${index+1} / ${assets.length}`:'Asset details'}</span><button aria-label="Close asset viewer" onClick={onClose}>✕</button></header>
+        <div className="asset-viewer-body"><div className="asset-viewer-stage">
+          {asset.isToken ? <img src={resolveImg(asset.image,asset.symbol)} alt={asset.name} className="w-full" onError={event=>{event.currentTarget.onerror=null;event.currentTarget.src=fallback(asset.symbol,asset.chain);}}/> : <window.NftArtwork key={window.nftFavoriteKey(asset)} asset={asset} preview={false} className="w-full"/>}
+          {assets.length>1 && <><button className="asset-viewer-arrow asset-viewer-prev" aria-label="Previous asset" disabled={!previous} onClick={()=>move(-1)}>‹</button><button className="asset-viewer-arrow asset-viewer-next" aria-label="Next asset" disabled={!next} onClick={()=>move(1)}>›</button></>}
+        </div><div className="asset-viewer-info">
+          <span className="asset-viewer-chain" style={{background:chainStyles[asset.chain]?.background||'#64748b',color:chainStyles[asset.chain]?.foreground||'#fff'}}>{chainStyles[asset.chain]?.label||asset.chain}</span>
+          <h1 id="asset-viewer-title">{asset.name || 'Untitled NFT'}</h1>
+          {!asset.isToken && <p className="asset-viewer-floor">{window.nftFloor.label(asset)}</p>}
+          {asset.metadata?.description && <p className="asset-viewer-description">{asset.metadata.description}</p>}
+          {asset.isToken && <div className="asset-viewer-values"><div><small>Quantity</small><strong>{asset.balance}</strong></div><div><small>Value USD</small><strong>${asset.totalValue}</strong></div></div>}
+          <h3>Attributes</h3><div className="asset-viewer-traits">{traits.length?traits.map((t,i)=><div key={i}><small>{t.trait_type}</small><strong>{t.value}</strong></div>):<p>No metadata found.</p>}</div>
+          {asset.media?.status==='missing-metadata' && <p className="asset-viewer-description">This token has not published an artwork URI. You can retry to check for an update.</p>}
+          <div className="asset-viewer-actions">{!asset.isToken && <><button className="asset-viewer-download" onClick={()=>download(dialog.current?.querySelector('img[data-art-status="loaded"]')?.currentSrc || window.nftImage.sources(asset,false)[0],asset.name)}>↓ Download Image</button><button onClick={()=>window.dispatchEvent(new CustomEvent('nft-art-retry',{detail:window.nftFavoriteKey(asset)}))}>Retry artwork</button></>}<button onClick={onClose}>Back to Gallery</button></div>
+        </div></div>
+      </div>
+    </div>;
   };
 })();

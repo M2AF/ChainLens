@@ -262,6 +262,8 @@
   gap: 6px;
   background: transparent;
 }
+.profile-tile-media.profile-quilt-2 { aspect-ratio: 2/1; grid-template-rows: minmax(0,1fr); }
+.profile-quilt-3 .profile-art:first-child { grid-row: span 2; }
 .profile-art {
   position: relative;
   min-height: 0;
@@ -446,6 +448,48 @@
 .profile-account .group.flex { flex-wrap: wrap; }
 .profile-account .font-mono { font-size: 9px; }
 .profile-account button.px-6 { padding: 10px 14px !important; font-size: 10px !important; }
+
+.asset-viewer-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 28px; background: #020617dc; backdrop-filter: blur(18px); }
+.asset-viewer { width: min(1100px,100%); max-height: 92dvh; overflow-y: auto; border: 1px solid #8192ab40; border-radius: 24px; background: #f8fafc; color: #172033; box-shadow: 0 30px 120px #0009; }
+.asset-viewer-dark { background: rgb(var(--cl-slate-900,15 23 42)); color: rgb(var(--cl-white,255 255 255)); }
+.asset-viewer-header { display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid #8192ab30; font-size: 12px; font-weight: 600; }
+.asset-viewer-header > span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.asset-viewer-position { opacity: .55; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.asset-viewer-header button { width: 34px; height: 34px; border-radius: 50%; background: #8192ab18; }
+.asset-viewer-body { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); }
+.asset-viewer-stage { position: relative; display: flex; align-items: center; justify-content: center; min-height: 380px; padding: 28px; background: #8192ab0d; }
+.asset-viewer-stage > img { width: 100%; height: min(62dvh,580px); object-fit: contain; border-radius: 14px; }
+.asset-viewer-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 52px; border: 1px solid #ffffff35; border-radius: 14px; background: #081426cc; color: white; font: 32px ui-sans-serif,sans-serif; box-shadow: 0 4px 18px #0005; }
+.asset-viewer-prev { left: 12px; }
+.asset-viewer-next { right: 12px; }
+.asset-viewer-arrow:disabled { opacity: .2; cursor: default; }
+.asset-viewer-arrow:hover:not(:disabled) { background: #176780; }
+.asset-viewer button:focus-visible { outline: 2px solid #50d5e4; outline-offset: 3px; }
+.asset-viewer-info { padding: 32px; min-width: 0; }
+.asset-viewer-chain { display: inline-block; border-radius: 30px; padding: 6px 12px; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.asset-viewer-info h1 { font: 700 clamp(24px,3vw,36px)/1.15 'Space Grotesk',sans-serif; margin: 18px 0 10px; overflow-wrap: anywhere; }
+.asset-viewer-floor { font-size: 13px; opacity: .65; margin-bottom: 24px; }
+.asset-viewer-description { font-size: 13px; line-height: 1.7; opacity: .6; white-space: pre-wrap; overflow-wrap: anywhere; margin: 16px 0 24px; }
+.asset-viewer-info h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; opacity: .55; margin: 24px 0 12px; }
+.asset-viewer-traits { display: flex; flex-wrap: wrap; gap: 8px; }
+.asset-viewer-traits > div { padding: 10px 13px; border: 1px solid #53c6d533; border-radius: 12px; background: #53c6d50c; max-width: 100%; overflow-wrap: anywhere; }
+.asset-viewer-traits small,.asset-viewer-values small { display: block; opacity: .55; font-size: 9px; text-transform: uppercase; }
+.asset-viewer-traits strong { display: block; font-size: 12px; margin-top: 4px; }
+.asset-viewer-traits > p { font-size: 12px; opacity: .5; }
+.asset-viewer-values { display: flex; gap: 20px; margin: 24px 0; }
+.asset-viewer-values strong { display: block; margin-top: 4px; }
+.asset-viewer-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #8192ab30; }
+.asset-viewer-actions button { padding: 11px 16px; border: 1px solid #8192ab40; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.asset-viewer-actions .asset-viewer-download { flex-basis: 100%; background: #0bb698; border-color: transparent; color: #032c29; }
+@media(max-width:760px) {
+  .asset-viewer-backdrop { padding: 12px; }
+  .asset-viewer { border-radius: 18px; max-height: 95dvh; }
+  .asset-viewer-header { padding: 12px 16px; position: sticky; top: 0; z-index: 2; background: inherit; }
+  .asset-viewer-body { grid-template-columns: minmax(0,1fr); }
+  .asset-viewer-stage { min-height: 0; padding: 18px; }
+  .asset-viewer-stage > img { height: min(42dvh,420px); }
+  .asset-viewer-info { padding: 22px; }
+}
 @media (min-width:1600px) {
   .profile-mosaic {
     grid-template-columns: repeat(6, minmax(0, 1fr));

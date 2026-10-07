@@ -18,3 +18,14 @@ test('streaming metadata is stopped at the body limit',async()=>{
  const read=createDocumentReader({fetchImpl:async()=>({ok:true,status:200,body:Readable.from([Buffer.alloc(1024*1024),Buffer.alloc(1)])})});
  await assert.rejects(read('https://ipfs.blockfrost.dev/ipfs/art'),/large/);
 });
+
+test('IPFS documents retry the same content through another gateway',async()=>{
+ const calls=[];
+ const read=createDocumentReader({fetchImpl:async url=>{
+  calls.push(url);
+  if(url.includes('blockfrost'))return {ok:false,status:503};
+  return {ok:true,status:200,text:async()=>JSON.stringify({name:'Peng #42',image:'ipfs://art/42'})};
+ }});
+ assert.equal((await read('https://gateway.pinata.cloud/ipfs/collection/42')).name,'Peng #42');
+ assert.deepEqual(calls,['https://ipfs.blockfrost.dev/ipfs/collection/42','https://gateway.pinata.cloud/ipfs/collection/42']);
+});

@@ -2,122 +2,6 @@
 <!-- Append-only. Never edit or delete entries; correct with a new `correction` entry.
      Header: ### <iso-time> · <agent> · <kind> · <head> <clean|dirty N>. Use handoff.py log. -->
 
-### 2026-10-06T01:13-03:00 · codex · handoff · no-git
-- Floor USD ordering, captions and regression checks complete locally; favorites remain pinned. Handoff board/docs updated.
-- next: Deploy floor sorting and previous metadata crash fix; refresh Profile.
-
-### 2026-10-06T01:39-03:00 · codex · claim · no-git
-- task: Profile shared spam controls and banner upload failure
-- lease until 2026-10-06T04:39-03:00
-
-### 2026-10-06T01:40-03:00 · codex · checkpoint · no-git
-- Live Supabase schema read confirms cl_users.banner_url missing; matching configured project vxrhosrktbknogyeyewy. Applying existing additive banner SQL under requested upload fix. Profile manual spam filters already share canonical keys; scanner heuristic filtering bypasses Profile.
-
-### 2026-10-06T01:42-03:00 · codex · checkpoint · no-git
-- Live banner migration applied and nullable text column verified. Profile per-art spam/restore buttons and Spam tab share scanner/manual canonical filters; scanner suspects retained for restore and shared heuristic reused. Focus/30s pulls added for cross-device changes. Starting syntax/unit/precompile and6 browser checks; screenshots in test-results.
-
-### 2026-10-06T01:47-03:00 · codex · checkpoint · no-git
-- Scope includes missing images/Monad/REDACTED. Live Alchemy gives53 Monad NFTs; contract metadata probe and repaired adapter confirm REDACTED #1/#2/#8/#9 distinct correct artwork. Alchemy Robinhood RPC endpoint unsuitable: verified public Robinhood RPC required. Arweave redirects to trusted subdomains; bounded redirect allowlist needed.
-- next: Finish alternate image loading and validate unit/browser tests; capture repaired live sample preview.
-
-### 2026-10-06T01:52-03:00 · codex · verify · no-git
-- verified: 156unit tests;6browser checks; syntax/precompile6scripts; live DB column and NFT routes verified
-- All requested issues handled in same pass: Profile spam sync/restore and shared scanner rules; banner DB migration live; Monad Alchemy primary; contract-based REDACTED repair and alternate image/CDN/IPFS sources. Live local routes53 Monad/27 Robinhood; real artwork screenshots captured. Legacy Monad floor currency unknown, protected against ETH misvaluation.
-- next: Deploy code files in docs/PROFILE-PORTFOLIO.md and verify actual profile/banner retry; DB migration already applied.
-
-### 2026-10-06T01:52-03:00 · codex · checkpoint · no-git
-- User visually confirmed repaired REDACTED artwork is correct. Live-data Monad preview now uses safe unknown-currency floor handling.
-
-### 2026-10-06T01:52-03:00 · codex · handoff · no-git
-- Same-pass spam/banner/Monad/artwork changes verified; REDACTED artwork user-confirmed.156unit/6browser checks pass; live banner schema fixed, code awaits deployment.
-- next: Redeploy exact files in docs/PROFILE-PORTFOLIO.md, refresh Profile, retry banner and verify same-ID spam sync.
-
-### 2026-10-06T02:10-03:00 · codex · claim · no-git
-- task: Record user-confirmed live Profile success
-- lease until 2026-10-06T05:10-03:00
-
-### 2026-10-06T02:10-03:00 · codex · handoff · no-git
-- User confirms all working after pushing commit. Production screenshot shows saved banner, Spam tab/buttons and correct REDACTED images,817 NFTs/13chains. No new code changes or independent production audit.
-- next: No action for resolved report; cross-device signed-in sync remains a separate QA check.
-
-### 2026-10-06T02:20-03:00 · codex · claim · no-git
-- task: Move Profile avatar and ID into banner; modernize scan action
-- lease until 2026-10-06T05:20-03:00
-
-### 2026-10-06T02:22-03:00 · codex · checkpoint · no-git
-- Moved existing avatar/name editor and ChainLens ID copy control into banner; desktop avatar150px vs prior50px, mobile96px. Left card only Scan/Sign Out with new scan icon/gradient/arrow styling. Homepage precompile pass; starting Profile browser screenshots.
-
-### 2026-10-06T02:26-03:00 · codex · checkpoint · no-git
-- verified: Homepage precompile passes6 scripts; layout main browser flow passes
-- Banner identity implemented: desktop150px/mobile96px avatar, title alongside, ID-copy below, modern Scan my wallets action and Sign out in sidebar. Screenshots reviewed on1920px and390px; mobile overflow and title wrapping corrected. Browser main flow passes; spam flow finishing.
-
-### 2026-10-06T02:27-03:00 · codex · verify · no-git
-- verified: Banner layout:2 Profile browser checks passed;6-script homepage precompile passed
-- Banner layout verified:2 Profile browser checks passed44s, including avatar sizing/editing, ID copy, banner save/crop, mobile width, logout and shared spam restoration. Reviewed desktop/mobile screenshots with fixture artwork. Updated docs/PROFILE-PORTFOLIO.md.
-
-### 2026-10-06T02:27-03:00 · codex · handoff · no-git
-- Banner identity and modern scan action complete locally, verified and documented. No commit or deployment performed.
-- next: User pushes/deploys public/index.html and public/profile-portfolio.jsx/css; screenshot previews in test-results/profile-portfolio-desktop.png and profile-portfolio-mobile.png.
-
-### 2026-10-06T02:38-03:00 · codex · claim · no-git
-- task: Restore gallery title font; move ChainLens ID below banner
-- lease until 2026-10-06T05:38-03:00
-
-### 2026-10-06T02:38-03:00 · codex · checkpoint · no-git
-- Restored gallery username/title to prior Space Grotesk font. ID-copy row moved outside banner into gap before tabs. Precompile passes; running2 Profile browser checks and refreshing screenshots.
-- next: Review refreshed desktop/mobile screenshots and release lease after browser checks.
-
-### 2026-10-06T02:39-03:00 · codex · verify · no-git
-- verified: Banner refinement:2 Profile browser checks passed;6-script precompile passed
-- Restored prior Space Grotesk title font and moved ID-copy between banner and tabs. Both Profile browser tests pass45.8s, including font and ID position checks;6-script precompile passes. Desktop/mobile fixture screenshots reviewed; docs updated.
-
-### 2026-10-06T02:39-03:00 · codex · handoff · no-git
-- Font and ID placement refinement complete locally. No commit or deployment performed.
-- next: User pushes/deploys public/index.html and public/profile-portfolio.jsx/css; refreshed desktop/mobile screenshot previews in test-results.
-
-### 2026-10-06T03:00-03:00 · codex · claim · no-git
-- task: Fix Scanner loading and reuse Profile NFT cache
-- lease until 2026-10-06T06:00-03:00
-
-### 2026-10-06T03:03-03:00 · codex · checkpoint · no-git
-- Scanner root cause: uncapped fetches and all-or-nothing Promise.all blocked NFTs behind token/transaction requests; no Profile cache reuse. Added per-session wallet/chain NFT cache with coalesced pagination,6-worker limits, request/scan deadlines and progressive Scanner publishing.2 cache unit tests pass;5 browser checks running (session71490).
-- next: Check browser results; fix regressions; add bounded request/cancellation coverage and review scanner screenshot.
-
-### 2026-10-06T03:06-03:00 · codex · verify · no-git
-- verified: 160unit tests;5browser checks; Scanner isolation rerun;syntax/precompile6scripts
-- Scanner fix:160 unit tests,5 browser checks passed; final scanner isolation rerun passed. Verified same Profile targets issue zero extra NFT calls, both NFT pages display during stalled token request, request timeout clears loading without losing assets, unrelated wallet gets fresh isolated paginated results. Syntax and6-script homepage precompile pass. Documented new public/nft-session.js deployment requirement.
-
-### 2026-10-06T03:06-03:00 · codex · handoff · no-git
-- Scanner/Profile NFT session reuse and stalled-source fix complete locally; screenshot reviewed.160unit tests,5browser checks plus isolation rerun,syntax and precompile pass. No commit/deployment performed.
-- next: User pushes/deploys public/index.html,public/profile-portfolio.jsx and NEW public/nft-session.js together. Tokens/transactions still request separately; cached NFTs render immediately.
-
-### 2026-10-06T03:24-03:00 · codex · claim · no-git
-- task: Restore Scanner Grid/List control and center asset tabs
-- lease until 2026-10-06T06:24-03:00
-
-### 2026-10-06T03:25-03:00 · codex · checkpoint · no-git
-- Located old Grid/List switch fixed behind desktop sidebar; moved into Scanner toolbar right edge and centered asset tabs with symmetric columns. Mobile puts tabs centered on second row. Existing state reused; switch is keyboard accessible. Precompile passes; running Scanner toolbar/browser checks.
-
-### 2026-10-06T03:26-03:00 · codex · verify · no-git
-- verified: Scanner toolbar browser check passed;6-script precompile passed
-- Scanner toolbar restored: Grid/List right, centered asset tabs, Spam left; mobile tabs second row. Existing Scanner browser check passed22.1s including actual list/grid switching, keyboard Space, tab persistence, desktop centering and mobile width. Desktop/mobile screenshots reviewed;6-script precompile passes. Docs updated.
-
-### 2026-10-06T03:26-03:00 · codex · handoff · no-git
-- Scanner toolbar change complete locally; no commit/deployment. Existing NFT cache work retained.
-- next: User pushes/deploys public/index.html for toolbar change. Include new public/nft-session.js and public/profile-portfolio.jsx if previous Scanner cache change has not been deployed.
-
-### 2026-10-06T03:35-03:00 · codex · claim · no-git
-- task: Investigate REDACTED NFT artwork regression on live ChainLens profile
-- lease until 2026-10-06T06:35-03:00
-
-### 2026-10-06T03:39-03:00 · codex · checkpoint · no-git
-- Live public Robinhood NFT endpoint returned correct REDACTED #1/#2/#8/#9 artwork on five read-only calls; page screenshot showed old duplicate art. Session cache never revalidated completed targets. Added bounded revalidation plus last-known-good server art fallback.
-- next: Run focused tests, full checks and browser profile regression.
-
-### 2026-10-06T03:42-03:00 · codex · verify · no-git
-- verified: npm run check exit 0; npm test 162/162; focused metadata/session 10/10; Playwright profile/scanner 4/4; live Robinhood endpoint 5/5 correct REDACTED art.
-- Backend repair fallback and frontend session revalidation verified locally; no commit/deployment.
-
 ### 2026-10-06T03:42-03:00 · codex · handoff · no-git
 - Fixed REDACTED artwork regression locally: last-good contract metadata fallback and five-minute profile cache revalidation. Full unit and relevant browser checks pass.
 - next: Deploy nft-metadata-repair.js and public/nft-session.js, public/profile-portfolio.jsx, public/index.html together; reload the open Profile tab and verify REDACTED images live.
@@ -195,3 +79,39 @@
 ### 2026-10-06T20:31-03:00 · codex · handoff · no-git
 - NFT image coverage complete locally;176unit tests,6browser checks,syntax/precompile/diff pass. Live Cardano52/52decoded in Holdings/Spam; desktop/mobile screenshots reviewed. Claude read-only audit integrated. Temporary backend stopped; no commit,push,deployment,wallet edits or DB mutations.
 - next: Review docs/NFT-IMAGE-COVERAGE-RESULTS.md and local screenshots; user-controlled commit/push then production/embedded-browser QA.
+
+### 2026-10-06T20:42-03:00 · codex · claim · no-git
+- task: Repair remaining Monad and Robinhood NFT artwork
+- lease until 2026-10-06T23:42-03:00
+
+### 2026-10-06T20:43-03:00 · codex · checkpoint · no-git
+- User requests remaining Monad/Robinhood artwork repair. Actual HEAD now4a5794d NFT display fixes; previous implementation committed by user. Live owner/media audit running, ignored nft-evm-audit.log and .local-artifacts/nft-coverage/evm-*.json. Wallet untouched.
+
+### 2026-10-06T20:47-03:00 · codex · checkpoint · no-git
+- Baseline80 Monad/Robinhood records from two associated EVM wallets:58 decoded with5second probes,22 unresolved. Contract checks recover REDACTED8/9,Macarune2 and Peng3845/6572/8845;15 tokens publish empty URI/no provider art. Implemented10-call Monad RPC batches with selective alternate retry and same-content metadata gateway fallbacks;14 targeted tests pass. Full live repair/browser validation pending.
+
+### 2026-10-06T20:50-03:00 · codex · verify · no-git
+- verified: 179Node tests,3browser regressions,syntax/precompile/diff pass; live selected EVM22:7decoded,15empty-URI; screenshot reviewed
+- Six Robinhood NFTs recover token-specific artwork: REDACTED8/9,Peng3845/6572/8845,Macarune2. Nad name recheck decodes;15other Monad/Robinhood tokens lack published on-chain URI/provider art. Added10-call Monad-only batches and selective fixed-RPC failover, same-CID document delivery fallbacks, missing-metadata tooltip. No owner rescans, wallet edits, DB writes, commit/push/deploy.
+
+### 2026-10-06T20:50-03:00 · codex · handoff · no-git
+- Monad/Robinhood follow-up complete locally;179tests/3browser regressions pass,live artwork and screenshot reviewed. Evidence .local-artifacts/nft-coverage/evm-after-browser.json and evm-after-desktop.png; docs results updated. No backend started, no commit/deployment.
+- next: User review and commit/push of follow-up; verify production same tokens after deployment. Fifteen empty-metadata tokens require publisher/indexer data, Retry remains available.
+
+### 2026-10-06T20:50-03:00 · codex · claim · no-git
+- task: Show every collection NFT and modernize detail viewer with navigation
+- lease until 2026-10-06T23:50-03:00
+
+### 2026-10-06T20:53-03:00 · codex · checkpoint · no-git
+- Overview slice(0,4) hid six Lil Sappys despite complete ownership cache. Replaced cap with consecutive4-item quilts plus adaptive2/3-item remainder, preserving collection/floor/favorite ordering. Modern shared asset viewer adds side arrows, filtered-list position, keyboard/Escape, focus trap/return, mobile contain-image layout, retry/download. Starting collection/profile/scanner browser regressions; no owner API changes or commit/deploy.
+
+### 2026-10-06T20:57-03:00 · codex · checkpoint · no-git
+- Real cached Cardano data confirms Lil Sappys10/10 decoded in Overview across3grids; desktop/mobile modern viewer screenshots reviewed. Seven unique browser regressions pass across initial6 successes and isolated refresh re-run (initial5s login setup timeout; overlapping rerun server shutdown also retried sequentially). Final collection focus/remainder styling check running.179Node tests,syntax/precompile/diff pass. No owner API changes, commit/deploy or wallet edits.
+
+### 2026-10-06T20:58-03:00 · codex · verify · no-git
+- verified: 179Node tests,7unique browser checks across runs,final collection test,syntax/precompile/diff; live Lil Sappys10/10decoded across3mosaics
+- Removed four-preview collection cap; consecutive quilts/remainders show all NFTs without owner calls. Shared modern Profile/Scanner asset viewer has filtered-list arrows, keyboard/Escape, focus trap/return, contain artwork, mobile layout and existing metadata/download/retry. Real Lil Sappys screenshots re-captured after final label/layout changes; temporary owned static server stopped. Docs/COLLECTION-VIEWER.md and ignored evidence updated; prior Monad/Robinhood edits preserved.
+
+### 2026-10-06T20:58-03:00 · codex · handoff · no-git
+- Collection mosaics and modern navigable viewer complete locally; all10LilSappys displayed/decoded.179tests and7browser checks verified, desktop/mobile screenshots reviewed. No commit/push/deploy or wallet edits.
+- next: User review Lil Sappys mosaic/viewer screenshots and commit/push frontend plus previous Monad/Robinhood follow-up when ready; verify deployed UI.

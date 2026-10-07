@@ -52,7 +52,7 @@ function createAlchemyNFTPage({ fetchImpl, apiKey, getNativePrice = async () => 
         image: nft.image?.cachedUrl || nft.image?.originalUrl || nft.raw?.metadata?.image || nft.image?.thumbnailUrl || '',
         thumbnailUrl: nft.image?.thumbnailUrl || '',
         metadataUri: nft.tokenUri || nft.raw?.tokenUri || null,
-        media: { provider:'alchemy', mime:nft.image?.contentType || null, animationUrl:nft.raw?.metadata?.animation_url || null },
+        media: { provider:'alchemy', status:nft.artworkStatus || null, mime:nft.image?.contentType || null, animationUrl:nft.raw?.metadata?.animation_url || null },
         imageSources: [nft.image?.cachedUrl, nft.image?.pngUrl, nft.image?.originalUrl, nft.raw?.metadata?.image, nft.raw?.metadata?.image_url, ...(nft.imageSources || []), ...metadataSources(nft.raw?.metadata, nft.tokenUri || nft.raw?.tokenUri)].filter(url => typeof url === 'string' && url),
         collection: nft.contract.name || 'Collection',
         collectionName: nft.contract.name || 'Collection',

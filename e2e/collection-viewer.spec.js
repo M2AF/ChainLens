@@ -1,0 +1,52 @@
+const {test,expect}=require('@playwright/test');
+const id='00000000-0000-4000-8000-000000000001';
+const art=i=>'data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${['#9ce9d5','#b2abff','#ffd293','#ffacba'][i%4]}"/><circle cx="300" cy="285" r="185" fill="white" opacity=".7"/><circle cx="240" cy="260" r="20" fill="#17344a"/><circle cx="360" cy="260" r="20" fill="#17344a"/><path d="M250 325Q300 375 350 325" fill="none" stroke="#17344a" stroke-width="12" stroke-linecap="round"/><text x="300" y="550" text-anchor="middle" font-family="sans-serif" font-size="45" fill="#17344a">Lil Sappy #${i+1}</text></svg>`);
+
+test('all ten collection items appear in consecutive mosaics and viewer follows the filtered order',async({page})=>{
+ await page.setViewportSize({width:1600,height:1000});
+ await page.addInitScript(token=>{localStorage.setItem('cl_token',token);localStorage.setItem('darkMode','true')},'fixture.'+Buffer.from(JSON.stringify({sub:id})).toString('base64url')+'.fixture');
+ let ownerReads=0;const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ const assets=Array.from({length:10},(_,i)=>({id:'a'.repeat(56)+i,chain:'cardano',name:`Lil Sappy #${i+1}`,collectionName:'Lil Sappys',image:art(i),floorPriceUsd:20,metadata:{description:'Ten linked-wallet collectibles, together in one collection.',traits:[{trait_type:'Edition',value:String(i+1)}]}}));
+ assets.push({id:'b'.repeat(56)+'1',chain:'cardano',name:'Other collection #1',collectionName:'Another collection',image:art(10),floorPriceUsd:1});
+ await page.route('**/api/**',route=>{
+  const path=new URL(route.request().url()).pathname;
+  if(path==='/api/profile')return route.fulfill({json:{id,display_name:'criptoejesus',avatar_url:art(1),cl_wallets:[{chain:'cardano',address:'addr1fixture'}],cl_linked_accounts:[]}});
+  if(path.startsWith('/api/nfts/')){ownerReads++;return route.fulfill({json:{nfts:assets,nextPageKey:null}});}
+  return route.fulfill({json:{entries:{},available:true,passkeys:[],coins:[]}});
+ });
+ await page.goto('/?tab=profile');
+ await expect(page.locator('.profile-art')).toHaveCount(11);
+ await expect(page.locator('.profile-tile')).toHaveCount(4);
+ await expect(page.locator('.profile-tile').nth(0)).toContainText('1–4 of 10 items');
+ await expect(page.locator('.profile-tile').nth(1)).toContainText('5–8 of 10 items');
+ await expect(page.locator('.profile-tile').nth(2)).toContainText('9–10 of 10 items');
+ await expect(page.locator('.profile-quilt-2 .profile-art')).toHaveCount(2);
+ await page.screenshot({path:'test-results/collection-mosaics-desktop.png',fullPage:true});
+ await page.getByLabel('Search profile NFTs').fill('Lil Sappy');
+ await expect(page.locator('.profile-art')).toHaveCount(10);
+ await page.getByRole('button',{name:'View Lil Sappy #4',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'Lil Sappy #4',exact:true});await expect(dialog).toBeVisible();
+ await page.keyboard.press('Shift+Tab');await expect(page.getByRole('button',{name:'Back to Gallery',exact:true})).toBeFocused();
+ await page.keyboard.press('Tab');await expect(page.getByRole('button',{name:'Close asset viewer',exact:true})).toBeFocused();
+ await expect(page.locator('.asset-viewer-position')).toHaveText('4 / 10');
+ await page.getByRole('button',{name:'Next asset',exact:true}).click();
+ await expect(page.locator('#asset-viewer-title')).toHaveText('Lil Sappy #5');
+ await expect(page.locator('.asset-viewer-stage img')).toHaveAttribute('src',art(4));
+ await page.keyboard.press('ArrowLeft');await expect(page.locator('#asset-viewer-title')).toHaveText('Lil Sappy #4');
+ await page.screenshot({path:'test-results/asset-viewer-desktop.png'});
+ await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'View Lil Sappy #4',exact:true})).toBeFocused();
+ await page.getByRole('button',{name:'View Lil Sappy #10',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Next asset',exact:true})).toBeDisabled();
+ await page.getByRole('button',{name:'Previous asset',exact:true}).click();await expect(page.locator('#asset-viewer-title')).toHaveText('Lil Sappy #9');
+ await page.getByRole('button',{name:'Close asset viewer',exact:true}).click();
+ await page.setViewportSize({width:390,height:844});
+ await page.getByRole('button',{name:'View Lil Sappy #1',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Previous asset',exact:true})).toBeDisabled();
+ await page.getByRole('button',{name:'Next asset',exact:true}).click();await expect(page.locator('#asset-viewer-title')).toHaveText('Lil Sappy #2');
+ await expect(page.locator('.asset-viewer-stage img')).toHaveAttribute('src',art(1));
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:'test-results/asset-viewer-mobile.png'});
+ await page.getByRole('button',{name:'Close asset viewer',exact:true}).click();
+ expect(ownerReads).toBe(1);expect(errors).toEqual([]);
+});

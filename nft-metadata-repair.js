@@ -18,6 +18,41 @@ function createMetadataRepair({ fetchImpl, apiKey, lookup, waitMs = 4500 }) {
   const repaired = new Map();
   const jobs = new Map(), queue = [], known = new Map(), retrying = new Map();
   const generic = new Map();
+  const rpcQueues = new Map();
+  const rpcRead = (network, requests) => {
+    const run = async () => {
+      const endpoints = network === 'monad-mainnet'
+        ? ['https://rpc.monad.xyz','https://rpc1.monad.xyz','https://rpc-mainnet.monadinfra.com']
+        : [network === 'robinhood-mainnet' ? 'https://rpc.mainnet.chain.robinhood.com' : `https://${network}.g.alchemy.com/v2/${apiKey}`];
+      const results = [];
+      const batchSize = network === 'monad-mainnet' ? 10 : requests.length;
+      for (let offset=0; offset<requests.length; offset+=batchSize) {
+        let remaining = requests.slice(offset,offset+batchSize);
+        for (const endpoint of endpoints) {
+          if (!remaining.length) break;
+          try {
+            const response = await fetchImpl(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(remaining.map(r=>r.body)),signal:AbortSignal.timeout(4000)});
+            if (!response.ok) continue;
+            const rows = await response.json(); if (!Array.isArray(rows)) continue;
+            const accepted = new Set();
+            for (const row of rows) {
+              if (!remaining.some(r=>r.index===row.id)) continue;
+              if (row.error && ([-32007,-32005,429].includes(row.error.code) || /rate|limit|temporar|timeout/i.test(row.error.message || ''))) continue;
+              results.push(row); accepted.add(row.id);
+            }
+            remaining = remaining.filter(r=>!accepted.has(r.index));
+          } catch {}
+        }
+        // Serialize pages/retries on each network and keep public RPC bursts small.
+        if (network === 'monad-mainnet') await new Promise(resolve=>setTimeout(resolve,350));
+      }
+      return results;
+    };
+    const task = (rpcQueues.get(network) || Promise.resolve()).catch(()=>{}).then(run);
+    rpcQueues.set(network,task);
+    task.finally(()=>{if(rpcQueues.get(network)===task)rpcQueues.delete(network);});
+    return task;
+  };
   let active = 0;
   const enqueue = (key, work) => {
     if (jobs.has(key)) return jobs.get(key);
@@ -36,6 +71,7 @@ function createMetadataRepair({ fetchImpl, apiKey, lookup, waitMs = 4500 }) {
   };
   const tokenKey = (network, nft) => `${network}:${String(nft.contract.address).toLowerCase()}:${String(nft.tokenId)}`;
   const apply = (nft, value) => {
+    nft.artworkStatus = 'resolved';
     nft.image = { originalUrl: value.image };
     nft.imageSources = value.imageSources;
     if (value.name !== null) nft.name = value.name;
@@ -62,11 +98,7 @@ function createMetadataRepair({ fetchImpl, apiKey, lookup, waitMs = 4500 }) {
     if (!requests.length) return;
     let results;
     try {
-      const rpc = { 'robinhood-mainnet':'https://rpc.mainnet.chain.robinhood.com', 'monad-mainnet':'https://rpc.monad.xyz' }[network] || `https://${network}.g.alchemy.com/v2/${apiKey}`;
-      const response = await fetchImpl(rpc, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(requests.map(r=>r.body)),signal:AbortSignal.timeout(4000)});
-      if (!response.ok) return;
-      results = await response.json();
-      if (!Array.isArray(results)) return;
+      results = await rpcRead(network,requests);
     } catch { return; }
     const pending = [];
     for (const row of results) {
@@ -75,6 +107,10 @@ function createMetadataRepair({ fetchImpl, apiKey, lookup, waitMs = 4500 }) {
       try {
         const nft = nfts[request.index];
         let current = abi.decodeFunctionResult(request.method,row.result)[0];
+        if (!current.trim()) {
+          if (!metadataSources(nft.raw?.metadata).length && !nft.image?.cachedUrl && !nft.image?.originalUrl && !nft.image?.thumbnailUrl) nft.artworkStatus='missing-metadata';
+          continue;
+        }
         if (request.method === 'uri') current = current.replace(/\{id\}/g,BigInt(nft.tokenId).toString(16).padStart(64,'0'));
         const url = /^data:application\/json/i.test(current) ? current : urls(current)[0];
         // Custom HTTPS documents use DNS-pinned, bounded fetching.

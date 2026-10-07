@@ -2972,7 +2972,7 @@ app.get('/api/:mode(nfts|tokens)/monad/:address', async (req, res) => {
           tokenId: nft.token_id,
           isSpam: nft.possible_spam === true,
           artRepairPending:nft.artRepairPending === true, metadataUri:nft.tokenUri || null,
-          media:{provider:'moralis',animationUrl:meta.animation_url || null},
+          media:{provider:'moralis',status:nft.artworkStatus || null,animationUrl:meta.animation_url || null},
           imageSources: [nft.image?.originalUrl, ...(nft.imageSources || []), ...require('./public/nft-image').metadataSources(meta,nft.tokenUri)].filter(value => typeof value === 'string' && value),
           isToken: false,
           metadata: {

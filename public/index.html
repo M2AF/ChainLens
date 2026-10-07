@@ -374,7 +374,7 @@
             const rawId = nft.address || nft.id || nft.mint || nft.name;
             const assetKey = `${nft.chain}-${String(rawId).toLowerCase()}`;
             return (
-              <div key={assetKey} onClick={() => setSelectedAsset(nft)} className={`group relative overflow-hidden border transition-all cursor-pointer ${isListView ? `flex items-center gap-4 p-4 rounded-2xl ${darkMode ? 'bg-slate-900 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-100 hover:shadow-lg hover:border-slate-300'}` : `rounded-[2.5rem] shadow-sm flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 hover:-translate-y-2 hover:shadow-xl'}`}`}>
+              <div key={assetKey} onClick={() => setSelectedAsset(nft,assets)} className={`group relative overflow-hidden border transition-all cursor-pointer ${isListView ? `flex items-center gap-4 p-4 rounded-2xl ${darkMode ? 'bg-slate-900 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-100 hover:shadow-lg hover:border-slate-300'}` : `rounded-[2.5rem] shadow-sm flex flex-col ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 hover:-translate-y-2 hover:shadow-xl'}`}`}>
                 <div className="absolute top-4 right-4 z-40 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                   <button type="button" title="Mark as spam" aria-label="Mark this item as spam" onClick={(e) => toggleSpam(e, nft)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/80 hover:bg-red-600 text-white backdrop-blur-sm border border-white/10">🚫</button>
                 </div>
@@ -1420,6 +1420,8 @@
       const [themeSaveBusy, setThemeSaveBusy] = useState(false);
       const [themeSaveError, setThemeSaveError] = useState('');
       const [selectedAsset, setSelectedAsset] = useState(null);
+      const [viewerAssets, setViewerAssets] = useState([]);
+      const openAsset = (asset, assets = []) => { setViewerAssets(assets); setSelectedAsset(asset); };
       const [tokenMode, setTokenMode] = useState(false);
       const [viewMode, setViewMode] = useState('nfts'); // 'nfts', 'tokens', 'transactions'
       const [transactions, setTransactions] = useState([]);
@@ -3897,7 +3899,7 @@
                 <div style={{display: viewMode === 'nfts' ? 'block' : 'none'}}>
                   <AssetGrid assets={nftAssets} isListView={isListView} darkMode={darkMode}
                     chainStyles={chainStyles} resolveImg={resolveImg} handleImgError={handleImgError}
-                    toggleSpam={toggleSpam} setSelectedAsset={setSelectedAsset}
+                    toggleSpam={toggleSpam} setSelectedAsset={openAsset}
                     nativePrices={nativePrices} tokenMode={false} favorites={nftFavorites} onToggleFavorite={toggleNftFavorite} />
                 </div>
 
@@ -3905,7 +3907,7 @@
                 <div style={{display: viewMode === 'tokens' ? 'block' : 'none'}}>
                   <AssetGrid assets={tokenAssets} isListView={isListView} darkMode={darkMode}
                     chainStyles={chainStyles} resolveImg={resolveImg} handleImgError={handleImgError}
-                    toggleSpam={toggleSpam} setSelectedAsset={setSelectedAsset}
+                    toggleSpam={toggleSpam} setSelectedAsset={openAsset}
                     nativePrices={nativePrices} tokenMode={true} />
                 </div>
                 </>
@@ -4573,7 +4575,7 @@
                                 <span className="flex-shrink-0 font-sans text-[8px] font-black uppercase tracking-widest">{copiedProfileId ? 'Copied ✓' : 'Copy'}</span>
                               </button>
 } authFetch={authFetch} onSave={(id, url) => setUserProfile(p => p?.id === id ? { ...p, banner_url: url || null } : p)} />
-                      <window.ProfilePortfolio portfolio={profilePortfolio} favorites={nftFavorites} toggleFavorite={toggleNftFavorite} onSelect={setSelectedAsset} resolveImg={resolveImg} darkMode={darkMode} filterEntries={filterEntries} toggleSpam={toggleSpam} />
+                      <window.ProfilePortfolio portfolio={profilePortfolio} favorites={nftFavorites} toggleFavorite={toggleNftFavorite} onSelect={openAsset} resolveImg={resolveImg} darkMode={darkMode} filterEntries={filterEntries} toggleSpam={toggleSpam} />
                     </div>
                     </div>
                   )}
@@ -4870,59 +4872,7 @@
               );
             })()}
 
-            {selectedAsset && (
-              <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-xl modal-enter">
-                <div className={`relative max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-[3.5rem] p-6 md:p-12 shadow-2xl border ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-100'}`}>
-                  <button onClick={() => setSelectedAsset(null)} className="absolute top-10 right-10 w-12 h-12 flex items-center justify-center rounded-full bg-slate-800 hover:bg-red-500 text-white transition-all font-bold">✕</button>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    <div className="rounded-[2.5rem] overflow-hidden shadow-2xl">
-                              {selectedAsset.isToken ? <img src={resolveImg(selectedAsset.image, selectedAsset.symbol)} className="w-full h-auto rounded-2xl" onError={(e)=>{e.currentTarget.onerror=null;e.currentTarget.src=imgFallbackSvg(selectedAsset.symbol,selectedAsset.chain);}} /> : <window.NftArtwork asset={selectedAsset} preview={false} className="w-full h-auto rounded-2xl" />}
-                      {!selectedAsset.isToken && <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('nft-art-retry',{detail:window.nftFavoriteKey(selectedAsset)}))} className="mt-3 px-4 py-2 rounded-xl border border-slate-700 text-sm text-cyan-300">Retry artwork</button>}
-                    </div>
-                    <div>
-                       <div
-                         style={{ background: chainStyles[selectedAsset.chain]?.background || '#64748b', color: chainStyles[selectedAsset.chain]?.foreground || '#fff' }}
-                         className="inline-block px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4">
-                         {chainStyles[selectedAsset.chain]?.label || selectedAsset.chain}
-                       </div>
-                       <h1 className="text-4xl font-heading font-black uppercase mb-2 leading-none">{selectedAsset.name}</h1>
-                       <p className="text-sm font-bold opacity-40 uppercase tracking-widest mb-8">{selectedAsset.symbol || 'ASSET'}</p>
-                       {selectedAsset.isToken && (
-                         <div className="mb-8 grid grid-cols-2 gap-4">
-                            <div className="p-4 rounded-2xl bg-black/5 border border-white/5">
-                                <p className="text-[10px] font-bold uppercase opacity-40 mb-1">Quantity</p>
-                                <p className="text-2xl font-heading font-bold">{selectedAsset.balance}</p>
-                            </div>
-                            <div className="p-4 rounded-2xl bg-black/5 border border-white/5">
-                                <p className="text-[10px] font-bold uppercase opacity-40 mb-1">Value USD</p>
-                                <p className="text-2xl font-heading font-bold text-emerald-500">${selectedAsset.totalValue}</p>
-                            </div>
-                         </div>
-                       )}
-                       <div className="space-y-6">
-                          <div>
-                             <h3 className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-3">Attributes</h3>
-                             <div className="flex flex-wrap gap-2">
-                                {window.nftMetadata.traits(selectedAsset.metadata?.traits).length > 0 ? window.nftMetadata.traits(selectedAsset.metadata?.traits).map((t, i) => (
-                                  <div key={i} className="px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                                    <p className="text-[8px] uppercase opacity-60">{t.trait_type}</p>
-                                    <p className="text-[10px] font-bold">{t.value}</p>
-                                  </div>
-                                )) : <p className="text-xs italic opacity-30">No metadata found.</p>}
-                             </div>
-                          </div>
-                          <div className="pt-6 border-t border-white/10 space-y-3">
-                             {!selectedAsset.isToken && (
-                               <button onClick={event => downloadAsset(event.currentTarget.closest('.modal-enter')?.querySelector('img[data-art-status="loaded"]')?.currentSrc || window.nftImage.sources(selectedAsset,false)[0], selectedAsset.name || selectedAsset.symbol)} className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2">⬇ Download Image</button>
-                             )}
-                             <button onClick={() => setSelectedAsset(null)} className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase tracking-widest transition-all">Back to Gallery</button>
-                          </div>
-                       </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            {selectedAsset && <window.AssetViewer asset={selectedAsset} assets={viewerAssets} onChange={setSelectedAsset} onClose={() => setSelectedAsset(null)} darkMode={darkMode} chainStyles={chainStyles} resolveImg={resolveImg} fallback={imgFallbackSvg} download={downloadAsset} />}
 
           {/* Utility popups */}
           {(showDonate || showWallet || (showChat && !chatPinned)) && (

@@ -92,3 +92,27 @@ test('agreeing contract metadata retains provider thumbnails until a targeted re
  repair.retry('robinhood-mainnet',item.contract.address,'1');await new Promise(resolve=>setTimeout(resolve,20));
  assert.equal(repair.artwork('robinhood-mainnet',item.contract.address,'1').artwork.image,'https://arweave.net/art/1.png');
 });
+
+test('Monad small batches retain successes and retry rate-limited identities on the alternate RPC',async()=>{
+ const calls=[];
+ const repair=createMetadataRepair({apiKey:'fixture',fetchImpl:async(url,options)=>{
+  if(options.method!=='POST')return {ok:true,status:200,text:async()=>JSON.stringify({image:'ar://art/'+url.split('/').pop()+'.png'})};
+  const batch=JSON.parse(options.body);calls.push({url,ids:batch.map(r=>r.id)});
+  assert.ok(batch.length<=10);
+  return {ok:true,json:async()=>batch.map(r=>r.id===3&&url==='https://rpc.monad.xyz'?{id:r.id,error:{code:-32007,message:'request limit'}}:{id:r.id,result:abi.encodeFunctionResult('tokenURI',['ar://meta/'+r.id])})};
+ }});
+ const items=Array.from({length:12},(_,i)=>nft(i+1));await repair('monad-mainnet',items);
+ assert.deepEqual(calls.map(r=>r.ids),[[0,1,2,3,4,5,6,7,8,9],[3],[10,11]]);
+ assert.equal(calls[1].url,'https://rpc1.monad.xyz');
+ assert.equal(items[3].image.originalUrl,'https://arweave.net/art/3.png');
+ assert.equal(items[11].image.originalUrl,'https://arweave.net/art/11.png');
+});
+
+test('empty on-chain URI reports unpublished artwork without inventing collection images',async()=>{
+ const item=nft(1);item.image={};item.tokenUri='';
+ const repair=createMetadataRepair({apiKey:'fixture',fetchImpl:async()=>({ok:true,json:async()=>[{id:0,result:abi.encodeFunctionResult('tokenURI',[''])}]})});
+ await repair('robinhood-mainnet',[item]);
+ assert.equal(item.artworkStatus,'missing-metadata');
+ assert.deepEqual(item.image,{});
+ assert.equal(repair.artwork('robinhood-mainnet',item.contract.address,'1').artwork,null);
+});

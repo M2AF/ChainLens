@@ -18,11 +18,11 @@ function embedded(uri) {
   return JSON.parse(body);
 }
 function createDocumentReader({fetchImpl,lookup = dns.lookup}) {
-  return async uri => {
+  const read = async uri => {
     const inline = embedded(uri);
     if (inline) return inline;
     let url = urls(uri)[0];
-    const signal = AbortSignal.timeout(5000);
+    const signal = AbortSignal.timeout(3500);
     for (let redirects = 0; redirects < 4; redirects++) {
       const target = new URL(url);
       if (target.protocol !== 'https:' || target.username || target.password || target.port) throw Error('Unsupported metadata URL');
@@ -65,6 +65,18 @@ function createDocumentReader({fetchImpl,lookup = dns.lookup}) {
       } finally { agent?.destroy(); }
     }
     throw Error('Too many metadata redirects');
+  };
+  return async uri => {
+    if (/^data:application\/json/i.test(uri)) return read(uri);
+    const candidates = urls(uri);
+    // Keep the exact CID/path; retry delivery, never guess another token's URL.
+    // Prefer the measured gateway for metadata even if a provider supplies Pinata.
+    candidates.sort((a,b) => Number(b.startsWith('https://ipfs.blockfrost.dev/ipfs/')) - Number(a.startsWith('https://ipfs.blockfrost.dev/ipfs/')));
+    let error;
+    for (const candidate of candidates.slice(0,3)) {
+      try { return await read(candidate); } catch (e) { error = e; }
+    }
+    throw error || Error('Unsupported metadata URL');
   };
 }
 module.exports = {createDocumentReader,publicAddress,embedded};
