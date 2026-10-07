@@ -21,6 +21,13 @@ test('all ten collection items appear in consecutive mosaics and viewer follows 
  await expect(page.locator('.profile-tile').nth(1)).toContainText('5–8 of 10 items');
  await expect(page.locator('.profile-tile').nth(2)).toContainText('9–10 of 10 items');
  await expect(page.locator('.profile-quilt-2 .profile-art')).toHaveCount(2);
+ const pair=page.locator('.profile-tile-pair');
+ const pairBox=await pair.boundingBox(),neighborBox=await page.locator('.profile-tile').nth(3).boundingBox();
+ const firstBox=await pair.locator('.profile-art').nth(0).boundingBox(),secondBox=await pair.locator('.profile-art').nth(1).boundingBox();
+ expect(Math.abs(firstBox.x-secondBox.x)).toBeLessThan(1);
+ expect(secondBox.y).toBeGreaterThan(firstBox.y+firstBox.height);
+ expect(pairBox.width).toBeLessThan(neighborBox.width*.55);
+ expect(Math.abs(neighborBox.x-pairBox.x-pairBox.width-16)).toBeLessThan(1);
  await page.screenshot({path:'test-results/collection-mosaics-desktop.png',fullPage:true});
  await page.getByLabel('Search profile NFTs').fill('Lil Sappy');
  await expect(page.locator('.profile-art')).toHaveCount(10);
@@ -48,5 +55,13 @@ test('all ten collection items appear in consecutive mosaics and viewer follows 
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:'test-results/asset-viewer-mobile.png'});
  await page.getByRole('button',{name:'Close asset viewer',exact:true}).click();
+ await page.getByLabel('Search profile NFTs').fill('');
+ const mobilePair=await pair.boundingBox(),mobileNeighbor=await page.locator('.profile-tile').nth(3).boundingBox();
+ expect(mobilePair.width).toBeLessThan(mobileNeighbor.width*.55);
+ const mobileFirst=await pair.locator('.profile-art').nth(0).boundingBox(),mobileSecond=await pair.locator('.profile-art').nth(1).boundingBox();
+ expect(Math.abs(mobileFirst.x-mobileSecond.x)).toBeLessThan(1);
+ expect(mobileSecond.y).toBeGreaterThan(mobileFirst.y+mobileFirst.height);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:'test-results/collection-mosaics-mobile.png',fullPage:true});
  expect(ownerReads).toBe(1);expect(errors).toEqual([]);
 });

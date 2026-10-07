@@ -115,3 +115,17 @@
 ### 2026-10-06T20:58-03:00 · codex · handoff · no-git
 - Collection mosaics and modern navigable viewer complete locally; all10LilSappys displayed/decoded.179tests and7browser checks verified, desktop/mobile screenshots reviewed. No commit/push/deploy or wallet edits.
 - next: User review Lil Sappys mosaic/viewer screenshots and commit/push frontend plus previous Monad/Robinhood follow-up when ready; verify deployed UI.
+
+### 2026-10-06T21:04-03:00 · codex · claim · no-git
+- task: Stack two-item collection tiles vertically and narrow their gallery footprint
+- lease until 2026-10-07T00:04-03:00
+
+### 2026-10-06T21:06-03:00 · codex · checkpoint · no-git
+- Two-item collection tiles now use vertical half-width stacks at all gallery breakpoints; collection order retained. Smaller pair controls fix center-click interception. Desktop/mobile screenshots reviewed; docs updated. Previous uncommitted changes preserved.
+
+### 2026-10-06T21:06-03:00 · codex · verify · no-git
+- verified: Two-item stacking: collection browser test passed17s, desktop/mobile geometry and viewer interactions, one ownership request; syntax/six-script precompile/diff pass. Prior179Node and7unique browser checks remain recorded.
+
+### 2026-10-06T21:06-03:00 · codex · handoff · no-git
+- Vertical half-width collection pairs complete locally; desktop/mobile screenshots reviewed. No commit/push/deploy.
+- next: User review and commit/push collection/viewer plus Monad/Robinhood follow-up when ready; verify deployed UI.

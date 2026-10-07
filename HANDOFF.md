@@ -7,11 +7,12 @@ task: -
 lease_until: -
 repo: -
 verify: npm run check && npm test
-verified: no-git · 179Node tests,7unique browser checks across runs,final collection test,syntax/precompile/diff; live Lil Sappys10/10decoded across3mosaics · 2026-10-06T20:58-03:00
+verified: no-git · Two-item stacking: collection browser test passed17s, desktop/mobile geometry and viewer interactions, one ownership request; syntax/six-script precompile/diff pass. Prior179Node and7unique browser checks remain recorded. · 2026-10-06T21:06-03:00
 head: no-git
-updated: 2026-10-06T20:58-03:00 · codex
+updated: 2026-10-06T21:06-03:00 · codex
 
 ## Now
+- Two-item Overview tiles now stack vertically in half-width columns, including larger-collection remainders; compact pair controls preserve center artwork clicks. Desktop/mobile geometry and viewer regression checks in e2e/collection-viewer.spec.js; local screenshots test-results/collection-mosaics-{desktop,mobile}.png. No commit/deploy.
 - Collection/viewer UI complete locally: Overview renders every NFT in consecutive4-item quilts/adaptive remainders; modern shared popup follows filtered gallery/Scanner order with arrows/keyboard/focus management. Actual Lil Sappys10/10 decoded across3Overview tiles; screenshots reviewed. docs/COLLECTION-VIEWER.md; no commit/deploy.
 - Monad/Robinhood follow-up implemented locally:10-call spaced Monad RPC batches/selective alternate retry, exact-content JSON gateway fallback and missing-metadata tooltip.80 live records audited; selected22 initially unresolved ->7decoded locally (6Robinhood repairs+Nad recheck),15empty-URI/no-provider-art remain. See NFT coverage results follow-up; no commit/deploy.
 - NFT image coverage implemented locally; see docs/NFT-IMAGE-COVERAGE-RESULTS.md. Cardano gateway/URI/CID/CBOR/classification/pagination fixes; shared6-slot displayed-image loader; bounded DNS-pinned JSON fetching, deferred EVM/Solana repair, Monad fallback integration and Retry artwork. No commit/push/deploy or wallet edits.
@@ -21,7 +22,7 @@ updated: 2026-10-06T20:58-03:00 · codex
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User review Lil Sappys mosaic/viewer screenshots and commit/push frontend plus previous Monad/Robinhood follow-up when ready; verify deployed UI.
+- User review and commit/push collection/viewer plus Monad/Robinhood follow-up when ready; verify deployed UI.
 
 ## Traps
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.
