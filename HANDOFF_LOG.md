@@ -129,3 +129,14 @@
 ### 2026-10-06T21:06-03:00 · codex · handoff · no-git
 - Vertical half-width collection pairs complete locally; desktop/mobile screenshots reviewed. No commit/push/deploy.
 - next: User review and commit/push collection/viewer plus Monad/Robinhood follow-up when ready; verify deployed UI.
+
+### 2026-10-07T23:48-03:00 · codex · claim · no-git
+- task: New Listings source token icons
+- lease until 2026-10-08T02:48-03:00
+
+### 2026-10-07T23:52-03:00 · codex · verify · no-git
+- verified: Source icons:182Node tests, npm check,6JSX precompiles,3unique browser tests plus mobile screenshot rerun pass; desktop/mobile reviewed; live durable snapshot10events/4exact source matches.
+
+### 2026-10-07T23:52-03:00 · codex · handoff · no-git
+- New Listings source token logos complete locally. Exact-event cached artwork, multi-token icons and missing/broken fallback verified. No commit/deploy or wallet/Worker edits.
+- next: User review and release new-listings-icons.js, backend-server.js and public/index.html together; see docs/NEW-LISTINGS.md and test-results/new-listings-icons-{desktop,mobile}.png.

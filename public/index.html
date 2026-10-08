@@ -1382,6 +1382,19 @@
       );
     };
 
+    const ListingTokenIcon = ({ symbol, url }) => {
+      const [failedUrl, setFailedUrl] = React.useState(null);
+      let safeUrl = null;
+      try {
+        const parsed = new URL(url);
+        if (parsed.origin === 'https://newlistings.pro' && parsed.pathname === '/_next/image' && parsed.searchParams.get('url')?.startsWith('/media/token-images/')) safeUrl = parsed.href;
+      } catch {}
+      return <span className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-current/20 bg-slate-500/15 text-xs font-sans" title={`${symbol} token icon`}>
+        <span aria-hidden="true">{symbol.slice(0, 2)}</span>
+        {safeUrl && failedUrl !== safeUrl && <img key={safeUrl} src={safeUrl} alt={`${symbol} logo`} loading="lazy" decoding="async" referrerPolicy="no-referrer" width="32" height="32" className="absolute inset-0 h-full w-full object-cover" onError={() => setFailedUrl(safeUrl)} />}
+      </span>;
+    };
+
     const App = () => {
       const tabFromLocation = () => {
         if (window.location.pathname === '/magic-swap') return 'magic-swap';
@@ -3939,7 +3952,7 @@
                                 {event.markets.length > 0 && <span className="opacity-60">{event.markets.join(' / ')}</span>}
                                 <time dateTime={new Date(event.timestamp).toISOString()} className="ml-auto normal-case font-normal opacity-50">{new Date(event.timestamp).toLocaleString()}</time>
                               </div>
-                              {event.symbols.length > 0 && <p className="font-heading font-bold text-xl mb-2 break-words">{event.symbols.map(symbol => `$${symbol}`).join(' · ')}</p>}
+                              {event.symbols.length > 0 && <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">{event.symbols.map(symbol => <span key={symbol} className="inline-flex min-w-0 items-center gap-2 font-heading font-bold text-xl"><ListingTokenIcon symbol={symbol} url={event.tokenIcons?.find(icon => icon.symbol === symbol)?.url} /><span className="break-all">${symbol}</span></span>)}</div>}
                               <p className="text-sm break-words mb-3">{event.title}</p>
                               <a href={event.url} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-cyan-500 hover:underline">View announcement ↗</a>
                             </article>)}

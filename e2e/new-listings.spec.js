@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { parseSourceIcons } = require('../new-listings-icons');
 test('Market and New Listings switch preserves market, displays real feed fields and searches on mobile', async ({ page }) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.route('**/api/market/top100', route => route.fulfill({ json: [{ id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', current_price: 64000, market_cap_rank: 1, price_change_percentage_24h: 2, market_cap: 1e12 }] }));
@@ -24,5 +25,40 @@ test('Market and New Listings switch preserves market, displays real feed fields
   await page.screenshot({ path: 'test-results/new-listings-mobile.png' });
   await toggle.getByRole('button', { name: 'Market', exact: true }).click();
   await expect(page.getByRole('row', { name: /Bitcoin/ })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('source logos decode on desktop and mobile; multi-token and failed-image fallbacks remain readable', async ({ page, request }) => {
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  const response = await request.get('https://newlistings.pro/');
+  expect(response.ok()).toBe(true);
+  const source = [...parseSourceIcons(await response.text())];
+  const single = source.find(([, icons]) => icons.length === 1);
+  const multiple = source.find(([, icons]) => icons.length > 1);
+  expect(single).toBeTruthy(); expect(multiple).toBeTruthy();
+  const events = [single, multiple].map(([id, tokenIcons]) => ({ id, tokenIcons, symbols: tokenIcons.map(icon => icon.symbol), exchange: 'upbit', marketType: 'spot', markets: [], title: 'Source artwork preview', timestamp: 1700000000000, url: 'https://newlistings.pro/' }));
+  events.push({ ...events[0], id: 'missing-art', symbols: ['UNKNOWN'], tokenIcons: [] });
+  const broken = 'https://newlistings.pro/_next/image?url=%2Fmedia%2Ftoken-images%2Fmissing.png&w=64&q=75';
+  events.push({ ...events[0], id: 'broken-art', symbols: ['BROKEN'], tokenIcons: [{ symbol: 'BROKEN', url: broken }] });
+  await page.route(broken, route => route.fulfill({ status: 404, body: '' }));
+  await page.route('**/api/market/new-listings', route => route.fulfill({ json: { state: 'live', delayMs: 3000, events } }));
+  await page.route('**/api/market/top100', route => route.fulfill({ json: [] }));
+  await page.goto('/');
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Market', exact: true }).click();
+  await page.getByRole('group', { name: 'Market Watch view' }).getByRole('button', { name: 'New Listings' }).click();
+  const panel = page.getByTestId('new-listings-panel');
+  const cards = panel.getByRole('article');
+  for (let index = 0; index < 2; index++) {
+    await expect(cards.nth(index).locator('img')).toHaveCount(events[index].symbols.length);
+    await expect.poll(() => cards.nth(index).locator('img').evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
+  }
+  await expect(cards.nth(2)).toContainText('$UNKNOWN');
+  await expect(cards.nth(3).locator('img')).toHaveCount(0);
+  await expect(cards.nth(3).locator('[title="BROKEN token icon"]')).toContainText('BR');
+  await page.screenshot({ path: 'test-results/new-listings-icons-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.locator('.cl-sidebar').evaluate(el => el.getBoundingClientRect().right <= 1)).toBe(true);
+  await expect.poll(() => panel.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await page.screenshot({ path: 'test-results/new-listings-icons-mobile.png', fullPage: true });
   expect(errors).toEqual([]);
 });

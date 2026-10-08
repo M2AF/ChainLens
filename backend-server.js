@@ -29,6 +29,8 @@ const { createSwapService, registerSwapRoutes, withSwapIdentity } = require('./s
 const { createExchangeService, registerExchangeRoutes } = require('./exchange-service');
 const { createTickerService } = require('./market-ticker-service');
 const { readNewListings } = require('./new-listings-proxy');
+const { createListingIconEnricher } = require('./new-listings-icons');
+const enrichListingIcons = createListingIconEnricher(fetch);
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
 let supabase = null;
@@ -3521,7 +3523,7 @@ const NEW_LISTINGS_WORKER_BASE_URL = process.env.NEW_LISTINGS_WORKER_BASE_URL ||
 app.get('/api/market/new-listings', async (_req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    res.json(await readNewListings(fetch, NEW_LISTINGS_WORKER_BASE_URL));
+    res.json(await enrichListingIcons(await readNewListings(fetch, NEW_LISTINGS_WORKER_BASE_URL)));
   } catch (_) {
     res.status(503).json({ state: 'unavailable', events: [], delayMs: null });
   }
