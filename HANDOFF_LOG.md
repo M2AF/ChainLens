@@ -140,3 +140,19 @@
 ### 2026-10-07T23:52-03:00 · codex · handoff · no-git
 - New Listings source token logos complete locally. Exact-event cached artwork, multi-token icons and missing/broken fallback verified. No commit/deploy or wallet/Worker edits.
 - next: User review and release new-listings-icons.js, backend-server.js and public/index.html together; see docs/NEW-LISTINGS.md and test-results/new-listings-icons-{desktop,mobile}.png.
+
+### 2026-10-08T00:03-03:00 · codex · claim · no-git
+- task: New Listings interactive chart button
+- lease until 2026-10-08T03:03-03:00
+
+### 2026-10-08T00:04-03:00 · codex · handoff · no-git
+- Chart feasibility checked read-only: live provider listing returns X-Frame-Options DENY and CSP frame-ancestors none. Public initial chart seed points=null; documented free Full stream has no price history. No chart implementation or tracked code changes.
+- next: Choose compact per-card chart with expandable detail; integrate a verified chart-data source rather than an iframe. Preserve current listing icons and announcement links.
+
+### 2026-10-08T00:06-03:00 · codex · claim · no-git
+- task: New Listings exact exchange market charts
+- lease until 2026-10-08T03:06-03:00
+
+### 2026-10-08T00:16-03:00 · codex · checkpoint · no-git
+- Inline listing charts implemented with exact exchange catalog matches and source-linked Coinbase reference fallback. Live PONS reference charts and DARK MEXC history verified;191Node tests and JSX/syntax pass. Browser chart flows pass; original feed selector regression fixed and rerun passed. Final dark desktop/mobile screenshot verification running.
+- next: Finish e2e/new-listings-charts.spec.js dark live screenshot review, then release locally without commit/deploy.

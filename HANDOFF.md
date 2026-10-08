@@ -2,18 +2,19 @@
 <!-- handoff v1. LIVE STATE ONLY: rewrite in place, keep under ~60 lines.
      History goes in HANDOFF_LOG.md. Machine fields above the first ## are managed by handoff.py. -->
 
-owner: none
-task: -
-lease_until: -
+owner: codex
+task: New Listings exact exchange market charts
+lease_until: 2026-10-08T03:16-03:00
 repo: -
 verify: npm run check && npm test
 verified: no-git · Source icons:182Node tests, npm check,6JSX precompiles,3unique browser tests plus mobile screenshot rerun pass; desktop/mobile reviewed; live durable snapshot10events/4exact source matches. · 2026-10-07T23:52-03:00
 head: no-git
-updated: 2026-10-07T23:52-03:00 · codex
+updated: 2026-10-08T00:16-03:00 · codex
 
 resources: -
 
 ## Now
+- Inline New Listings charts implemented locally: official Coinbase/Upbit/Bithumb/MEXC/Binance spot catalog+candle adapters; exact provider listing can explicitly link a Coinbase reference market. PONS references and DARK native-exchange charts verified live.191Node tests, npm check and6JSX scripts pass;5unique browser checks pass across runs. Screenshots test-results/new-listings-charts-{desktop,mobile,live-desktop,live-mobile}.png; .local-artifacts/new-listings-charts-live.json. No commit/deploy; wallet/collector unchanged.
 - ChainLens New Listings source token logos implemented locally: cached public-page artwork matched by event ID plus ordered symbols; multi-token circles and ticker fallback. Backend module new-listings-icons.js; wallet/Worker unchanged. 182Node tests, syntax and6JSX scripts pass;3market/listings browser checks pass. Live snapshot10events/4exact artwork matches; .local-artifacts/new-listings-icons-live.json. No commit/deploy.
 - Two-item Overview tiles now stack vertically in half-width columns, including larger-collection remainders; compact pair controls preserve center artwork clicks. Desktop/mobile geometry and viewer regression checks in e2e/collection-viewer.spec.js; local screenshots test-results/collection-mosaics-{desktop,mobile}.png. No commit/deploy.
 - Collection/viewer UI complete locally: Overview renders every NFT in consecutive4-item quilts/adaptive remainders; modern shared popup follows filtered gallery/Scanner order with arrows/keyboard/focus management. Actual Lil Sappys10/10 decoded across3Overview tiles; screenshots reviewed. docs/COLLECTION-VIEWER.md; no commit/deploy.
@@ -25,7 +26,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User review and release new-listings-icons.js, backend-server.js and public/index.html together; see docs/NEW-LISTINGS.md and test-results/new-listings-icons-{desktop,mobile}.png.
+- User review and release new-listings-charts.js, new-listings-chart-reference.js, backend-server.js and public/index.html together; unsupported/unmatched tokens show no chart. See docs/NEW-LISTINGS.md for coverage and exact versus provider-linked reference matching.
 
 ## Traps
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.

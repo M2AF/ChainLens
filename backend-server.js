@@ -30,6 +30,7 @@ const { createExchangeService, registerExchangeRoutes } = require('./exchange-se
 const { createTickerService } = require('./market-ticker-service');
 const { readNewListings } = require('./new-listings-proxy');
 const { createListingIconEnricher } = require('./new-listings-icons');
+const { createListingChartService } = require('./new-listings-charts');
 const enrichListingIcons = createListingIconEnricher(fetch);
 
 // ─── Supabase (optional — only active if env vars are set) ────────────────────
@@ -3520,6 +3521,11 @@ const saveTop100 = (data) => {
 
 const tickerService = createTickerService(fetch);
 const NEW_LISTINGS_WORKER_BASE_URL = process.env.NEW_LISTINGS_WORKER_BASE_URL || 'https://chainlens-search.guildfordking.workers.dev';
+const listingChartService = createListingChartService(fetch, () => readNewListings(fetch, NEW_LISTINGS_WORKER_BASE_URL));
+app.get('/api/market/new-listings/:id/chart', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(await listingChartService.chart(req.params.id, String(req.query.symbol || ''), String(req.query.range || '6h')));
+});
 app.get('/api/market/new-listings', async (_req, res) => {
   res.set('Cache-Control', 'no-store');
   try {

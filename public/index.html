@@ -1395,6 +1395,74 @@
       </span>;
     };
 
+    const ListingPriceChart = ({ event, darkMode }) => {
+      const hostRef = React.useRef(null), canvasRef = React.useRef(null);
+      const [visible, setVisible] = React.useState(false), [symbol, setSymbol] = React.useState(event.symbols[0]);
+      const [range, setRange] = React.useState('6h'), [expanded, setExpanded] = React.useState(false);
+      const [result, setResult] = React.useState(null), [retry, setRetry] = React.useState(0);
+      React.useEffect(() => {
+        const observer = new IntersectionObserver(entries => {
+          if (entries.some(entry => entry.isIntersecting)) { setVisible(true); observer.disconnect(); }
+        }, { rootMargin: '100px' });
+        if (hostRef.current) observer.observe(hostRef.current);
+        return () => observer.disconnect();
+      }, []);
+      React.useEffect(() => {
+        if (!visible || !symbol) return;
+        const controller = new AbortController(); setResult(null);
+        fetch(`/api/market/new-listings/${encodeURIComponent(event.id)}/chart?symbol=${encodeURIComponent(symbol)}&range=${range}`, { signal: controller.signal })
+          .then(response => { if (!response.ok) throw new Error(); return response.json(); })
+          .then(data => { if (!controller.signal.aborted) setResult(data); })
+          .catch(() => { if (!controller.signal.aborted) setResult({ status: 'unavailable', reason: 'Chart data is temporarily unavailable.' }); });
+        return () => controller.abort();
+      }, [visible, event.id, symbol, range, retry]);
+      React.useEffect(() => {
+        if (result?.status !== 'available' || !canvasRef.current || !window.Chart) return;
+        const text = darkMode ? '#94a3b8' : '#64748b';
+        const prices = [];
+        result.candles.forEach((candle, index) => {
+          if (index && candle.time - result.candles[index - 1].time > result.intervalSeconds * 1500) prices.push({ x: result.candles[index - 1].time + result.intervalSeconds * 1000, y: null });
+          prices.push({ x: candle.time, y: candle.close });
+        });
+        const rising = result.candles.at(-1).close >= result.candles[0].close;
+        const chart = new window.Chart(canvasRef.current, {
+          type: 'line', data: { datasets: [{ data: prices, borderColor: rising ? '#10b981' : '#ef4444', borderWidth: 2, pointRadius: prices.length === 1 ? 3 : 0, pointHoverRadius: 4, tension: 0, spanGaps: false }] },
+          options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'nearest', intersect: false },
+            plugins: { legend: { display: false }, tooltip: { callbacks: {
+              title: items => new Date(items[0].parsed.x).toLocaleString(),
+              label: item => `${Number(item.parsed.y).toLocaleString(undefined, { maximumSignificantDigits: 8 })} ${result.quote}`
+            } } },
+            scales: { x: { type: 'linear', min: result.coverageStart, max: result.coverageEnd === result.coverageStart ? result.coverageEnd + result.intervalSeconds * 1000 : result.coverageEnd,
+              grid: { display: false }, ticks: { color: text, maxTicksLimit: expanded ? 6 : 3, callback: value => range === '7d' ? new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : new Date(value).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) } },
+              y: { position: 'right', grid: { color: darkMode ? '#33415540' : '#cbd5e140' }, ticks: { color: text, maxTicksLimit: 4, callback: value => Number(value).toLocaleString(undefined, { maximumSignificantDigits: 5 }) } } }
+          },
+          plugins: [{ id: 'listingDetection', afterDraw: chart => {
+            const x = chart.scales.x.getPixelForValue(result.detectedAt), area = chart.chartArea;
+            if (x < area.left || x > area.right) return;
+            const ctx = chart.ctx; ctx.save(); ctx.strokeStyle = '#d4a72c'; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x, area.top); ctx.lineTo(x, area.bottom); ctx.stroke(); ctx.restore();
+          } }]
+        });
+        return () => chart.destroy();
+      }, [result, darkMode, expanded, range]);
+      const last = result?.candles?.at(-1);
+      return <div ref={hostRef} data-testid="listing-price-chart" className="mt-4 mb-4 border-t pt-3" style={{ borderColor: darkMode ? '#33415566' : '#cbd5e166' }}>
+        {event.symbols.length > 1 && <div className="flex flex-wrap gap-2 mb-3" role="group" aria-label="Chart token">{event.symbols.map(token => <button key={token} type="button" aria-pressed={symbol === token} onClick={() => setSymbol(token)} className={`rounded-lg px-2 py-1 text-xs ${symbol === token ? 'bg-cyan-500/20 text-cyan-500' : 'opacity-60'}`}>${token}</button>)}</div>}
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <span className="text-xs opacity-60">{result?.status === 'available' ? `${result.exchange.toUpperCase()} · ${result.market}${result.match === 'provider-linked-market' ? ` · Reference for ${result.listingExchange.toUpperCase()}` : ''}` : `${symbol} chart`}</span>
+          <div className="flex gap-1" role="group" aria-label="Chart range">{['1h', '6h', '1d', '7d'].map(period => <button key={period} type="button" aria-pressed={range === period} onClick={() => setRange(period)} className={`rounded-md px-2 py-1 text-xs ${range === period ? 'bg-cyan-500/20 text-cyan-500' : 'opacity-60'}`}>{period.toUpperCase()}</button>)}</div>
+        </div>
+        {!visible || !result ? <p role="status" className="py-6 text-xs opacity-60">{visible ? 'Loading chart…' : 'Chart loads when visible'}</p>
+          : result.status !== 'available' ? <div className="py-3 text-xs opacity-60"><p role="status">{result.reason || 'No verified chart available.'}</p><button type="button" onClick={() => setRetry(value => value + 1)} className="mt-2 text-cyan-500 hover:underline">Retry chart</button></div>
+          : <>
+            <div className="flex flex-wrap justify-between gap-2 mb-2"><strong className="text-sm">{last.close.toLocaleString(undefined, { maximumSignificantDigits: 8 })} {result.quote}</strong><button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)} className="text-xs text-cyan-500 hover:underline">{expanded ? 'Collapse chart' : 'Expand chart'}</button></div>
+            <div style={{ height: expanded ? 300 : 150 }}><canvas ref={canvasRef} role="img" aria-label={`${symbol} ${result.market} price chart on ${result.exchange}`} /></div>
+            <p className="mt-2 text-[10px] opacity-50">{result.intervalSeconds / 60}m candle closes · {result.quote} · Yellow marker: listing detected · Updated {new Date(result.fetchedAt).toLocaleTimeString()}</p>
+            {result.match === 'provider-linked-market' && <p className="mt-2 text-[10px] opacity-60">Reference spot market linked by <a href={result.sourceListingUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-500 underline">this source listing ↗</a>. Prices are from {result.exchange}, not the announcing exchange.</p>}
+            {expanded && <p className="mt-2 text-xs opacity-60">Available history: {new Date(result.coverageStart).toLocaleString()} – {new Date(result.coverageEnd).toLocaleString()}. Missing trading intervals remain gaps. Latest candle may still be forming.</p>}
+          </>}
+      </div>;
+    };
+
     const App = () => {
       const tabFromLocation = () => {
         if (window.location.pathname === '/magic-swap') return 'magic-swap';
@@ -3939,7 +4007,7 @@
                         {marketMode === 'listings' ? <section aria-label="New Listings" data-testid="new-listings-panel">
                           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                             <input aria-label="Search new listings" placeholder="Search ticker or exchange…" value={listingsSearch} onChange={e => setListingsSearch(e.target.value)} className={`min-w-0 w-full sm:w-auto px-4 py-3 rounded-xl border text-sm ${darkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`} />
-                            <p role="status" className={`text-sm ${listingsFeed.state === 'live' ? 'text-emerald-500' : 'opacity-60'}`}>
+                            <p role="status" aria-label="Listing feed connection" className={`text-sm ${listingsFeed.state === 'live' ? 'text-emerald-500' : 'opacity-60'}`}>
                               {({ live: 'Live', connecting: 'Connecting…', reconnecting: 'Reconnecting…', loading: 'Loading…', error: 'Feed paused — connection needs attention', unconfigured: 'Feed not configured', unavailable: 'Feed unavailable — retrying…' })[listingsFeed.state] || 'Feed unavailable'}
                               {listingsFeed.delayMs != null && ` · ${listingsFeed.delayMs / 1000}s provider delay`}
                             </p>
@@ -3954,6 +4022,7 @@
                               </div>
                               {event.symbols.length > 0 && <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">{event.symbols.map(symbol => <span key={symbol} className="inline-flex min-w-0 items-center gap-2 font-heading font-bold text-xl"><ListingTokenIcon symbol={symbol} url={event.tokenIcons?.find(icon => icon.symbol === symbol)?.url} /><span className="break-all">${symbol}</span></span>)}</div>}
                               <p className="text-sm break-words mb-3">{event.title}</p>
+                              {event.symbols.length > 0 && <ListingPriceChart event={event} darkMode={darkMode} />}
                               <a href={event.url} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-cyan-500 hover:underline">View announcement ↗</a>
                             </article>)}
                             {listingsFeed.events.length === 0 && <div className="py-12 text-center text-sm opacity-60">

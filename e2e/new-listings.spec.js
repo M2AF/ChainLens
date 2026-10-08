@@ -13,7 +13,7 @@ test('Market and New Listings switch preserves market, displays real feed fields
   await expect.poll(() => favicon.evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
   await toggle.getByRole('button', { name: 'New Listings' }).click();
   const panel = page.getByTestId('new-listings-panel');
-  await expect(panel.getByRole('status')).toContainText('Live · 3s provider delay');
+  await expect(panel.getByRole('status', { name: 'Listing feed connection' })).toContainText('Live · 3s provider delay');
   await expect(panel.getByRole('article')).toContainText('$TEST');
   await expect(panel.getByRole('link', { name: 'View announcement' })).toHaveAttribute('href', 'https://example.com/listing');
   await page.screenshot({ path: 'test-results/new-listings-desktop.png' });
