@@ -156,3 +156,20 @@
 ### 2026-10-08T00:16-03:00 · codex · checkpoint · no-git
 - Inline listing charts implemented with exact exchange catalog matches and source-linked Coinbase reference fallback. Live PONS reference charts and DARK MEXC history verified;191Node tests and JSX/syntax pass. Browser chart flows pass; original feed selector regression fixed and rerun passed. Final dark desktop/mobile screenshot verification running.
 - next: Finish e2e/new-listings-charts.spec.js dark live screenshot review, then release locally without commit/deploy.
+
+### 2026-10-08T19:02-03:00 · codex · claim · no-git
+- task: Port Mallard Order and Sealuminati art themes to ChainLens
+- lease until 2026-10-08T22:02-03:00
+
+### 2026-10-08T19:06-03:00 · codex · checkpoint · no-git
+- Added14-theme parity, explicit material identity with clear-on-recolour/custom/base fallback, standalone art CSS/assets, Search/Scanner/Swap/picker materials. Baseline191Node tests/check passed on actual git f933750 before edits. Starting art/theme browser journeys and final Node/JSX checks.
+
+### 2026-10-08T19:15-03:00 · codex · checkpoint · no-git
+- Art skins and lifecycle passed desktop/mobile journeys; Profile default banner also themed without filtering user art. DEX base-mode navigation smoke passed. Assets hash-match wallet source. Final Market/New Listings skin browser test running in art-themes-market-final.log.
+
+### 2026-10-08T19:16-03:00 · codex · verify · f933750 (main) dirty 7
+- verified: Art themes:192Node tests, npm check,6JSX precompiles,12unique browser checks pass across runs; desktop/mobile Search/Scanner/MagicSwap/Profile/AppHub/Market and lifecycle reviewed. All assets hash-match approved wallet originals. Local only.
+- next: User review/release art themes frontend and public/themes assets together; see docs/ART-THEMES.md and .local-artifacts/art-themes/. Previous New Listings chart release remains separately pending.
+
+### 2026-10-08T19:16-03:00 · codex · handoff · f933750 (main) dirty 7
+- Both ChainLens art skins complete locally and validated; docs and reviewed screenshots saved. No commit/push/deploy or wallet changes.

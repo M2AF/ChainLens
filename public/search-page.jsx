@@ -93,8 +93,8 @@
     const muted = darkMode ? 'text-slate-400' : 'text-slate-500';
 
     return (
-      <main className="max-w-6xl mx-auto pb-24">
-        <section className="relative overflow-hidden rounded-[2.25rem] md:rounded-[3.5rem] border border-cyan-400/20 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 px-5 py-10 md:px-14 md:py-16 text-white shadow-2xl">
+      <main className="cl-search-page max-w-6xl mx-auto pb-24">
+        <section className="cl-art-panel cl-search-hero relative overflow-hidden rounded-[2.25rem] md:rounded-[3.5rem] border border-cyan-400/20 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 px-5 py-10 md:px-14 md:py-16 text-white shadow-2xl">
           <div className="absolute -top-24 -right-20 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" aria-hidden="true"></div>
           <div className="absolute -bottom-32 -left-20 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl" aria-hidden="true"></div>
           <div className="relative z-10 max-w-4xl mx-auto text-center">
@@ -105,8 +105,8 @@
               Search the open web, discover trusted crypto apps, or send a wallet straight to the ChainLens scanner.
             </p>
 
-            <form onSubmit={submitSearch} className="mt-8 md:mt-10" role="search">
-              <div className="flex flex-col sm:flex-row gap-3 rounded-[1.75rem] border border-white/15 bg-white/10 p-2.5 backdrop-blur-xl shadow-2xl">
+            <form onSubmit={submitSearch} className="cl-search-form mt-8 md:mt-10" role="search">
+              <div className="cl-search-field flex flex-col sm:flex-row gap-3 rounded-[1.75rem] border border-white/15 bg-white/10 p-2.5 backdrop-blur-xl shadow-2xl">
                 <label htmlFor="chainlens-search" className="sr-only">Search the web and ChainLens</label>
                 <div className="flex flex-1 items-center gap-3 px-3">
                   <svg aria-hidden="true" className="h-5 w-5 shrink-0 text-cyan-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>

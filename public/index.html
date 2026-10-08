@@ -41,6 +41,7 @@
   <script type="text/babel" src="/profile-portfolio.jsx"></script>
   <link rel="stylesheet" href="/profile-portfolio.css">
   <script src="/theme-engine.js"></script>
+  <link rel="stylesheet" href="/art-themes.css">
   <script src="/app-hub-data.js"></script>
 
   <script>
@@ -1263,11 +1264,11 @@
           <div key={theme.id} className="flex items-center">
           <button onClick={() => { onSelect(theme.id); setOpen(false); }}
                   data-testid={`theme-option-${theme.id}`} aria-current={selected ? 'true' : undefined}
-                  className={`flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors ${selected
+                  className={`${theme.art ? `cl-art-choice cl-art-choice-${theme.id}` : ''} flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors ${selected
                     ? (darkMode ? 'bg-slate-800' : 'bg-slate-100')
                     : (darkMode ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50')}`}>
-            <ThemeSwatch colors={theme.colors} />
-            <span className="flex-1 truncate text-[11px] font-bold">{theme.name}</span>
+            {theme.art ? <span className="cl-art-choice-mark" aria-hidden="true">◇</span> : <ThemeSwatch colors={theme.colors} />}
+            <span className="flex-1 min-w-0 text-[11px] font-bold">{theme.name}{theme.art && <span className="cl-art-choice-description">{theme.artDescription}{theme.edited ? ' · Recoloured' : ''}</span>}</span>
             {selected && <span className="text-cyan-400 text-xs leading-none">✓</span>}
           </button>
           {!isBaseMode(theme.id) && <button type="button" aria-label={`Edit ${theme.name}`} data-testid={`theme-edit-${theme.id}`}
@@ -1293,11 +1294,13 @@
 
           {open && (
             <div role="menu" data-testid="theme-menu"
-                 className={`absolute right-0 mt-2 w-56 max-h-[70vh] overflow-y-auto rounded-2xl border backdrop-blur-md p-1.5 shadow-xl ${darkMode ? 'bg-slate-900/95 border-slate-700 dark-scroll' : 'bg-white/95 border-slate-200'}`}>
+                 className={`absolute right-0 mt-2 w-72 max-h-[70vh] overflow-y-auto rounded-2xl border backdrop-blur-md p-1.5 shadow-xl ${darkMode ? 'bg-slate-900/95 border-slate-700 dark-scroll' : 'bg-white/95 border-slate-200'}`}>
               {heading('Mode')}
               {BASE_MODES.map(row)}
               {heading('MagicMoney')}
-              {builtins.map(row)}
+              {builtins.filter(theme => !theme.art).map(row)}
+              {heading('Art themes')}
+              {builtins.filter(theme => theme.art).map(row)}
               {heading('Your themes')}
               {customs.length > 0 ? customs.map(row) : (
                 <p className={`px-3 pb-3 pt-1 text-[10px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -1880,7 +1883,7 @@
           // the palette's stock values live in index.html's stylesheet, not here.
           tone = themeId === 'dark' ? 'dark' : 'light';
         } else if (theme) {
-          tone = engine.applyTheme(theme.colors);
+          tone = engine.applyTheme(theme.colors, theme.art && !theme.edited ? theme.id : null);
         } else {
           // Falling back to the LAST TONE, not to Light: someone signed out of a
           // dark theme was looking at a dark app, and flipping them to white is
@@ -3433,7 +3436,7 @@
       ];
 
       return (
-        <div className={`min-h-screen transition-colors duration-500 ${darkMode ? 'bg-slate-950 text-white dark-scroll' : 'bg-slate-50 text-slate-900'}`}>
+        <div className={`cl-art-app min-h-screen transition-colors duration-500 ${darkMode ? 'bg-slate-950 text-white dark-scroll' : 'bg-slate-50 text-slate-900'}`}>
           {mobileMenuOpen && <button aria-label="Close menu" className="fixed inset-0 z-[88] bg-slate-950/70 min-[901px]:hidden" onClick={() => setMobileMenuOpen(false)} />}
           <aside className={`cl-sidebar fixed inset-y-0 left-0 z-[90] flex flex-col border-r ${mobileMenuOpen ? 'open' : ''} ${darkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
             <div className="flex items-center justify-between px-7 pt-7 pb-6">
@@ -3842,7 +3845,7 @@
                   )}
 
                   <div className="flex flex-col md:flex-row items-center gap-6">
-                    <button onClick={handleSearch} disabled={loading} className={`w-full md:w-auto md:flex-1 overflow-hidden py-6 md:py-7 rounded-2xl font-sans font-bold text-lg sm:text-2xl md:text-4xl uppercase tracking-[0.12em] sm:tracking-widest transition-all active:scale-[0.98] ${loading ? 'opacity-50 cursor-not-allowed scanning-glow' : ''} ${darkMode ? 'bg-white text-slate-950 hover:bg-slate-200' : 'bg-slate-950 text-white hover:bg-slate-800 shadow-xl'}`}>
+                    <button onClick={handleSearch} disabled={loading} className={`cl-art-action w-full md:w-auto md:flex-1 overflow-hidden py-6 md:py-7 rounded-2xl font-sans font-bold text-lg sm:text-2xl md:text-4xl uppercase tracking-[0.12em] sm:tracking-widest transition-all active:scale-[0.98] ${loading ? 'opacity-50 cursor-not-allowed scanning-glow' : ''} ${darkMode ? 'bg-white text-slate-950 hover:bg-slate-200' : 'bg-slate-950 text-white hover:bg-slate-800 shadow-xl'}`}>
                       {loading ? 'ANALYZING...' : 'SCAN ASSETS'}
                     </button>
 
@@ -4013,7 +4016,7 @@
                             </p>
                           </div>
                           <div className="space-y-3">
-                            {listingsFeed.events.filter(event => `${event.symbols.join(' ')} ${event.exchange} ${event.title}`.toLowerCase().includes(listingsSearch.toLowerCase())).map(event => <article key={event.id} className={`rounded-2xl border p-4 sm:p-5 ${darkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                            {listingsFeed.events.filter(event => `${event.symbols.join(' ')} ${event.exchange} ${event.title}`.toLowerCase().includes(listingsSearch.toLowerCase())).map(event => <article key={event.id} className={`cl-art-panel rounded-2xl border p-4 sm:p-5 ${darkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                               <div className="flex flex-wrap items-center gap-2 mb-3 text-xs font-bold uppercase">
                                 <span className="rounded-lg bg-cyan-500/15 text-cyan-500 px-2 py-1">{event.exchange || 'Exchange'}</span>
                                 {event.marketType && <span className="opacity-60">{event.marketType}</span>}

@@ -6,7 +6,7 @@
  *
  *   src/renderer/lib/color.ts          the colour maths
  *   src/renderer/lib/theme-tokens.ts   three colours -> the derived token set
- *   src/renderer/lib/builtin-themes.ts THEMES, the twelve shipped themes
+ *   src/renderer/lib/builtin-themes.ts THEMES, shipped colours and art skins
  *   src/shared/theme-sync-wire.ts      the cl_themes wire shape
  *
  * Only the parts ChainLens renders from are ported: the derivation stops at the
@@ -365,8 +365,8 @@
   // ── The shipped themes (builtin-themes.ts THEMES, in picker order) ──────────
   //
   // The wallet renders the first six from hand-tuned CSS blocks and the rest
-  // from these same three colours. ChainLens has no such blocks, so all twelve
-  // are derived — which is why `colors` for the first six must stay the
+  // from these same three colours. Colour themes use derived ramps; full art skins add material CSS.
+  // All palettes are derived — which is why `colors` for the first six must stay the
   // [--bg-deep, --accent, --text-primary] of their blocks in the wallet's
   // index.css. Drift there is what makes one theme look like two.
   var BUILTIN_THEMES = [
@@ -381,7 +381,9 @@
     { id: 'monad',       name: 'Monad',        colors: { bg: '#140529', accent: '#6e54ff', text: '#85e6ff' } },
     { id: 'abstract',    name: 'Abstract',     colors: { bg: '#ffffff', accent: '#52f293', text: '#000000' } },
     { id: 'bitcoin',     name: 'Bitcoin',      colors: { bg: '#000000', accent: '#f2a900', text: '#ababab' } },
-    { id: 'sappy-seals', name: 'Sappy Seals',  colors: { bg: '#ffffff', accent: '#000000', text: '#000000' } }
+    { id: 'sappy-seals', name: 'Sappy Seals',  colors: { bg: '#ffffff', accent: '#000000', text: '#000000' } },
+    { id: 'mallard-order', name: 'Mallard Order', art: true, artDescription: 'Carved runes · Stone & gold', colors: { bg: '#10100e', accent: '#c6a75e', text: '#eee8d5' } },
+    { id: 'sealuminati', name: 'Sealuminati', art: true, artDescription: 'Pixel robes · Violet fire & gold', colors: { bg: '#120b24', accent: '#ffd34d', text: '#f4e9f6' } }
   ];
 
   var BUILTIN_BY_ID = {};
@@ -471,13 +473,20 @@
    * rendered through the dark branch would put the page colour where the text
    * colour belongs.
    */
-  function applyTheme(colors) {
+  function applyTheme(colors, artId) {
     var palette = paletteFor(colors);
     var root = document.documentElement;
     Object.keys(palette.vars).forEach(function (name) {
       root.style.setProperty(name, palette.vars[name]);
     });
     root.setAttribute('data-cl-tone', palette.tone);
+    // Material is explicit identity, never inferred from three matching colours.
+    // Recolours, custom themes and base modes must clear the previous skin.
+    root.removeAttribute('data-cl-art-theme');
+    var art = BUILTIN_BY_ID[artId];
+    if (art && art.art && ['bg', 'accent', 'text'].every(function (key) {
+      return String(colors && colors[key]).toLowerCase() === art.colors[key];
+    })) root.setAttribute('data-cl-art-theme', art.id);
     return palette.tone;
   }
 
@@ -488,6 +497,7 @@
    */
   function applyMode(mode) {
     var root = document.documentElement;
+    root.removeAttribute('data-cl-art-theme');
     VAR_NAMES.forEach(function (name) { root.style.removeProperty(name); });
     root.setAttribute('data-cl-tone', mode === 'dark' ? 'dark' : 'light');
     // --cl-page is the one exception: the :root default is the light page, so

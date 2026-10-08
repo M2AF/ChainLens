@@ -1,0 +1,107 @@
+/* Full skins share the wallet's approved local artwork and OFL fonts. */
+@font-face { font-family: 'CL Cinzel'; font-weight: 700; font-style: normal; font-display: swap; src: url('/themes/mallard-order/cinzel-bold.ttf') format('truetype'); }
+@font-face { font-family: 'CL Garamond'; font-weight: 400; font-style: normal; font-display: swap; src: url('/themes/mallard-order/eb-garamond.ttf') format('truetype'); }
+@font-face { font-family: 'CL Pixelify'; font-weight: 400; font-style: normal; font-display: swap; src: url('/themes/sealuminati/pixelify-regular.ttf') format('truetype'); }
+@font-face { font-family: 'CL Pixelify'; font-weight: 700; font-style: normal; font-display: swap; src: url('/themes/sealuminati/pixelify-bold.ttf') format('truetype'); }
+
+:root[data-cl-art-theme='mallard-order'] {
+  --cl-art-frame: url('/themes/mallard-order/frame.webp');
+  --cl-art-texture: url('/themes/mallard-order/stone.webp');
+  --cl-art-slice: 11%; --cl-art-frame-width: 22px; --cl-art-inset: 28px;
+  --cl-art-display: 'CL Cinzel', Georgia, serif;
+  --cl-art-body: 'CL Garamond', Georgia, serif;
+  --cl-art-gold: #c6a75e; --cl-art-surface: #1d1e1a; --cl-art-input: #10100e;
+  --cl-art-radius: 4px 12px 4px 12px;
+}
+:root[data-cl-art-theme='sealuminati'] {
+  --cl-art-frame: url('/themes/sealuminati/frame.webp');
+  --cl-art-texture: url('/themes/sealuminati/cloth.webp');
+  --cl-art-slice: 15%; --cl-art-frame-width: 32px; --cl-art-inset: 34px;
+  --cl-art-display: 'CL Pixelify', monospace;
+  --cl-art-body: 'CL Pixelify', Arial, sans-serif;
+  --cl-art-gold: #ffd34d; --cl-art-surface: #1b1033; --cl-art-input: #120b24;
+  --cl-art-radius: 0px;
+}
+
+/* These previews intentionally show each skin even while another is selected. */
+.cl-art-choice { min-height: 88px; padding: 18px 20px !important; margin: 4px 0; border: 1px solid transparent; border-radius: 0 !important; }
+.cl-art-choice-description { display: block; margin-top: 5px; font-size: 12px; font-weight: 400; line-height: 1.3; }
+.cl-art-choice-mark { flex: none; font-size: 24px; }
+.cl-art-choice-mallard-order { color: #eee8d5; background: #1d1e1a; font-family: 'CL Cinzel', Georgia, serif; border-image: url('/themes/mallard-order/frame.webp') 11% fill / 16px / 0 round; }
+.cl-art-choice-mallard-order .cl-art-choice-description { color: #c2bba4; font-family: 'CL Garamond', Georgia, serif; }
+.cl-art-choice-sealuminati { color: #f4e9f6; background: #1b1033; font-family: 'CL Pixelify', monospace; border-image: url('/themes/sealuminati/frame.webp') 15% fill / 22px / 0 round; image-rendering: pixelated; }
+.cl-art-choice-sealuminati .cl-art-choice-mark { width: 28px; height: 28px; font-size: 0; background: url('/themes/sealuminati/crest.webp') center / contain no-repeat; }
+.cl-art-choice[aria-current='true'] { outline: 1px solid #c6a75e; outline-offset: -1px; }
+.cl-art-choice-sealuminati[aria-current='true'] { outline-color: #ffd34d; }
+
+html[data-cl-art-theme] body { font-family: var(--cl-art-body); }
+html[data-cl-art-theme] .cl-art-app { background-image: var(--cl-art-texture); background-size: 384px; }
+html[data-cl-art-theme] :is(h1, h2, h3, .font-heading, .cl-nav-item, .cl-art-app button.font-sans) { font-family: var(--cl-art-display) !important; }
+html[data-cl-art-theme] :is(.cl-art-app .font-sans, .cl-art-app input, .cl-art-app select) { font-family: Arial, sans-serif; }
+html[data-cl-art-theme] :is(.cl-art-app .font-mono, .dex-swap input) { font-family: ui-monospace, monospace !important; }
+html[data-cl-art-theme] :is(h1, h2) { color: var(--cl-art-gold); }
+html[data-cl-art-theme] .cl-sidebar { background-image: var(--cl-art-texture); background-size: 384px; border-color: var(--cl-art-gold); }
+html[data-cl-art-theme] .cl-sidebar nav { padding-left: 16px; padding-right: 16px; }
+html[data-cl-art-theme] .cl-nav-item { border-radius: var(--cl-art-radius); letter-spacing: .07em; }
+html[data-cl-art-theme] .cl-nav-item.active { color: var(--cl-art-gold); background: var(--cl-art-surface); border: 1px solid var(--cl-art-gold); box-shadow: inset 3px 0 var(--cl-art-gold), inset 0 2px #ffffff18; }
+
+/* Frame within panel bounds; no decoration captures clicks or stretches NFTs. */
+html[data-cl-art-theme] :is(.cl-art-panel, .glass-card, .dex-swap .panel, .dex-swap .swap-asset-card, .cl-search-page > .space-y-7 > section) {
+  background: var(--cl-art-surface); border: 1px solid transparent; border-radius: 0;
+  border-image: var(--cl-art-frame) var(--cl-art-slice) fill / var(--cl-art-frame-width) / 0 round;
+  padding: max(var(--cl-art-inset), 2.5vw);
+  box-shadow: 0 5px 16px #0005; backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+html[data-cl-art-theme] .profile-account .glass-card {
+  padding: var(--cl-art-inset) !important; border-radius: 0 !important;
+}
+html[data-cl-art-theme] .profile-banner:not(:has(> img)) {
+  background: var(--cl-art-surface); border: 1px solid transparent; border-radius: 0;
+  border-image: var(--cl-art-frame) var(--cl-art-slice) fill / var(--cl-art-frame-width) / 0 round;
+}
+html[data-cl-art-theme] .profile-banner:not(:has(> img))::after { background: none; }
+html[data-cl-art-theme] .profile-banner:not(:has(> img)) .profile-banner-caption {
+  left: var(--cl-art-inset); right: var(--cl-art-inset); bottom: var(--cl-art-inset);
+}
+html[data-cl-art-theme] .profile-banner:not(:has(> img)) .profile-banner-tools {
+  top: var(--cl-art-inset); right: var(--cl-art-inset);
+}
+html[data-cl-art-theme] :is(.profile-banner-tools button, .profile-banner-id, .profile-categories button, .profile-gallery-tools input, .profile-gallery-tools select) {
+  background: var(--cl-art-input); border-color: var(--cl-art-gold); border-radius: var(--cl-art-radius);
+}
+html[data-cl-art-theme] .profile-categories button[aria-pressed='true'] { color: var(--cl-art-gold); background: var(--cl-art-surface); }
+html[data-cl-art-theme] .cl-search-hero > [aria-hidden='true'] { display: none; }
+html[data-cl-art-theme] :is(.app-hub-card, .profile-tile) { border-color: var(--cl-art-gold); border-radius: var(--cl-art-radius); background-color: var(--cl-art-surface); }
+html[data-cl-art-theme] :is(.cl-ticker, .profile-gallery-tools, .profile-tabs) { background-color: var(--cl-art-input); border-color: var(--cl-art-gold); }
+html[data-cl-art-theme] .profile-tabs button[aria-pressed='true'] { color: var(--cl-art-gold); border-color: var(--cl-art-gold); }
+html[data-cl-art-theme] .cl-search-hero { padding-top: 60px; padding-bottom: 60px; }
+html[data-cl-art-theme] .cl-search-field { position: relative; background: var(--cl-art-input); border-color: var(--cl-art-gold); border-radius: var(--cl-art-radius); backdrop-filter: none; }
+html[data-cl-art-theme] :is(.cl-search-form button[type='submit'], .dex-swap button.primary, .profile-scan-action, .cl-art-action) {
+  color: var(--cl-art-gold); background: var(--cl-art-surface); border: 1px solid var(--cl-art-gold);
+  border-radius: var(--cl-art-radius); font-family: var(--cl-art-display);
+  box-shadow: inset 0 2px #ffffff20, inset 0 -3px #0008, 0 3px 8px #0005;
+}
+html[data-cl-art-theme] :is(.cl-search-form button[type='submit'], .cl-art-action, .dex-swap button.primary):hover:not(:disabled) { filter: brightness(1.15); }
+html[data-cl-art-theme] :is([data-testid='theme-menu'], [data-testid='theme-picker-button'], [data-testid='theme-editor'], .dex-swap input, .dex-swap select, .dex-swap button) { border-color: var(--cl-art-gold); border-radius: var(--cl-art-radius); }
+html[data-cl-art-theme] [data-testid='theme-menu'] { background: var(--cl-art-input); backdrop-filter: none; }
+html[data-cl-art-theme] .dex-swap :is(button, label) { font-family: var(--cl-art-display); }
+html[data-cl-art-theme] .dex-swap { font-family: var(--cl-art-body); }
+html[data-cl-art-theme] .dex-swap .wallet-strip { padding: 24px 28px; }
+html[data-cl-art-theme] .dex-swap :is(input, select, .results) { background: var(--cl-art-input); }
+html[data-cl-art-theme] .dex-swap .results button { border-radius: 0; }
+html[data-cl-art-theme] :is(.cl-sidebar > div > img, .cl-main-logo img, [data-testid='magic-swap-logo'] img) { image-rendering: auto; filter: grayscale(1) sepia(.95) saturate(1.6); }
+html[data-cl-art-theme] :is(button, a, input, select):focus-visible { outline: 2px solid var(--cl-art-gold); outline-offset: 3px; }
+
+:root[data-cl-art-theme='sealuminati'] .cl-search-form { position: relative; }
+:root[data-cl-art-theme='sealuminati'] .cl-search-form::before {
+  content: ''; position: absolute; right: 24px; top: -37px; width: 40px; height: 40px;
+  background: url('/themes/sealuminati/crest.webp') center / contain no-repeat;
+  image-rendering: pixelated; pointer-events: none;
+}
+:root[data-cl-art-theme='sealuminati'] .cl-search-field { z-index: 1; }
+:root[data-cl-art-theme='sealuminati'] .cl-art-action { border-width: 2px; }
+@media (max-width: 600px) {
+  html[data-cl-art-theme] .cl-search-hero { padding: 44px var(--cl-art-inset); }
+  html[data-cl-art-theme] .cl-nav-item { padding-left: 18px; padding-right: 12px; font-size: 11px; }
+  html[data-cl-art-theme] .dex-swap :is(.panel, .swap-asset-card) { padding: var(--cl-art-inset); }
+}

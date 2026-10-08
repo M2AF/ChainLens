@@ -2,18 +2,19 @@
 <!-- handoff v1. LIVE STATE ONLY: rewrite in place, keep under ~60 lines.
      History goes in HANDOFF_LOG.md. Machine fields above the first ## are managed by handoff.py. -->
 
-owner: codex
-task: New Listings exact exchange market charts
-lease_until: 2026-10-08T03:16-03:00
-repo: -
+owner: none
+task: -
+lease_until: -
+repo: .
 verify: npm run check && npm test
-verified: no-git · Source icons:182Node tests, npm check,6JSX precompiles,3unique browser tests plus mobile screenshot rerun pass; desktop/mobile reviewed; live durable snapshot10events/4exact source matches. · 2026-10-07T23:52-03:00
-head: no-git
-updated: 2026-10-08T00:16-03:00 · codex
+verified: f933750 · Art themes:192Node tests, npm check,6JSX precompiles,12unique browser checks pass across runs; desktop/mobile Search/Scanner/MagicSwap/Profile/AppHub/Market and lifecycle reviewed. All assets hash-match approved wallet originals. Local only. · 2026-10-08T19:16-03:00
+head: f933750 (main) dirty 7
+updated: 2026-10-08T19:16-03:00 · codex
 
 resources: -
 
 ## Now
+- Mallard Order and Sealuminati ported locally to ChainLens: Art themes picker, textures/fonts/frames/buttons, smooth gold logos and Search seal crest. 192Node tests, npm check and6JSX precompiles pass;12unique browser checks pass across runs, including both skins on desktop/mobile and lifecycle fallback. docs/ART-THEMES.md; .local-artifacts/art-themes/. No commit/deploy; wallet unchanged.
 - Inline New Listings charts implemented locally: official Coinbase/Upbit/Bithumb/MEXC/Binance spot catalog+candle adapters; exact provider listing can explicitly link a Coinbase reference market. PONS references and DARK native-exchange charts verified live.191Node tests, npm check and6JSX scripts pass;5unique browser checks pass across runs. Screenshots test-results/new-listings-charts-{desktop,mobile,live-desktop,live-mobile}.png; .local-artifacts/new-listings-charts-live.json. No commit/deploy; wallet/collector unchanged.
 - ChainLens New Listings source token logos implemented locally: cached public-page artwork matched by event ID plus ordered symbols; multi-token circles and ticker fallback. Backend module new-listings-icons.js; wallet/Worker unchanged. 182Node tests, syntax and6JSX scripts pass;3market/listings browser checks pass. Live snapshot10events/4exact artwork matches; .local-artifacts/new-listings-icons-live.json. No commit/deploy.
 - Two-item Overview tiles now stack vertically in half-width columns, including larger-collection remainders; compact pair controls preserve center artwork clicks. Desktop/mobile geometry and viewer regression checks in e2e/collection-viewer.spec.js; local screenshots test-results/collection-mosaics-{desktop,mobile}.png. No commit/deploy.
@@ -26,7 +27,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User review and release new-listings-charts.js, new-listings-chart-reference.js, backend-server.js and public/index.html together; unsupported/unmatched tokens show no chart. See docs/NEW-LISTINGS.md for coverage and exact versus provider-linked reference matching.
+- User review/release art themes frontend and public/themes assets together; see docs/ART-THEMES.md and .local-artifacts/art-themes/. Previous New Listings chart release remains separately pending.
 
 ## Traps
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.
@@ -37,10 +38,11 @@ resources: -
 - NFT provider traits can be dictionaries, serialized JSON, scalars or arrays with null entries; normalize before array methods or React rendering. Deploy public/nft-metadata.js with the frontend fix.
 - Free feed contains exchange announcements, no price/history/contract data. Durable collector saves captured events; provider reconnects can still leave gaps.
 - Cloudflare object owns one provider socket. Render proxy must not open another. Key permits only2egress IPs. Outbound sockets do not hibernate;30s alarms plus1min cron maintain/recover the object. Clear handshake AbortController deadline after upgrade or it closes the socket10s later.
-- Git actual HEAD4a5794d/main (user NFT display fixes commit); board repo=- still reports no-git. Wallet has its own lease; unchanged during this task.
+- Actual git HEAD f933750 verified for art-theme port. Board repo=. now tracks the real checkout; older no-git verification entries were historical board metadata. Wallet unchanged during this task.
 - Favorites require updated backend/Worker before clients; old sanitizers discard f/u. Live same-ID device sync needs deployment QA; no database migration needed.
 
 ## Skills
+- Art theme port -> magic-money-art-themes | used: approved wallet assets, scoped material identity, smooth logos and responsive validation | Codex: C:/Users/balla/.codex/skills/magic-money-art-themes/SKILL.md | Claude: C:/Users/balla/.claude/skills/magic-money-art-themes/SKILL.md.
 - New Listings collector -> cloudflare,durable-objects,workers-best-practices,wrangler,architecture-review | used: lifecycle/SQLite/reconnect/runtime-test and deployment guidance | Codex: C:/Users/balla/.codex/skills/<name>/SKILL.md | Claude: unknown.
 - Shared profile preferences -> supabase:supabase | used: existing table/auth boundary and read-only connectivity check | source: Supabase plugin | Codex: C:/Users/balla/.codex/plugins/cache/openai-curated-remote/supabase/1.0.0/skills/supabase/SKILL.md | Claude: unknown.
 - agent-handoff: board/journal/lease; Codex C:/Users/balla/.codex/skills/agent-handoff/SKILL.md; Claude path unverified.
@@ -48,6 +50,7 @@ resources: -
 - Fullstack Iteration, Playwright Testing, Visual Iteration: implementation/browser/screenshot validation; Codex skills root C:/Users/balla/.codex/skills.
 
 ## Pointers
+- docs/ART-THEMES.md; public/art-themes.css; public/themes/; e2e/theme-picker.spec.js; .local-artifacts/art-themes/; art-themes-*.log.
 - docs/COLLECTION-VIEWER.md;e2e/collection-viewer.spec.js;.local-artifacts/nft-coverage/lil-sappys-{mosaics,viewer-desktop,viewer-mobile}.png;collection-viewer-*.log.
 - docs/NFT-IMAGE-COVERAGE-RESULTS.md;cardano-media.js;nft-metadata-document.js;nft-metadata-repair.js;public/nft-image.js;e2e/nft-image-coverage.spec.js; .local-artifacts/nft-coverage/cardano-all-browser.json and cardano-full-{desktop,mobile}.png.
 - docs/NFT-IMAGE-COVERAGE-PLAN.md: current architecture, Cardano-first passes, source escalation, acceptance gates and official references.

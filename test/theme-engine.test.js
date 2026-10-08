@@ -56,10 +56,10 @@ test('the :root block holds stock Tailwind values', () => {
 
 // ── The shipped themes ───────────────────────────────────────────────────────
 
-test('the twelve MagicMoney themes are present, unique, and well formed', () => {
-  assert.equal(themes.BUILTIN_THEMES.length, 12);
+test('the fourteen MagicMoney themes are present, unique, and well formed', () => {
+  assert.equal(themes.BUILTIN_THEMES.length, 14);
   const ids = themes.BUILTIN_THEMES.map(theme => theme.id);
-  assert.equal(new Set(ids).size, 12);
+  assert.equal(new Set(ids).size, 14);
   for (const theme of themes.BUILTIN_THEMES) {
     assert.ok(theme.name, `${theme.id} has no name`);
     for (const key of ['bg', 'accent', 'text']) {
@@ -280,4 +280,35 @@ test('swatchOf reports background then accent, and survives junk', () => {
   // A picker dot must still draw something for a theme that somehow got past
   // the parser, rather than throwing mid-render.
   assert.deepEqual(themes.swatchOf({}), ['#0a0f1e', '#00aaff']);
+});
+
+
+test('art identity is explicit and cannot leak into custom colours, recolours or base modes', () => {
+  const previous = global.document;
+  const attributes = new Map(), styles = new Map();
+  global.document = { documentElement: {
+    setAttribute: (key, value) => attributes.set(key, value),
+    removeAttribute: key => attributes.delete(key),
+    style: { setProperty: (key, value) => styles.set(key, value), removeProperty: key => styles.delete(key) },
+  } };
+  try {
+    for (const id of ['mallard-order', 'sealuminati']) {
+      const art = themes.builtinById(id);
+      themes.applyTheme(art.colors, id);
+      assert.equal(attributes.get('data-cl-art-theme'), id);
+      themes.applyTheme(art.colors);
+      assert.equal(attributes.has('data-cl-art-theme'), false);
+      themes.applyTheme(art.colors, id);
+      themes.applyTheme({ ...art.colors, bg: '#123456' }, id);
+      assert.equal(attributes.has('data-cl-art-theme'), false);
+      themes.applyTheme(art.colors, id);
+      themes.applyMode('dark');
+      assert.equal(attributes.has('data-cl-art-theme'), false);
+      assert.equal(attributes.get('data-cl-tone'), 'dark');
+      assert.equal(styles.size, 1);
+    }
+  } finally {
+    if (previous === undefined) delete global.document;
+    else global.document = previous;
+  }
 });
