@@ -7,13 +7,14 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 4e6d391 · r3tards:192Node tests, npm check,6JSX precompiles and all12theme-picker browser tests pass. Desktop/mobile screenshots reviewed; source background byte identity/local asset URLs checked. Local only. · 2026-10-08T22:26-03:00
-head: 4e6d391 (main) dirty 7
-updated: 2026-10-08T22:26-03:00 · codex
+verified: 93eb5d0 · 192Node tests/check,6JSX precompiles and all13theme-picker browser tests pass; scaling screenshots reviewed at1080x1800,1080x720,900x900,360x900. Local only. · 2026-10-08T22:49-03:00
+head: 93eb5d0 (main) dirty 6
+updated: 2026-10-08T22:49-03:00 · codex
 
 resources: -
 
 ## Now
+- r3tards scaling fixed locally on user HEAD93eb5d0: rectangular viewport-bounded menu, content-width Scanner columns/shrinkable fields and width-scaled repeating collage. Regression reproduced account/UTXO overflow before fix; all13theme-picker browser tests,192Node tests/check and6JSX precompiles pass. Screenshots reviewed at1080x1800,1080x720,900x900 and360x900 in .local-artifacts/r3tards/r3tards-scaling-*.png. No wallet edits/commit/deploy.
 - r3tards collab complete locally: exact supplied PC.webp, source Schoolbell/Plex Mono fonts, white pill controls, purple panels and smooth neutral logos. 192Node/check,6JSX precompiles and all12picker browser tests pass; desktop/mobile screenshots reviewed including Market. docs/R3TARDS-THEME.md; .local-artifacts/r3tards/. No commit/deploy or wallet edits.
 - Mallard Order and Sealuminati ported locally to ChainLens: Art themes picker, textures/fonts/frames/buttons, smooth gold logos and Search seal crest. 192Node tests, npm check and6JSX precompiles pass;12unique browser checks pass across runs, including both skins on desktop/mobile and lifecycle fallback. docs/ART-THEMES.md; .local-artifacts/art-themes/. User committed in4e6d391; live deployment unverified. Wallet unchanged.
 - Inline New Listings charts implemented locally: official Coinbase/Upbit/Bithumb/MEXC/Binance spot catalog+candle adapters; exact provider listing can explicitly link a Coinbase reference market. PONS references and DARK native-exchange charts verified live.191Node tests, npm check and6JSX scripts pass;5unique browser checks pass across runs. Screenshots test-results/new-listings-charts-{desktop,mobile,live-desktop,live-mobile}.png; .local-artifacts/new-listings-charts-live.json. No commit/deploy; wallet/collector unchanged.
@@ -28,7 +29,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- Review .local-artifacts/r3tards/r3tards-search-{1280,390}.png; release public/index.html, public/theme-engine.js and complete public/themes/r3tards/ together when ready. See docs/R3TARDS-THEME.md. No wallet port or deployment performed.
+- User review/release of ChainLens scaling CSS and Scanner hook; production verification pending.
 
 ## Traps
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.

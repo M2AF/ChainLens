@@ -193,3 +193,15 @@
 
 ### 2026-10-08T22:26-03:00 · codex · handoff · 4e6d391 (main) dirty 7
 - r3tards art theme complete in ChainLens; original supplied image/source fonts and icon bundled with font licenses.12browser tests/192Node tests pass; previews/docs saved. No commit/push/deploy or wallet edits.
+
+### 2026-10-08T22:43-03:00 · codex · claim · 93eb5d0 (main) dirty 1
+- task: Fix r3tards theme menu and scanner scaling
+- lease until 2026-10-09T01:43-03:00
+
+### 2026-10-08T22:49-03:00 · codex · verify · 93eb5d0 (main) dirty 6
+- verified: 192Node tests/check,6JSX precompiles and all13theme-picker browser tests pass; scaling screenshots reviewed at1080x1800,1080x720,900x900,360x900. Local only.
+- Fixed r3tards menu pill-radius inheritance and viewport/ticker clearance; Scanner content-width grid and flex input containment; stable width-scaled collage. Regression failed before fix. Wallet unchanged.
+
+### 2026-10-08T22:49-03:00 · codex · handoff · 93eb5d0 (main) dirty 6
+- Scaling fix complete locally, screenshots/docs saved. No commit/deploy.
+- next: User review/release of ChainLens scaling CSS and Scanner hook; production verification pending.

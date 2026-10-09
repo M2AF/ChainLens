@@ -20,11 +20,12 @@
   --cl-art-slice: 100%; --cl-art-frame-width: 0; --cl-art-inset: 24px;
   --cl-art-display: 'CL Schoolbell', cursive; --cl-art-body: 'CL Plex Mono', monospace;
   --cl-art-gold: #fff; --cl-art-surface: #30213f; --cl-art-input: #201529;
-  --cl-art-radius: 999px;
+  --cl-art-radius: 20px;
 }
 html[data-cl-art-theme='r3tards'] .cl-art-app {
   background-image: linear-gradient(#0004, #0004), var(--cl-art-texture);
-  background-position: center; background-size: cover; background-attachment: fixed;
+  background-position: center; background-size: auto, max(1080px, 100vw) auto;
+  background-repeat: no-repeat, repeat; background-attachment: fixed;
 }
 html[data-cl-art-theme='r3tards'] .cl-sidebar {
   background: linear-gradient(#24182ce8, #24182ce8), var(--cl-art-texture) center / 640px;
@@ -125,3 +126,17 @@ html[data-cl-art-theme='r3tards'] :is(.cl-sidebar > div > img, .cl-main-logo img
   html[data-cl-art-theme='r3tards'] .profile-tabs { gap: 12px; }
   html[data-cl-art-theme='r3tards'] .profile-tabs button { font-size: 11px; white-space: nowrap; }
 }
+
+/* Pill silhouettes belong to actions, not tall menus or narrow form layouts. */
+html[data-cl-art-theme='r3tards'] [data-testid='theme-picker'] [data-testid='theme-picker-button'] { border-radius: 999px; }
+html[data-cl-art-theme='r3tards'] [data-testid='theme-menu'] {
+  max-height: min(640px, calc(100dvh - 112px)); overscroll-behavior: contain;
+}
+html[data-cl-art-theme='r3tards'] .cl-scanner-fields {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 24px;
+}
+html[data-cl-art-theme='r3tards'] .cl-scanner-fields > div,
+html[data-cl-art-theme='r3tards'] .cl-scanner-fields :is(.flex-1, input) { min-width: 0; }
+html[data-cl-art-theme='r3tards'] .cl-scanner-fields input { width: 100%; }
+html[data-cl-art-theme='r3tards'] .cl-scanner-fields label { margin-right: 8px; }
+html[data-cl-art-theme='r3tards'] .cl-scanner-fields button { flex-shrink: 0; }

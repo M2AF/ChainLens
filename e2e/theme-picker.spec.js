@@ -438,3 +438,40 @@ test('r3tards collab uses supplied artwork, pill controls and isolated materials
   await expect(page.locator('.cl-art-app')).toHaveCSS('background-image', 'none');
   expect(errors).toEqual([]);
 });
+
+
+test('r3tards scanner and theme menu fit tall and narrow desktop viewports', async ({ page }) => {
+  await page.route('**/api/**', route => route.fulfill({ json: { available: true, entries: {}, coins: [], nfts: [], transactions: [], passkeys: [] } }));
+  await installThemeMocks(page, { themes: ELIGIBLE });
+  await page.setViewportSize({ width: 1080, height: 1800 });
+  await page.goto('/');
+  await page.getByTestId('theme-picker-button').click();
+  await page.getByTestId('theme-option-r3tards').click();
+  await page.locator('.cl-sidebar').getByRole('button', { name: 'Scanner', exact: true }).click();
+  for (const [width, height] of [[1080, 1800], [1080, 720], [900, 900], [360, 900]]) {
+    await page.setViewportSize({ width, height });
+    await page.evaluate(() => document.fonts.ready);
+    const fields = page.locator('input[placeholder="0x... or domain, comma-separated"], input[placeholder="SOL, DOT or TRX, comma-separated"], input[placeholder="$handle, addr1, bc1 or DOGE"]');
+    const geometry = await fields.evaluateAll(inputs => inputs.map(input => {
+      const row = input.closest('.flex.items-center.gap-2');
+      const column = row.parentElement.getBoundingClientRect();
+      const bounds = row.getBoundingClientRect();
+      const toggle = row.querySelector('button').getBoundingClientRect();
+      return bounds.left >= column.left - 1 && toggle.right <= column.right + 1 && input.getBoundingClientRect().width > 90;
+    }));
+    expect(geometry).toEqual([true, true, true]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `test-results/r3tards-scaling-scanner-${width}x${height}.png` });
+    await page.getByTestId('theme-picker-button').click();
+    const menu = page.getByTestId('theme-menu');
+    await expect(menu).toHaveCSS('border-radius', '20px');
+    const bounds = await menu.boundingBox();
+    expect(bounds.y + bounds.height).toBeLessThan(height - 48);
+    expect(bounds.height).toBeLessThanOrEqual(640);
+    await menu.evaluate(el => { el.scrollTop = el.scrollHeight; });
+    await expect(page.getByTestId('theme-create')).toBeInViewport();
+    await menu.evaluate(el => { el.scrollTop = 0; });
+    await page.screenshot({ path: `test-results/r3tards-scaling-menu-${width}x${height}.png` });
+    await page.getByTestId('theme-picker-button').click();
+  }
+});

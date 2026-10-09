@@ -31,3 +31,12 @@ Release the engine, index, complete `public/themes/r3tards/` folder and updated 
 Final local validation on 2026-10-08: `npm run check`, all 192 Node tests, six JSX precompiles, `git diff --check` and all 12 theme-picker browser tests passed. Screenshots were visually reviewed. The original background's byte identity and all local CSS asset URLs were verified; `.local-artifacts/r3tards/asset-manifest.json` records production asset hashes.
 
 Screenshots are retained in `.local-artifacts/r3tards/`. Tests use local UI with mocked account/provider replies, not deployed account or real transaction validation. No commit, push or deployment is performed as part of the theme implementation.
+
+
+## Scaling follow-up
+
+The collage scales by viewport width and repeats vertically, so tall desktop windows do not magnify the faces to fill the entire height. The general corner token is 20px; navigation and primary actions keep explicit pill radii. The theme menu has a 640px cap and a viewport-relative cap that leaves clearance above the bottom ticker. It scrolls independently.
+
+Scanner fields use a content-width-responsive grid (240px minimum columns) with shrinkable input flex children. This avoids the three-column viewport breakpoint overflowing beside the desktop sidebar. The rules apply only to r3tards; the scanner markup adds a semantic hook without changing handlers.
+
+The browser regression covers 1080x1800, 1080x720, 900x900 and 360x900: input/toggle containment, no horizontal document overflow, rectangular menu bounds and access to the final menu action. Screenshots: `.local-artifacts/r3tards/r3tards-scaling-{scanner,menu}-*.png`. Local validation only; production release remains pending.
