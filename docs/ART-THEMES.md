@@ -1,15 +1,17 @@
-# Magic Money art themes in ChainLens
+# Art themes in ChainLens
 
-ChainLens ships Mallard Order and Sealuminati in the theme picker's **Art themes** group. Theme access follows the existing linked-wallet and Google/Discord account gate. Selection persists in `cl_theme`; custom colour sync still uses the existing profile theme wire format and endpoints.
+ChainLens ships Mallard Order, Sealuminati and r3tards in the theme picker's **Art themes** group. Theme access follows the existing linked-wallet and Google/Discord account gate. Selection persists in `cl_theme`; custom colour sync still uses the existing profile theme wire format and endpoints.
 
 Mallard Order uses carved stone frames, a stone texture, gold accents, Cinzel headings and Garamond body text. Sealuminati uses dark purple cloth, gold rune frames with violet torches, Pixelify typography and a seal peeking above the Search field. ChainLens and Magic Swap logos remain smooth; their gold treatment preserves their original shading. User artwork, chain logos, addresses, and financial status colours retain their meaning.
+
+r3tards uses the supplied purple doodle collage, black outlines, white pill buttons and the website's Schoolbell/IBM Plex Mono typography. Its neutral brand treatment preserves smooth line art. See [R3TARDS-THEME.md](R3TARDS-THEME.md) for provenance and the ChainLens-only implementation.
 
 ## Implementation
 
 - `public/theme-engine.js` keeps the wallet's IDs and three-colour palettes. `applyTheme(colors, artId)` stamps `data-cl-art-theme` only for an explicit shipped art ID with its original palette.
 - `public/art-themes.css` supplies scoped textures, local fonts, nine-slice frames, buttons, navigation, and previews. Search, Scanner, Profile, App Hub and Magic Swap use existing component hooks; New Listings event cards also receive frames.
 - `public/index.html` registers the stylesheet, picker group and component hooks. `public/search-page.jsx` supplies stable hero/form hooks.
-- `public/themes/` contains byte-identical copies of the approved wallet assets from `../Magic Money Wallet/src/renderer/assets/themes/`. Font OFL notices are included alongside the fonts. These are existing approved assets, not newly generated art.
+- The Mallard/Sealuminati folders in `public/themes/` contain byte-identical copies of the approved wallet assets from `../Magic Money Wallet/src/renderer/assets/themes/`, with their font OFL notices. The `r3tards/` folder uses the supplied artwork and the reference site's fonts/icon, with font license notices. These are existing reference assets, not newly generated art.
 
 The wallet stylesheet cannot be imported directly: ChainLens renders through its Tailwind palette and its own component structure. Preserve the palette derivation and add semantic material hooks here instead.
 

@@ -7,14 +7,15 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: f933750 · Art themes:192Node tests, npm check,6JSX precompiles,12unique browser checks pass across runs; desktop/mobile Search/Scanner/MagicSwap/Profile/AppHub/Market and lifecycle reviewed. All assets hash-match approved wallet originals. Local only. · 2026-10-08T19:16-03:00
-head: f933750 (main) dirty 7
-updated: 2026-10-08T19:16-03:00 · codex
+verified: 4e6d391 · r3tards:192Node tests, npm check,6JSX precompiles and all12theme-picker browser tests pass. Desktop/mobile screenshots reviewed; source background byte identity/local asset URLs checked. Local only. · 2026-10-08T22:26-03:00
+head: 4e6d391 (main) dirty 7
+updated: 2026-10-08T22:26-03:00 · codex
 
 resources: -
 
 ## Now
-- Mallard Order and Sealuminati ported locally to ChainLens: Art themes picker, textures/fonts/frames/buttons, smooth gold logos and Search seal crest. 192Node tests, npm check and6JSX precompiles pass;12unique browser checks pass across runs, including both skins on desktop/mobile and lifecycle fallback. docs/ART-THEMES.md; .local-artifacts/art-themes/. No commit/deploy; wallet unchanged.
+- r3tards collab complete locally: exact supplied PC.webp, source Schoolbell/Plex Mono fonts, white pill controls, purple panels and smooth neutral logos. 192Node/check,6JSX precompiles and all12picker browser tests pass; desktop/mobile screenshots reviewed including Market. docs/R3TARDS-THEME.md; .local-artifacts/r3tards/. No commit/deploy or wallet edits.
+- Mallard Order and Sealuminati ported locally to ChainLens: Art themes picker, textures/fonts/frames/buttons, smooth gold logos and Search seal crest. 192Node tests, npm check and6JSX precompiles pass;12unique browser checks pass across runs, including both skins on desktop/mobile and lifecycle fallback. docs/ART-THEMES.md; .local-artifacts/art-themes/. User committed in4e6d391; live deployment unverified. Wallet unchanged.
 - Inline New Listings charts implemented locally: official Coinbase/Upbit/Bithumb/MEXC/Binance spot catalog+candle adapters; exact provider listing can explicitly link a Coinbase reference market. PONS references and DARK native-exchange charts verified live.191Node tests, npm check and6JSX scripts pass;5unique browser checks pass across runs. Screenshots test-results/new-listings-charts-{desktop,mobile,live-desktop,live-mobile}.png; .local-artifacts/new-listings-charts-live.json. No commit/deploy; wallet/collector unchanged.
 - ChainLens New Listings source token logos implemented locally: cached public-page artwork matched by event ID plus ordered symbols; multi-token circles and ticker fallback. Backend module new-listings-icons.js; wallet/Worker unchanged. 182Node tests, syntax and6JSX scripts pass;3market/listings browser checks pass. Live snapshot10events/4exact artwork matches; .local-artifacts/new-listings-icons-live.json. No commit/deploy.
 - Two-item Overview tiles now stack vertically in half-width columns, including larger-collection remainders; compact pair controls preserve center artwork clicks. Desktop/mobile geometry and viewer regression checks in e2e/collection-viewer.spec.js; local screenshots test-results/collection-mosaics-{desktop,mobile}.png. No commit/deploy.
@@ -27,7 +28,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User review/release art themes frontend and public/themes assets together; see docs/ART-THEMES.md and .local-artifacts/art-themes/. Previous New Listings chart release remains separately pending.
+- Review .local-artifacts/r3tards/r3tards-search-{1280,390}.png; release public/index.html, public/theme-engine.js and complete public/themes/r3tards/ together when ready. See docs/R3TARDS-THEME.md. No wallet port or deployment performed.
 
 ## Traps
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.
@@ -38,7 +39,7 @@ resources: -
 - NFT provider traits can be dictionaries, serialized JSON, scalars or arrays with null entries; normalize before array methods or React rendering. Deploy public/nft-metadata.js with the frontend fix.
 - Free feed contains exchange announcements, no price/history/contract data. Durable collector saves captured events; provider reconnects can still leave gaps.
 - Cloudflare object owns one provider socket. Render proxy must not open another. Key permits only2egress IPs. Outbound sockets do not hibernate;30s alarms plus1min cron maintain/recover the object. Clear handshake AbortController deadline after upgrade or it closes the socket10s later.
-- Actual git HEAD f933750 verified for art-theme port. Board repo=. now tracks the real checkout; older no-git verification entries were historical board metadata. Wallet unchanged during this task.
+- Actual git HEAD4e6d391 clean at r3tards task start; prior art-theme implementation is now in user commit. Board repo=. tracks the real checkout; older no-git entries were historical metadata. Wallet unchanged.
 - Favorites require updated backend/Worker before clients; old sanitizers discard f/u. Live same-ID device sync needs deployment QA; no database migration needed.
 
 ## Skills
@@ -50,6 +51,7 @@ resources: -
 - Fullstack Iteration, Playwright Testing, Visual Iteration: implementation/browser/screenshot validation; Codex skills root C:/Users/balla/.codex/skills.
 
 ## Pointers
+- docs/R3TARDS-THEME.md; public/themes/r3tards/; supplied C:/Users/balla/Downloads/PC.webp; .local-artifacts/r3tards/; r3tards-*.log.
 - docs/ART-THEMES.md; public/art-themes.css; public/themes/; e2e/theme-picker.spec.js; .local-artifacts/art-themes/; art-themes-*.log.
 - docs/COLLECTION-VIEWER.md;e2e/collection-viewer.spec.js;.local-artifacts/nft-coverage/lil-sappys-{mosaics,viewer-desktop,viewer-mobile}.png;collection-viewer-*.log.
 - docs/NFT-IMAGE-COVERAGE-RESULTS.md;cardano-media.js;nft-metadata-document.js;nft-metadata-repair.js;public/nft-image.js;e2e/nft-image-coverage.spec.js; .local-artifacts/nft-coverage/cardano-all-browser.json and cardano-full-{desktop,mobile}.png.

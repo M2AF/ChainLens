@@ -1,0 +1,127 @@
+/* Collab reference: r3tards.club. Original supplied PC.webp is bundled unchanged. */
+@font-face { font-family: 'CL Schoolbell'; font-weight: 400; font-style: normal; font-display: swap; src: url('/themes/r3tards/schoolbell.woff2') format('woff2'); }
+@font-face { font-family: 'CL Plex Mono'; font-weight: 400; font-style: normal; font-display: swap; src: url('/themes/r3tards/ibm-plex-mono-regular.woff2') format('woff2'); }
+@font-face { font-family: 'CL Plex Mono'; font-weight: 700; font-style: normal; font-display: swap; src: url('/themes/r3tards/ibm-plex-mono-bold.woff2') format('woff2'); }
+
+/* The preview shows its own materials regardless of the currently selected skin. */
+.cl-art-choice-r3tards {
+  color: #fff; background: linear-gradient(#25162dcc, #25162dcc), url('/themes/r3tards/background.webp') center / cover;
+  font-family: 'CL Plex Mono', monospace; border: 2px solid #101010;
+  border-radius: 20px !important; box-shadow: 3px 3px 0 #101010;
+}
+.cl-art-choice-r3tards .cl-art-choice-mark {
+  width: 34px; height: 34px; font-size: 0; border: 2px solid #101010; border-radius: 9px;
+  background: #fff url('/themes/r3tards/logo.png') center / 28px no-repeat;
+}
+.cl-art-choice-r3tards[aria-current='true'] { outline: 2px solid #fff; outline-offset: -5px; }
+
+:root[data-cl-art-theme='r3tards'] {
+  --cl-art-texture: url('/themes/r3tards/background.webp'); --cl-art-frame: none;
+  --cl-art-slice: 100%; --cl-art-frame-width: 0; --cl-art-inset: 24px;
+  --cl-art-display: 'CL Schoolbell', cursive; --cl-art-body: 'CL Plex Mono', monospace;
+  --cl-art-gold: #fff; --cl-art-surface: #30213f; --cl-art-input: #201529;
+  --cl-art-radius: 999px;
+}
+html[data-cl-art-theme='r3tards'] .cl-art-app {
+  background-image: linear-gradient(#0004, #0004), var(--cl-art-texture);
+  background-position: center; background-size: cover; background-attachment: fixed;
+}
+html[data-cl-art-theme='r3tards'] .cl-sidebar {
+  background: linear-gradient(#24182ce8, #24182ce8), var(--cl-art-texture) center / 640px;
+  border-right: 3px solid #101010;
+}
+html[data-cl-art-theme='r3tards'] .cl-nav-item {
+  font-family: var(--cl-art-body) !important; font-size: 12px; letter-spacing: 0;
+  color: #101010; background: #fff; border: 2px solid #101010;
+  border-radius: 999px; margin-bottom: 10px; box-shadow: 3px 3px 0 #101010;
+}
+html[data-cl-art-theme='r3tards'] .cl-art-app .cl-sidebar .cl-nav-item { font-family: var(--cl-art-body) !important; }
+html[data-cl-art-theme='r3tards'] .cl-nav-item.active {
+  color: #fff; background: #101010; border-color: #fff; box-shadow: 3px 3px 0 #101010;
+}
+html[data-cl-art-theme='r3tards'] .cl-nav-item:not(.active):hover { background: #e8d9f3; }
+html[data-cl-art-theme='r3tards'] :is(h1, h2, h3, .font-heading) {
+  font-weight: 400; letter-spacing: .02em;
+}
+html[data-cl-art-theme='r3tards'] .cl-search-hero h1 {
+  -webkit-text-stroke: 1px #101010; paint-order: stroke fill; text-shadow: 3px 3px 0 #101010;
+}
+html[data-cl-art-theme='r3tards'] :is(.cl-art-panel, .glass-card, .dex-swap .panel, .dex-swap .swap-asset-card, .cl-search-page > .space-y-7 > section) {
+  background: #30213ff5; border: 3px solid #101010; border-image: none;
+  border-radius: 24px; box-shadow: 5px 5px 0 #101010;
+}
+html[data-cl-art-theme='r3tards'] .profile-account .glass-card { border-radius: 24px !important; }
+html[data-cl-art-theme='r3tards'] .profile-account > div:not(.fixed) {
+  background: #30213ff5; border: 3px solid #101010; border-radius: 24px !important; box-shadow: 4px 4px 0 #101010;
+}
+html[data-cl-art-theme='r3tards'] .profile-gallery {
+  background: #30213ff5; border: 3px solid #101010; border-radius: 24px; padding: 20px; box-shadow: 4px 4px 0 #101010;
+}
+html[data-cl-art-theme='r3tards'] .cl-search-hero {
+  background: linear-gradient(#24152bbf, #24152bcf); padding-top: 48px; padding-bottom: 48px;
+}
+html[data-cl-art-theme='r3tards'] .cl-search-field {
+  background: #201529; border: 2px solid #101010; border-radius: 28px; box-shadow: 3px 3px 0 #101010;
+}
+html[data-cl-art-theme='r3tards'] :is(.cl-search-form button[type='submit'], .dex-swap button.primary, .profile-scan-action, .cl-art-action, [data-testid='theme-picker-button'], button[aria-label='Open menu']) {
+  background: #fff; color: #101010; border: 2px solid #101010; border-radius: 999px;
+  font-family: var(--cl-art-body); font-weight: 700; box-shadow: 3px 3px 0 #101010;
+}
+html[data-cl-art-theme='r3tards'] :is(.cl-search-form button[type='submit'], .dex-swap button.primary, .cl-art-action):hover:not(:disabled) {
+  background: #101010; color: #fff; border-color: #fff; filter: none;
+}
+html[data-cl-art-theme='r3tards'] :is(.cl-art-app .font-sans, .cl-art-app input, .cl-art-app select, .dex-swap button, .dex-swap label) {
+  font-family: var(--cl-art-body);
+}
+html[data-cl-art-theme='r3tards'] :is(.dex-swap input, .dex-swap select, .profile-gallery-tools input, .profile-gallery-tools select) {
+  border: 2px solid #101010; border-radius: 14px; background: #201529;
+}
+html[data-cl-art-theme='r3tards'] .dex-swap button { border: 2px solid #101010; }
+html[data-cl-art-theme='r3tards'] [data-testid='magic-swap-page'] > div:first-child {
+  padding: 20px; margin-bottom: 24px; background: #30213ff5; border: 3px solid #101010; border-radius: 24px; box-shadow: 4px 4px 0 #101010;
+}
+html[data-cl-art-theme='r3tards'] [data-testid='magic-swap-page'] > div:not(:first-child) > p {
+  padding: 16px; background: #30213ff5; border: 2px solid #101010; border-radius: 20px;
+}
+html[data-cl-art-theme='r3tards'] :is([aria-label='Magic Swap mode'], [aria-label='Market Watch view']) {
+  background: #201529; border: 2px solid #101010; border-radius: 28px;
+}
+html[data-cl-art-theme='r3tards'] :is([aria-label='Magic Swap mode'], [aria-label='Market Watch view']) button {
+  color: #fff; background: #201529; border: 2px solid #101010; border-radius: 999px; font-family: var(--cl-art-body);
+}
+html[data-cl-art-theme='r3tards'] :is([aria-label='Magic Swap mode'], [aria-label='Market Watch view']) button[aria-pressed='true'] {
+  color: #101010; background: #fff;
+}
+html[data-cl-art-theme='r3tards'] :is(.dex-swap .results, .asset-viewer) {
+  background: #30213f; border: 3px solid #101010; border-radius: 20px;
+}
+html[data-cl-art-theme='r3tards'] :is(.app-hub-card, .profile-tile) {
+  background: #30213ff5; border: 2px solid #101010; border-radius: 20px; box-shadow: 3px 3px 0 #101010;
+}
+html[data-cl-art-theme='r3tards'] .cl-search-page .grid > a {
+  background: #30213ff5; border: 2px solid #101010; border-radius: 20px; box-shadow: 3px 3px 0 #101010;
+}
+html[data-cl-art-theme='r3tards'] .profile-banner:not(:has(> img)) {
+  background: linear-gradient(#0003, #0003), var(--cl-art-texture) center / cover;
+  border: 3px solid #101010; border-image: none; border-radius: 24px; box-shadow: 4px 4px 0 #101010;
+}
+html[data-cl-art-theme='r3tards'] .profile-banner:not(:has(> img))::after { background: linear-gradient(transparent 35%, #201529b3); }
+html[data-cl-art-theme='r3tards'] .profile-banner h1 { -webkit-text-stroke: 1px #101010; paint-order: stroke fill; text-shadow: 2px 2px 0 #101010; }
+html[data-cl-art-theme='r3tards'] :is(.profile-banner-tools button, .profile-categories button, .profile-banner-id) {
+  border: 2px solid #101010; background: #fff; color: #101010; box-shadow: 2px 2px 0 #101010;
+}
+html[data-cl-art-theme='r3tards'] .profile-categories button[aria-pressed='true'] { background: #101010; border-color: #fff; color: #fff; }
+html[data-cl-art-theme='r3tards'] :is(.profile-tabs, .profile-gallery-tools, .cl-ticker) { background: #201529; border-color: #101010; }
+html[data-cl-art-theme='r3tards'] :is([data-testid='theme-menu'], [data-testid='theme-editor']) {
+  background: #201529; border: 3px solid #101010; border-radius: 20px; box-shadow: 5px 5px 0 #101010;
+}
+/* Keep the original line art, with neutral white rather than the other skins' gold filter. */
+html[data-cl-art-theme='r3tards'] :is(.cl-sidebar > div > img, .cl-main-logo img, [data-testid='magic-swap-logo'] img) {
+  image-rendering: auto; filter: grayscale(1);
+}
+@media (max-width: 600px) {
+  html[data-cl-art-theme='r3tards'] .cl-search-hero { padding: 36px 20px; }
+  html[data-cl-art-theme='r3tards'] .dex-swap :is(.panel, .swap-asset-card) { padding: 20px; }
+  html[data-cl-art-theme='r3tards'] .profile-tabs { gap: 12px; }
+  html[data-cl-art-theme='r3tards'] .profile-tabs button { font-size: 11px; white-space: nowrap; }
+}

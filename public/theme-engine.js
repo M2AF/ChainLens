@@ -9,6 +9,8 @@
  *   src/renderer/lib/builtin-themes.ts THEMES, shipped colours and art skins
  *   src/shared/theme-sync-wire.ts      the cl_themes wire shape
  *
+ * The r3tards collab skin is a ChainLens addition using the same art lifecycle.
+ *
  * Only the parts ChainLens renders from are ported: the derivation stops at the
  * seven tokens below rather than emitting the wallet's full CSS variable set,
  * because ChainLens has no stylesheet written against those names. Drift in the
@@ -383,7 +385,8 @@
     { id: 'bitcoin',     name: 'Bitcoin',      colors: { bg: '#000000', accent: '#f2a900', text: '#ababab' } },
     { id: 'sappy-seals', name: 'Sappy Seals',  colors: { bg: '#ffffff', accent: '#000000', text: '#000000' } },
     { id: 'mallard-order', name: 'Mallard Order', art: true, artDescription: 'Carved runes · Stone & gold', colors: { bg: '#10100e', accent: '#c6a75e', text: '#eee8d5' } },
-    { id: 'sealuminati', name: 'Sealuminati', art: true, artDescription: 'Pixel robes · Violet fire & gold', colors: { bg: '#120b24', accent: '#ffd34d', text: '#f4e9f6' } }
+    { id: 'sealuminati', name: 'Sealuminati', art: true, artDescription: 'Pixel robes · Violet fire & gold', colors: { bg: '#120b24', accent: '#ffd34d', text: '#f4e9f6' } },
+    { id: 'r3tards', name: 'r3tards', art: true, artDescription: 'Doodle collage · Purple & pill buttons', colors: { bg: '#493259', accent: '#ffffff', text: '#ffffff' } }
   ];
 
   var BUILTIN_BY_ID = {};

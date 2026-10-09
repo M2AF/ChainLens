@@ -56,10 +56,10 @@ test('the :root block holds stock Tailwind values', () => {
 
 // ── The shipped themes ───────────────────────────────────────────────────────
 
-test('the fourteen MagicMoney themes are present, unique, and well formed', () => {
-  assert.equal(themes.BUILTIN_THEMES.length, 14);
+test('the fifteen shipped themes are present, unique, and well formed', () => {
+  assert.equal(themes.BUILTIN_THEMES.length, 15);
   const ids = themes.BUILTIN_THEMES.map(theme => theme.id);
-  assert.equal(new Set(ids).size, 14);
+  assert.equal(new Set(ids).size, 15);
   for (const theme of themes.BUILTIN_THEMES) {
     assert.ok(theme.name, `${theme.id} has no name`);
     for (const key of ['bg', 'accent', 'text']) {
@@ -292,7 +292,7 @@ test('art identity is explicit and cannot leak into custom colours, recolours or
     style: { setProperty: (key, value) => styles.set(key, value), removeProperty: key => styles.delete(key) },
   } };
   try {
-    for (const id of ['mallard-order', 'sealuminati']) {
+    for (const id of ['mallard-order', 'sealuminati', 'r3tards']) {
       const art = themes.builtinById(id);
       themes.applyTheme(art.colors, id);
       assert.equal(attributes.get('data-cl-art-theme'), id);

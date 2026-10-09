@@ -140,7 +140,7 @@ test('signed in without chat access, the themes stay locked away', async ({ page
   await expect(page.getByTestId('theme-picker')).toHaveCount(0);
 });
 
-test('an eligible account gets fourteen shipped themes and its own synced ones', async ({ page }) => {
+test('an eligible account gets fifteen shipped themes and its own synced ones', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await installThemeMocks(page, { themes: ELIGIBLE });
@@ -150,8 +150,8 @@ test('an eligible account gets fourteen shipped themes and its own synced ones',
   const menu = page.getByTestId('theme-menu');
   await expect(menu).toBeVisible();
 
-  // Light and Dark, fourteen shipped themes, and Cherry.
-  await expect(menu.locator('[data-testid^="theme-option-"]')).toHaveCount(17);
+  // Light and Dark, fifteen shipped themes, and Cherry.
+  await expect(menu.locator('[data-testid^="theme-option-"]')).toHaveCount(18);
   await expect(page.getByTestId('theme-option-moonlight')).toBeVisible();
   await expect(page.getByTestId('theme-option-sappy-seals')).toBeVisible();
   await expect(page.getByTestId('theme-option-custom-cherry')).toBeVisible();
@@ -336,5 +336,105 @@ test('both art skins cover Profile, App Hub and Market without filtering user ar
     await page.screenshot({ path: `test-results/${id}-market-390.png` });
     await page.setViewportSize({ width: 1280, height: 900 });
   }
+  expect(errors).toEqual([]);
+});
+
+test('r3tards collab uses supplied artwork, pill controls and isolated materials on real pages', async ({ page }) => {
+  test.setTimeout(150_000);
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/api/**', route => route.fulfill({ json: { available: true, entries: {}, coins: [], nfts: [], transactions: [], passkeys: [] } }));
+  await installThemeMocks(page, { themes: ELIGIBLE });
+  await page.route('**/api/dex/**', route => route.fulfill({ json: { tokens: [], error: null } }));
+  await page.route('**/api/market/top100', route => route.fulfill({ json: [] }));
+  await page.route('**/api/market/new-listings', route => route.fulfill({ json: { state: 'live', events: [{ id: 'r3-art-preview', symbols: [], exchange: 'coinbase', markets: [], timestamp: 1700000000000, title: 'Collab theme listing preview', url: 'https://example.com/listing' }] } }));
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/');
+  const select = async id => {
+    await page.getByTestId('theme-picker-button').click();
+    await page.getByTestId(`theme-option-${id}`).click();
+  };
+  const screenshot = async name => {
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+      // Finish finite transitions before capture. A transition whose target is
+      // hidden by a responsive breakpoint can remain paused indefinitely.
+      for (const animation of document.getAnimations()) {
+        if (Number.isFinite(animation.effect?.getComputedTiming().endTime)) {
+          try { animation.finish(); } catch { /* Timeline may have been detached. */ }
+        }
+      }
+    });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `test-results/r3tards-${name}.png` });
+  };
+  await select('r3tards');
+  await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme', 'r3tards');
+  await page.reload();
+  await expect(page.getByTestId('theme-picker-button')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme', 'r3tards');
+  await expect(page.locator('.cl-art-app')).toHaveCSS('background-image', /r3tards\/background\.webp/);
+  const searchButton = page.getByRole('search').getByRole('button', { name: 'Search', exact: true });
+  await expect(searchButton).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(searchButton).toHaveCSS('color', 'rgb(16, 16, 16)');
+  await expect(searchButton).toHaveCSS('border-radius', '999px');
+  await expect(page.locator('.cl-search-hero')).toHaveCSS('border-image-source', 'none');
+  await expect(page.locator('.cl-search-hero h1')).toHaveCSS('font-family', /CL Schoolbell/);
+  await expect(page.locator('.cl-sidebar .cl-nav-item').first()).toHaveCSS('font-family', /CL Plex Mono/);
+  for (const width of [1280, 390, 360]) {
+    await page.setViewportSize({ width, height: 900 });
+    await screenshot(`search-${width}`);
+  }
+  expect(await page.evaluate(() => document.fonts.check('20px "CL Schoolbell"') && document.fonts.check('14px "CL Plex Mono"'))).toBe(true);
+  await page.getByRole('button', { name: 'Open menu', exact: true }).click();
+  await screenshot('nav-360');
+  await page.locator('.cl-sidebar').getByRole('button', { name: 'Scanner', exact: true }).click();
+  await expect(page.locator('.glass-card').filter({ visible: true }).first()).toHaveCSS('border-image-source', 'none');
+  await screenshot('scanner-360');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.locator('.cl-sidebar').getByRole('button', { name: 'Magic Swap', exact: true }).click();
+  await expect(page.locator('.dex-swap .swap-asset-card').first()).toHaveCSS('border-image-source', 'none');
+  await expect(page.getByTestId('magic-swap-logo').locator('img').first()).toHaveCSS('image-rendering', 'auto');
+  await expect(page.getByTestId('magic-swap-logo').locator('img').first()).toHaveCSS('filter', 'grayscale(1)');
+  await screenshot('swap-1280');
+  await page.setViewportSize({ width: 390, height: 900 });
+  await screenshot('swap-390');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.locator('.cl-sidebar').getByRole('button', { name: 'Profile', exact: true }).click();
+  await expect(page.locator('.profile-banner')).toBeVisible();
+  await screenshot('profile-1280');
+  await page.setViewportSize({ width: 390, height: 900 });
+  await screenshot('profile-390');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.locator('.cl-sidebar').getByRole('button', { name: 'App Hub', exact: true }).click();
+  await expect(page.getByRole('img', { name: 'App Hub', exact: true })).toBeVisible();
+  await screenshot('apps-1280');
+  await page.setViewportSize({ width: 390, height: 900 });
+  await screenshot('apps-390');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.locator('.cl-sidebar').getByRole('button', { name: 'Market', exact: true }).click();
+  await page.getByRole('group', { name: 'Market Watch view' }).getByRole('button', { name: 'New Listings' }).click();
+  await expect(page.getByTestId('new-listings-panel').getByRole('article')).toHaveCSS('border-image-source', 'none');
+  await page.setViewportSize({ width: 390, height: 900 });
+  await screenshot('market-390');
+  await page.getByTestId('theme-picker-button').click();
+  await page.getByRole('button', { name: 'Edit r3tards', exact: true }).click();
+  await page.getByLabel('Background hex').fill('#123456');
+  await page.getByRole('button', { name: 'Save colours', exact: true }).click();
+  await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme');
+  await expect(page.locator('.cl-art-app')).toHaveCSS('background-image', 'none');
+  await page.getByTestId('theme-picker-button').click();
+  await page.getByRole('button', { name: 'Edit r3tards', exact: true }).click();
+  await page.getByRole('button', { name: 'Revert to default', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme', 'r3tards');
+  await select('sealuminati');
+  await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme', 'sealuminati');
+  await expect(page.locator('.cl-art-app')).toHaveCSS('background-image', /sealuminati\/cloth\.webp/);
+  await select('mallard-order');
+  await expect(page.locator('.cl-art-app')).toHaveCSS('background-image', /mallard-order\/stone\.webp/);
+  await select('custom-cherry');
+  await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme');
+  await select('dark');
+  await expect(page.locator('.cl-art-app')).toHaveCSS('background-image', 'none');
   expect(errors).toEqual([]);
 });
