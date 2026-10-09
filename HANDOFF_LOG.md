@@ -205,3 +205,18 @@
 ### 2026-10-08T22:49-03:00 · codex · handoff · 93eb5d0 (main) dirty 6
 - Scaling fix complete locally, screenshots/docs saved. No commit/deploy.
 - next: User review/release of ChainLens scaling CSS and Scanner hook; production verification pending.
+
+### 2026-10-08T23:20-03:00 · codex · claim · f893eff (main) dirty 1
+- task: Non-repeating cover-scaled r3tards ChainLens background
+- lease until 2026-10-09T02:20-03:00
+
+### 2026-10-08T23:20-03:00 · codex · checkpoint · f893eff (main) dirty 4
+- User explicitly requests source-style zoom/crop instead of repeating collage. Main and sidebar now use centered cover/no-repeat; menu/Scanner geometry preserved. Running two affected r3tards browser checks with screenshots; r3tards-cover-browser.log.
+
+### 2026-10-08T23:22-03:00 · codex · verify · f893eff (main) dirty 5
+- verified: 192Node tests/check and both affected r3tards browser checks pass across runs. Cover-scaled non-repeating background screenshots reviewed; menu/Scanner geometry retained. Local only.
+- Main/sidebar collage now center/cover/no-repeat, matching user reference. Exact menu clearance boundary is valid; regression assertion now includes equality. No wallet changes.
+
+### 2026-10-08T23:22-03:00 · codex · handoff · f893eff (main) dirty 5
+- Non-repeating zoomed ChainLens background complete locally; docs/previews saved. No commit/deploy.
+- next: Review r3tards screenshots in .local-artifacts/r3tards/; user handles ChainLens release.

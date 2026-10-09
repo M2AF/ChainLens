@@ -7,14 +7,15 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 93eb5d0 · 192Node tests/check,6JSX precompiles and all13theme-picker browser tests pass; scaling screenshots reviewed at1080x1800,1080x720,900x900,360x900. Local only. · 2026-10-08T22:49-03:00
-head: 93eb5d0 (main) dirty 6
-updated: 2026-10-08T22:49-03:00 · codex
+verified: f893eff · 192Node tests/check and both affected r3tards browser checks pass across runs. Cover-scaled non-repeating background screenshots reviewed; menu/Scanner geometry retained. Local only. · 2026-10-08T23:22-03:00
+head: f893eff (main) dirty 5
+updated: 2026-10-08T23:22-03:00 · codex
 
 resources: -
 
 ## Now
-- r3tards scaling fixed locally on user HEAD93eb5d0: rectangular viewport-bounded menu, content-width Scanner columns/shrinkable fields and width-scaled repeating collage. Regression reproduced account/UTXO overflow before fix; all13theme-picker browser tests,192Node tests/check and6JSX precompiles pass. Screenshots reviewed at1080x1800,1080x720,900x900 and360x900 in .local-artifacts/r3tards/r3tards-scaling-*.png. No wallet edits/commit/deploy.
+- r3tards background refinement on user HEADf893eff: centered cover/no-repeat main and sidebar, matching source zoom/crop; portrait/landscape/mobile screenshots reviewed. Menu/Scanner positions preserved.192Node tests/check and r3tards full journey pass; layout rerun passes after correcting exact48px clearance assertion from strict-less-than to less-or-equal. No wallet edits/commit/deploy.
+- r3tards scaling fixed locally on user HEAD93eb5d0: rectangular viewport-bounded menu, content-width Scanner columns/shrinkable fields and centered cover-scaled non-repeating collage per user source reference. Regression reproduced account/UTXO overflow before fix; all13theme-picker browser tests,192Node tests/check and6JSX precompiles pass. Screenshots reviewed at1080x1800,1080x720,900x900 and360x900 in .local-artifacts/r3tards/r3tards-scaling-*.png. No wallet edits/commit/deploy.
 - r3tards collab complete locally: exact supplied PC.webp, source Schoolbell/Plex Mono fonts, white pill controls, purple panels and smooth neutral logos. 192Node/check,6JSX precompiles and all12picker browser tests pass; desktop/mobile screenshots reviewed including Market. docs/R3TARDS-THEME.md; .local-artifacts/r3tards/. No commit/deploy or wallet edits.
 - Mallard Order and Sealuminati ported locally to ChainLens: Art themes picker, textures/fonts/frames/buttons, smooth gold logos and Search seal crest. 192Node tests, npm check and6JSX precompiles pass;12unique browser checks pass across runs, including both skins on desktop/mobile and lifecycle fallback. docs/ART-THEMES.md; .local-artifacts/art-themes/. User committed in4e6d391; live deployment unverified. Wallet unchanged.
 - Inline New Listings charts implemented locally: official Coinbase/Upbit/Bithumb/MEXC/Binance spot catalog+candle adapters; exact provider listing can explicitly link a Coinbase reference market. PONS references and DARK native-exchange charts verified live.191Node tests, npm check and6JSX scripts pass;5unique browser checks pass across runs. Screenshots test-results/new-listings-charts-{desktop,mobile,live-desktop,live-mobile}.png; .local-artifacts/new-listings-charts-live.json. No commit/deploy; wallet/collector unchanged.
@@ -29,7 +30,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User review/release of ChainLens scaling CSS and Scanner hook; production verification pending.
+- Review r3tards screenshots in .local-artifacts/r3tards/; user handles ChainLens release.
 
 ## Traps
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.

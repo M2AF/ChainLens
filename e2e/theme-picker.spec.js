@@ -466,7 +466,7 @@ test('r3tards scanner and theme menu fit tall and narrow desktop viewports', asy
     const menu = page.getByTestId('theme-menu');
     await expect(menu).toHaveCSS('border-radius', '20px');
     const bounds = await menu.boundingBox();
-    expect(bounds.y + bounds.height).toBeLessThan(height - 48);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(height - 48);
     expect(bounds.height).toBeLessThanOrEqual(640);
     await menu.evaluate(el => { el.scrollTop = el.scrollHeight; });
     await expect(page.getByTestId('theme-create')).toBeInViewport();

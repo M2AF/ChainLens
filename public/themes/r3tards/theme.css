@@ -24,11 +24,11 @@
 }
 html[data-cl-art-theme='r3tards'] .cl-art-app {
   background-image: linear-gradient(#0004, #0004), var(--cl-art-texture);
-  background-position: center; background-size: auto, max(1080px, 100vw) auto;
-  background-repeat: no-repeat, repeat; background-attachment: fixed;
+  background-position: center; background-size: cover;
+  background-repeat: no-repeat; background-attachment: fixed;
 }
 html[data-cl-art-theme='r3tards'] .cl-sidebar {
-  background: linear-gradient(#24182ce8, #24182ce8), var(--cl-art-texture) center / 640px;
+  background: linear-gradient(#24182ce8, #24182ce8), var(--cl-art-texture) center / cover no-repeat;
   border-right: 3px solid #101010;
 }
 html[data-cl-art-theme='r3tards'] .cl-nav-item {

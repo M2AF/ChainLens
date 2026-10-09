@@ -35,7 +35,7 @@ Screenshots are retained in `.local-artifacts/r3tards/`. Tests use local UI with
 
 ## Scaling follow-up
 
-The collage scales by viewport width and repeats vertically, so tall desktop windows do not magnify the faces to fill the entire height. The general corner token is 20px; navigation and primary actions keep explicit pill radii. The theme menu has a 640px cap and a viewport-relative cap that leaves clearance above the bottom ticker. It scrolls independently.
+Per the source-site reference, the collage now uses centered cover scaling without repetition in both the main app and sidebar. It fills each viewport with one image and crops naturally, showing larger faces in tall windows. The general corner token is 20px; navigation and primary actions keep explicit pill radii. The theme menu has a 640px cap and a viewport-relative cap that leaves clearance above the bottom ticker. It scrolls independently.
 
 Scanner fields use a content-width-responsive grid (240px minimum columns) with shrinkable input flex children. This avoids the three-column viewport breakpoint overflowing beside the desktop sidebar. The rules apply only to r3tards; the scanner markup adds a semantic hook without changing handlers.
 
