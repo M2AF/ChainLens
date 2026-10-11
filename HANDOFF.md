@@ -7,13 +7,14 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 1faccb1 · npm check;193Node tests;14existing picker journeys and additional all-art legacy-profile override test pass. Art/material palettes fixed, no editor controls; docs picker locked; ordinary color/custom editing preserved. · 2026-10-10T22:11-03:00
-head: 1faccb1 (main) dirty 6
-updated: 2026-10-10T22:11-03:00 · codex
+verified: fbbe089 · npm check/explicit sovereign+docs JS syntax;198Node tests;15existing picker journeys;Sovereign holder/motion journey pass. Exact balanceOf,watch-only exclusion,stale response/timeout; browser holder/nonholder/reload/error revocation,animation advances,pointer/ripple,reduced-motion and390/1280 geometry. Desktop/mobile screenshots reviewed. · 2026-10-11T01:24-03:00
+head: fbbe089 (main) dirty 7
+updated: 2026-10-11T01:24-03:00 · codex
 
 resources: -
 
 ## Now
+- Sovereign port complete locally, first Art theme and fixed palette: original wallet orbit/crest, smoked panels/champagne lighting, pointer/touch highlights/press rings, reduced-motion/visibility pause and cleanup. REDACTED Robinhood4663 holder gate checks fresh authenticated profile verified-EVM wallets (no watch-only), block-bound balanceOf,90s freshness/60s refresh/10s timeout; signout/zero/error removes skin. npm check/198Node tests;15existing picker journeys plus Sovereign journey pass. docs/SOVEREIGN-THEME.md; .sovereign-*.log; .local-artifacts/sovereign/. No commit/deploy; wallet unchanged.
 - Art/material themes are fixed palettes locally: no edit controls, old profile recolors ignored; docs picker also locked. Ordinary colors/custom themes remain editable.193Node tests/npm check;14picker journeys plus legacy-profile test pass. docs/ART-THEME-PALETTE-LOCK.md; .art-lock-*.log. No commit/deploy.
 - Emonad tarot theme complete locally, immediately above r3tards: original card backdrop/character, flat rose/vine/moon/star frame, muted purple/silver; smooth original brands, stock portfolio layout. docs/EMONAD-THEME.md; .local-artifacts/emonad/. Checks .emonad-*.log pass; no commit/deploy/install.
 - Five approved natural material skins implemented locally: Brushed Metal, Leather, Velvet, Walnut and Royal Blue Silk; fixed palettes, shared generated raster surfaces, coordinated cards, smooth logos and seamless brand/portfolio summary. docs/NATURAL-MATERIAL-THEMES.md; .local-artifacts/materials/. No commit/deploy/install.
@@ -35,7 +36,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User reviews fixed art palettes; no deployment authorized.
+- User reviews Sovereign locally; deployment remains user-controlled. See docs/SOVEREIGN-THEME.md.
 
 ## Traps
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.

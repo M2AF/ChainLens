@@ -28,7 +28,7 @@
     const override = engine.sanitizeEntries(entries)[`custom-builtin-${theme.id}`];
     return !theme.fixedPalette && override && override.d !== 1 ? { ...theme, colors: override.c, edited: true } : theme;
   });
-  const findTheme = id => base.find(theme => theme.id === id)
+  const findTheme = id => id === 'sovereign' ? null : base.find(theme => theme.id === id)
     || (eligible ? [...builtins(), ...customs()].find(theme => theme.id === id) : null);
 
   function paint() {
@@ -81,10 +81,11 @@
     const row = document.createElement('div'); row.className = 'theme-row';
     if (theme.id === themeId) row.classList.add('selected');
     const choice = document.createElement('button');
+    choice.disabled = theme.id === 'sovereign';
     choice.type = 'button'; choice.className = 'theme-choice'; choice.setAttribute('role', 'menuitem');
     choice.setAttribute('aria-current', theme.id === themeId ? 'true' : 'false');
     const dot = document.createElement('span'); dot.className = 'theme-swatch'; swatch(dot, theme.colors);
-    const name = document.createElement('span'); name.textContent = theme.name;
+    const name = document.createElement('span'); name.textContent = theme.name + (theme.id === 'sovereign' ? ' · Verify on main app' : '');
     choice.append(dot, name);
     if (theme.id === themeId) {
       const check = document.createElement('span'); check.textContent = '✓'; check.style.color = 'var(--cyan)'; choice.append(check);

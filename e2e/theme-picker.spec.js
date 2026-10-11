@@ -48,6 +48,10 @@ async function installThemeMocks(page, { themes = null, signedIn = true } = {}) 
   if (signedIn) {
     await page.addInitScript(() => localStorage.setItem('cl_token', 'playwright-theme-token'));
   }
+  await page.route('https://rpc.mainnet.chain.robinhood.com/', route => {
+    const call = route.request().postDataJSON();
+    return route.fulfill({json:{jsonrpc:'2.0',id:call.id,result:call.method === 'eth_chainId' ? '0x1237' : call.method === 'eth_blockNumber' ? '0xabc' : '0x'+'1'.padStart(64,'0')}});
+  });
   await page.route('**/api/profile', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(ME),
   }));
@@ -151,7 +155,7 @@ test('signed in without chat access, the themes stay locked away', async ({ page
   await expect(page.getByTestId('theme-picker')).toHaveCount(0);
 });
 
-test('an eligible account gets twenty-two shipped themes and its own synced ones', async ({ page }) => {
+test('an eligible account gets twenty-three shipped themes and its own synced ones', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await installThemeMocks(page, { themes: ELIGIBLE });
@@ -161,8 +165,8 @@ test('an eligible account gets twenty-two shipped themes and its own synced ones
   const menu = page.getByTestId('theme-menu');
   await expect(menu).toBeVisible();
 
-  // Light and Dark, twenty-two shipped themes, and Cherry.
-  await expect(menu.locator('[data-testid^="theme-option-"]')).toHaveCount(25);
+  // Light and Dark, twenty-three shipped themes, and Cherry.
+  await expect(menu.locator('[data-testid^="theme-option-"]')).toHaveCount(26);
   await expect(page.getByTestId('theme-option-moonlight')).toBeVisible();
   await expect(page.getByTestId('theme-option-sappy-seals')).toBeVisible();
   await expect(page.getByTestId('theme-option-custom-cherry')).toBeVisible();
@@ -507,4 +511,79 @@ test('all art themes ignore legacy profile recolors and expose no editor', async
   }
   await page.getByTestId('theme-picker-button').click();
   await expect(page.getByRole('button', { name:'Edit Crimson',exact:true })).toBeVisible();
+});
+
+
+test('Sovereign verifies holders, animates real views and revokes failed ownership', async ({ page }) => {
+  test.setTimeout(90000);
+  await installThemeMocks(page, { themes:ELIGIBLE });
+  let balance = 0, fail = false;
+  await page.unroute('https://rpc.mainnet.chain.robinhood.com/');
+  await page.route('https://rpc.mainnet.chain.robinhood.com/', route => {
+    if (fail) return route.fulfill({status:503,body:'Offline'});
+    const call=route.request().postDataJSON();
+    return route.fulfill({json:{jsonrpc:'2.0',id:call.id,result:call.method === 'eth_chainId' ? '0x1237' : call.method === 'eth_blockNumber' ? '0xabc' : '0x'+balance.toString(16).padStart(64,'0')}});
+  });
+  await page.goto('/');
+  await page.getByTestId('theme-picker-button').click();
+  const choice=page.getByTestId('theme-option-sovereign');
+  await expect(choice).toBeDisabled();
+  balance=1;
+  await page.getByRole('button',{name:'Recheck ownership',exact:true}).click();
+  await expect(choice).toBeEnabled();
+  await expect(page.getByTestId('theme-edit-sovereign')).toHaveCount(0);
+  await choice.click();
+  await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','sovereign');
+  await expect(page.locator('.sv-scene')).toHaveCount(1);
+  await expect(page.locator('.sv-scene')).toHaveAttribute('aria-hidden','true');
+  const hero=page.locator('.cl-search-hero');
+  await hero.hover({position:{x:150,y:120}});
+  await expect.poll(() => hero.evaluate(el => el.style.getPropertyValue('--sv-x'))).not.toBe('');
+  const start=await page.locator('.sv-orbit').evaluate(el => el.getAnimations()[0].currentTime);
+  await expect.poll(() => page.locator('.sv-orbit').evaluate(el => el.getAnimations()[0].currentTime)).toBeGreaterThan(start);
+  await page.getByTestId('theme-picker-button').dispatchEvent('pointerdown',{button:0,clientX:1100,clientY:30});
+  await expect(page.locator('.sv-ripple')).toHaveCount(1);
+  for (const width of [1280,390]) {
+    await page.setViewportSize({width,height:900});
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+      for (const animation of document.getAnimations()) {
+        if (Number.isFinite(animation.effect?.getComputedTiming().endTime)) { try { animation.finish(); } catch {} }
+      }
+    });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({path:`.local-artifacts/sovereign/search-${width}.png`});
+  }
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await expect(page.locator('html')).toHaveAttribute('data-sv-motion','paused');
+  await expect(page.locator('.sv-ripple')).toHaveCount(0);
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  await expect(page.locator('html')).toHaveAttribute('data-sv-motion','running');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','sovereign');
+  await page.setViewportSize({width:1280,height:900});
+  await page.locator('.cl-sidebar').getByRole('button',{name:'Scanner',exact:true}).click();
+  await page.screenshot({path:'.local-artifacts/sovereign/scanner.png'});
+  await page.locator('.cl-sidebar').getByRole('button',{name:'Magic Swap',exact:true}).click();
+  await expect(page.locator('.dex-swap')).toBeVisible();
+  await page.screenshot({path:'.local-artifacts/sovereign/swap.png'});
+  balance=0;
+  await page.getByTestId('theme-picker-button').click();
+  await page.getByRole('button',{name:'Recheck ownership',exact:true}).click();
+  await expect(choice).toBeDisabled();
+  await expect(page.locator('.sv-scene')).toHaveCount(0);
+  balance=1; fail=true;
+  await page.getByRole('button',{name:'Recheck ownership',exact:true}).click();
+  await expect.poll(() => page.evaluate(() => window.chainlensSovereign.get().status)).toBe('error');
+  await expect(choice).toBeDisabled();
+  fail=false;
+  await page.getByRole('button',{name:'Recheck ownership',exact:true}).click();
+  await expect(page.locator('.sv-scene')).toHaveCount(1);
+  // A watch-only copy of a holder address must not unlock the saved selection.
+  await page.unroute('**/api/profile');
+  await page.route('**/api/profile',route => route.fulfill({json:{...ME,cl_wallets:ME.cl_wallets.map(w=>({...w,watch_only:true}))}}));
+  await page.reload();
+  await page.getByTestId('theme-picker-button').click();
+  await expect(choice).toBeDisabled();
+  await expect(page.locator('.sv-scene')).toHaveCount(0);
 });

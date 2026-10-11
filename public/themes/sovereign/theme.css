@@ -1,0 +1,33 @@
+/* Original Sovereign materials and motion, adapted to ChainLens geometry. */
+.cl-art-choice-sovereign { color:#f5f1e8; border:1px solid #dfc59469 !important; border-radius:20px !important; background:radial-gradient(ellipse at 90% 0%,#7e73952b,transparent 65%),linear-gradient(115deg,#1a2432,#090e18 65%); box-shadow:inset 0 1px #fff2; }
+.cl-art-choice-sovereign .cl-art-choice-mark { width:40px; height:40px; font-size:0; background:url('/themes/sovereign/crest.svg') center/contain no-repeat; }
+.cl-art-choice-sovereign .cl-art-choice-description { color:#bdc4d2; font-size:11px; }
+.cl-art-choice-sovereign:disabled { opacity:.55; cursor:not-allowed; }
+.sv-scene { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; background:radial-gradient(ellipse at 75% 0%,#192135,transparent 62%),radial-gradient(ellipse at 0% 80%,#151420,transparent 58%),#080c13; }
+.sv-aura { position:absolute; inset:-40%; opacity:.48; background:conic-gradient(from 25deg,transparent 12%,#7762941c 25%,transparent 39%,#d3b77924 56%,transparent 70%,#667b9a23 90%,transparent); animation:sv-turn 90s linear infinite; }
+.sv-orbit { position:absolute; right:-12%; top:5%; width:min(1100px,120vw); max-width:none; opacity:.23; animation:sv-turn 100s linear infinite; }
+.sv-light { position:absolute; inset:0; background:radial-gradient(450px circle at var(--sv-pointer-x,70%) var(--sv-pointer-y,15%),#d6bc8520,transparent 75%); }
+html[data-cl-art-theme='sovereign'] body { background:#080c13; }
+html[data-cl-art-theme='sovereign'] #root { position:relative; z-index:1; }
+html[data-cl-art-theme='sovereign'] .cl-art-app { background:transparent !important; }
+html[data-cl-art-theme='sovereign'] :is(.cl-sidebar,.cl-art-panel,.glass-card,.cl-search-hero,.dex-swap .panel,.swap-asset-card) {
+  background:radial-gradient(ellipse at var(--sv-x,12%) var(--sv-y,0%),#dbbe8515,transparent 65%),linear-gradient(140deg,#223044b8,#111924ed 44%,#141725ed) !important;
+  border:1px solid #becad538 !important; border-image:none !important; border-radius:22px !important;
+  box-shadow:inset 0 1px #f4e8d538,inset 0 -1px #0a0e19,0 12px 32px #0003;
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+}
+html[data-cl-art-theme='sovereign'] .cl-sidebar { border-radius:0 !important; }
+html[data-cl-art-theme='sovereign'] :is(h1,h2,h3) { color:#f3e8d4; }
+html[data-cl-art-theme='sovereign'] :is(.cl-search-hero h1,.font-heading) { font-family:'CL Garamond',Georgia,serif !important; letter-spacing:.005em; }
+html[data-cl-art-theme='sovereign'] .cl-search-hero > [aria-hidden='true'] { display:none; }
+html[data-cl-art-theme='sovereign'] :is(.cl-search-field,input,select) { background-color:#080e19b3; border-color:#b8c3d140; color:#f5f1e8; }
+html[data-cl-art-theme='sovereign'] :is(.cl-search-form button[type='submit'],.cl-art-action,.dex-swap button.primary) { background:linear-gradient(115deg,#f0dfba,#cab080 60%,#e3cba0) !important; color:#141923 !important; border:1px solid #f6e5c780; border-radius:13px; box-shadow:inset 0 1px #fff7e4bf,0 4px 16px #d7b67916; }
+html[data-cl-art-theme='sovereign'] .cl-nav-item { border-radius:14px; }
+html[data-cl-art-theme='sovereign'] .cl-nav-item[aria-current='page'] { background:#dfc59420; color:#f1dfb9; }
+html[data-cl-art-theme='sovereign'] [data-testid='magic-swap-logo'] img { filter:grayscale(1) sepia(.35) brightness(1.55) drop-shadow(0 1px 2px #000); image-rendering:auto; }
+.sv-ripple { position:fixed; z-index:10000; width:64px; height:64px; border:1px solid #ecdbb980; border-radius:50%; pointer-events:none; transform:translate(-50%,-50%) scale(.25); animation:sv-ripple .65s cubic-bezier(.16,1,.3,1) forwards; }
+@keyframes sv-turn { to { transform:rotate(360deg); } }
+@keyframes sv-ripple { to { transform:translate(-50%,-50%) scale(1.6); opacity:0; } }
+html[data-sv-motion='paused'] .sv-scene * { animation-play-state:paused; }
+@media(prefers-reduced-motion:reduce) { .sv-scene *,.sv-ripple { animation:none !important; } }
+@media(max-width:640px) { .sv-orbit { right:-40%; top:12%; width:155vw; } }

@@ -194,3 +194,18 @@
 ### 2026-10-10T22:11-03:00 · codex · handoff · 1faccb1 (main) dirty 6
 - ChainLens art/material customization removed and verified locally.
 - next: User reviews fixed art palettes; no deployment authorized.
+
+### 2026-10-11T01:15-03:00 · codex · claim · fbbe089 (main) dirty 1
+- task: Port holder-gated Sovereign motion theme to ChainLens
+- lease until 2026-10-11T04:15-03:00
+
+### 2026-10-11T01:23-03:00 · codex · checkpoint · fbbe089 (main) dirty 7
+- Sovereign assets/material port registered first and fixed; mainnet4663 verified-linked-EVM balanceOf gate. Direct fresh profile proof, watch-only exclusion,10s timeout,90s freshness/60s visible refresh.193baseline+5gate Node tests pass. Browser motion/ownership journey in progress;15 existing picker journeys running. .sovereign-*.log/.local-artifacts/sovereign/. No commit/deploy.
+
+### 2026-10-11T01:24-03:00 · codex · verify · fbbe089 (main) dirty 7
+- verified: npm check/explicit sovereign+docs JS syntax;198Node tests;15existing picker journeys;Sovereign holder/motion journey pass. Exact balanceOf,watch-only exclusion,stale response/timeout; browser holder/nonholder/reload/error revocation,animation advances,pointer/ripple,reduced-motion and390/1280 geometry. Desktop/mobile screenshots reviewed.
+- docs/SOVEREIGN-THEME.md; .sovereign-*.log and .local-artifacts/sovereign/. Fixed art palette; no signing/provider changes,commit/deploy. Documentation page keeps unverified Sovereign disabled.
+
+### 2026-10-11T01:24-03:00 · codex · handoff · fbbe089 (main) dirty 7
+- Holder-gated Sovereign animation port complete locally on ChainLens. Existing art/color flows pass regression checks.
+- next: User reviews Sovereign locally; deployment remains user-controlled. See docs/SOVEREIGN-THEME.md.

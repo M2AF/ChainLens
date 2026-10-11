@@ -43,6 +43,8 @@
   <script src="/texture-engine.js"></script>
   <link rel="stylesheet" href="/textures.css">
   <script src="/theme-engine.js"></script>
+  <script src="/sovereign.js"></script>
+  <link rel="stylesheet" href="/themes/sovereign/theme.css">
   <link rel="stylesheet" href="/art-themes.css">
   <link rel="stylesheet" href="/themes/emonad/theme.css">
   <link rel="stylesheet" href="/themes/r3tards/theme.css">
@@ -1226,7 +1228,7 @@
      * markup. With one, it opens the twelve themes MagicMoney ships plus
      * whatever the wallet has synced to the account.
      */
-    const ThemePicker = ({ activeTheme, darkMode, eligible, builtins, customs, onSelect, onEdit }) => {
+    const ThemePicker = ({ activeTheme, darkMode, eligible, builtins, customs, onSelect, onEdit, sovereign }) => {
       const [open, setOpen] = useState(false);
       const boxRef = useRef(null);
       const materials = window.chainlensTextures;
@@ -1278,13 +1280,13 @@
         const selected = theme.id === activeTheme.id;
         return (
           <div key={theme.id} className="flex items-center">
-          <button onClick={() => { onSelect(theme.id); setOpen(false); }}
+          <button disabled={theme.id === 'sovereign' && !window.chainlensSovereign.allowed()} onClick={() => { onSelect(theme.id); setOpen(false); }}
                   data-testid={`theme-option-${theme.id}`} aria-current={selected ? 'true' : undefined}
                   className={`${theme.art ? `cl-art-choice cl-art-choice-${theme.id}` : ''} flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors ${selected
                     ? (darkMode ? 'bg-slate-800' : 'bg-slate-100')
                     : (darkMode ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50')}`}>
             {theme.art ? <span className="cl-art-choice-mark" aria-hidden="true">◇</span> : <ThemeSwatch colors={theme.colors} />}
-            <span className="flex-1 min-w-0 text-[11px] font-bold">{theme.name}{theme.art && <span className="cl-art-choice-description">{theme.artDescription}{theme.edited ? ' · Recoloured' : ''}</span>}</span>
+            <span className="flex-1 min-w-0 text-[11px] font-bold">{theme.name}{theme.art && <span className="cl-art-choice-description">{theme.artDescription}{theme.id === 'sovereign' ? (window.chainlensSovereign.allowed() ? ' · Unlocked' : ' · Locked') : ''}{theme.edited ? ' · Recoloured' : ''}</span>}</span>
             {selected && <span className="text-cyan-400 text-xs leading-none">✓</span>}
           </button>
           {!isBaseMode(theme.id) && !theme.fixedPalette && <button type="button" aria-label={`Edit ${theme.name}`} data-testid={`theme-edit-${theme.id}`}
@@ -1311,6 +1313,7 @@
           {open && (
             <div role="menu" data-testid="theme-menu"
                  className={`absolute right-0 mt-2 w-72 max-h-[70vh] overflow-y-auto rounded-2xl border backdrop-blur-md p-1.5 shadow-xl ${darkMode ? 'bg-slate-900/95 border-slate-700 dark-scroll' : 'bg-white/95 border-slate-200'}`}>
+              <div className="px-3 py-2 text-xs" aria-live="polite">{sovereign.status === 'owned' ? 'REDACTED ownership verified' : sovereign.status === 'checking' ? 'Checking REDACTED ownership…' : sovereign.status === 'error' ? 'Ownership check unavailable' : 'Own REDACTED on Robinhood to unlock Sovereign'}<button className="block mt-2 text-cyan-400" disabled={sovereign.status === 'checking'} onClick={() => window.chainlensSovereign.refresh()}>Recheck ownership</button></div>
               {heading('Texture')}
               <div className="texture-picker">
                 <div className="texture-grid" aria-label="Surface texture">
@@ -1834,6 +1837,24 @@
       // likely to go looking for it.
       }, [authToken, userProfile]);
 
+      const [sovereign, setSovereign] = useState(() => window.chainlensSovereign.get());
+      useEffect(() => {
+        const update = () => setSovereign({ ...window.chainlensSovereign.get() });
+        window.addEventListener('cl-sovereign-change', update);
+        return () => window.removeEventListener('cl-sovereign-change', update);
+      }, []);
+      useEffect(() => {
+        let cancelled = false;
+        window.chainlensSovereign.bind([]);
+        if (authToken && themeAccess.eligible) {
+          fetch('/api/profile', { headers: { Authorization: `Bearer ${authToken}` }, cache: 'no-store' })
+            .then(response => response.ok ? response.json() : null)
+            .then(profile => { if (!cancelled) window.chainlensSovereign.bind(profile?.cl_wallets || []); })
+            .catch(() => { if (!cancelled) window.chainlensSovereign.bind([]); });
+        }
+        return () => { cancelled = true; window.chainlensSovereign.bind([]); };
+      }, [authToken, userProfile, themeAccess.eligible]);
+
       const customThemes = useMemo(() => {
         const engine = window.chainlensThemes;
         if (!engine || !themeAccess.eligible) return [];
@@ -1902,15 +1923,15 @@
       // The stored id is deliberately left alone: it comes back on sign-in.
       const activeTheme = useMemo(() => {
         if (isBaseMode(themeId)) return BASE_MODES[themeId === 'dark' ? 1 : 0];
-        const theme = themeAccess.eligible ? themeById(themeId) : null;
+        const theme = themeAccess.eligible && (themeId !== 'sovereign' || window.chainlensSovereign.allowed()) ? themeById(themeId) : null;
         // Only a theme that cannot be resolved has to guess, and darkMode is
         // what the page is actually painted in.
         return theme || BASE_MODES[darkMode ? 1 : 0];
-      }, [themeId, themeAccess.eligible, themeById, darkMode]);
+      }, [themeId, themeAccess.eligible, themeById, darkMode, sovereign]);
 
       useEffect(() => {
         const engine = window.chainlensThemes;
-        const theme = themeAccess.eligible ? themeById(themeId) : null;
+        const theme = themeAccess.eligible && (themeId !== 'sovereign' || window.chainlensSovereign.allowed()) ? themeById(themeId) : null;
         let tone;
         if (!engine) {
           // The engine failed to load. Light and Dark still render correctly:
@@ -1932,7 +1953,7 @@
           // — and so a build without themes still opens in the right mode.
           localStorage.setItem('darkMode', String(tone === 'dark'));
         } catch {}
-      }, [themeId, themeAccess.eligible, themeById]);
+      }, [themeId, themeAccess.eligible, themeById, sovereign]);
 
       // Merge the profile's list in on sign-in, then seed the profile with
       // anything hidden while signed out. Merged, never assigned: a decision made
@@ -3522,6 +3543,7 @@
               builtins={builtinThemes}
               customs={customThemes}
               onSelect={setThemeId}
+              sovereign={sovereign}
               onEdit={theme => { setThemeSaveError(''); setThemeEditor(theme || { kind: 'new' }); }}
             />
             {themeEditor && <ThemeEditor key={themeEditor.id || 'new'} theme={themeEditor.kind === 'new' ? null : themeEditor}
