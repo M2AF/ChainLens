@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const path = require('node:path');
+const {installApeFixture}=require('./ape-fixture');
 const { buildPrecompiledPage } = require('../precompile-page');
 const compiled = buildPrecompiledPage(path.resolve(__dirname, '../public'));
 if (!compiled) throw new Error('Theme journey requires a compiled homepage');
@@ -44,6 +45,7 @@ async function installThemeMocks(page, { themes = null, signedIn = true } = {}) 
   });
   // The palette contract is tested independently of translucent finishes.
   await page.addInitScript(() => localStorage.setItem('cl_texture.v1','flat'));
+  await installApeFixture(page);
   const response = structuredClone(themes || { eligible: false, walletLinked: false, socialLinked: false, entries: {} });
   if (signedIn) {
     await page.addInitScript(() => localStorage.setItem('cl_token', 'playwright-theme-token'));
@@ -586,4 +588,36 @@ test('Sovereign verifies holders, animates real views and revokes failed ownersh
   await page.getByTestId('theme-picker-button').click();
   await expect(choice).toBeDisabled();
   await expect(page.locator('.sv-scene')).toHaveCount(0);
+});
+
+
+test('Ape holder picker chooses verified portraits and preserves only an owner preference',async({page})=>{
+  test.setTimeout(90000);
+  await installThemeMocks(page,{themes:ELIGIBLE});
+  await page.unroute('https://ethereum-rpc.publicnode.com/');await page.unroute('https://eth.blockscout.com/api/v2/tokens/**');await page.unroute('**/ipfs/bafyfixture/**');
+  const control=await installApeFixture(page,{balance:2,ids:['6637','6638']});
+  await page.goto('/');await page.getByTestId('theme-picker-button').click();
+  const tile=page.getByTestId('theme-option-ape-society');
+  await expect(tile).toBeEnabled();await tile.click();
+  await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','ape-society');
+  await page.getByTestId('theme-picker-button').click();
+  const selector=page.getByRole('combobox',{name:'Theme ape',exact:true});
+  await expect(selector).toBeVisible();await selector.selectOption(`${control.owner}:6638`);
+  await expect(tile).toContainText('Second Ape');
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.style.getPropertyValue('--ape-portrait'))).toContain('/6638.jpg');
+  await expect(page.getByRole('button',{name:'Refresh owned apes',exact:true})).toHaveCSS('width','26px');
+  await selector.scrollIntoViewIfNeeded();
+  await page.screenshot({path:'.local-artifacts/ape-holder/chainlens-picker.png'});
+  await page.reload();await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','ape-society',{timeout:30000});
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.style.getPropertyValue('--ape-portrait'))).toContain('/6638.jpg');
+  await page.getByTestId('theme-picker-button').click();control.balance=0;
+  await page.getByRole('button',{name:'Refresh owned apes',exact:true}).click();
+  await expect(tile).toBeDisabled();await expect(selector).toHaveCount(0);
+  await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme','ape-society');
+  control.balance=2;control.fail=true;
+  await page.getByRole('button',{name:'Refresh owned apes',exact:true}).click();await expect(tile).toContainText('unavailable');
+  await expect(tile).toBeDisabled();
+  control.fail=false;await page.getByRole('button',{name:'Refresh owned apes',exact:true}).click();await expect(tile).toBeEnabled();
+  await page.unroute('**/api/profile');await page.route('**/api/profile',route=>route.fulfill({json:{...ME,cl_wallets:ME.cl_wallets.map(w=>({...w,watch_only:true}))}}));
+  await page.reload();await page.getByTestId('theme-picker-button').click();await expect(tile).toBeDisabled();
 });

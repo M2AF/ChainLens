@@ -143,7 +143,14 @@ var ChainLensApeAccess = (() => {
       options.changed();
     };
     const key = (owner) => options.prefix + "." + owner;
+    const activeKey = () => options.prefix + ".active." + owners.join(",");
     const preferred = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(activeKey()) || "null");
+        const ape = state.apes.find((a) => a.owner === saved?.owner && a.id === saved?.id);
+        if (ape) return ape;
+      } catch {
+      }
       for (const owner of owners) {
         const id = localStorage.getItem(key(owner));
         const ape = state.apes.find((a) => a.owner === owner && a.id === id);
@@ -232,6 +239,7 @@ var ChainLensApeAccess = (() => {
       const ape = state.apes.find((a) => a.owner === owner && a.id === id);
       if (!ape || !owners.includes(owner)) return;
       localStorage.setItem(key(owner), id);
+      localStorage.setItem(activeKey(), JSON.stringify({ owner, id }));
       controller?.abort();
       ++generation;
       pending = null;

@@ -228,3 +228,14 @@
 ### 2026-10-11T19:58-03:00 · codex · claim · 3622c51 (main) dirty 7
 - task: Ape Society holder gate and personal portrait port
 - lease until 2026-10-11T22:58-03:00
+
+### 2026-10-11T20:18-03:00 · codex · checkpoint · 56dc1ef (main) dirty 2
+- Ape holder selection port uses same generated wallet core. Authenticated verified EVM wallets only; watch-only removed, generation guard/45s timeout/90s freshness; scoped remoteportrait property and per-owner token-ID preference. Compact tile refresh icons and selected Ape dropdown.198Node tests and initial Ape theme plus owned-selection/error/watch-only journeys pass; full18picker jobs ongoing .ape-holder-browser-final.log.
+
+### 2026-10-11T20:31-03:00 · codex · verify · 56dc1ef (main) dirty 5
+- verified: npm check/198Node tests;all18theme-picker journeys and final owned-selection/compact UI/preference reload/error/zero/watch-only rerun pass. Shared generated core latest owner-set preference change validated. Screenshot reviewed .local-artifacts/ape-holder/chainlens-picker.png.
+- Ape Society uses exact Ethereum contract, candidate discovery then on-chain ownerOf/tokenURI and loaded artwork; verified profile owners only. Compact refresh icons and selected Ape dropdown. Wallet docs/APE-SOCIETY-HOLDER-ACCESS.md and .ape-holder-*.log. No deploy/install action performed.
+
+### 2026-10-11T20:31-03:00 · codex · handoff · 56dc1ef (main) dirty 5
+- Personal owned-Ape holder theme and compact controls complete and checked locally in ChainLens.
+- next: User reviews owned portrait selector; deployment remains user-controlled. Source core must be regenerated from wallet after future edits.
