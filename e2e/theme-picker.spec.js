@@ -155,7 +155,7 @@ test('signed in without chat access, the themes stay locked away', async ({ page
   await expect(page.getByTestId('theme-picker')).toHaveCount(0);
 });
 
-test('an eligible account gets twenty-three shipped themes and its own synced ones', async ({ page }) => {
+test('an eligible account gets twenty-four shipped themes and its own synced ones', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await installThemeMocks(page, { themes: ELIGIBLE });
@@ -165,8 +165,8 @@ test('an eligible account gets twenty-three shipped themes and its own synced on
   const menu = page.getByTestId('theme-menu');
   await expect(menu).toBeVisible();
 
-  // Light and Dark, twenty-three shipped themes, and Cherry.
-  await expect(menu.locator('[data-testid^="theme-option-"]')).toHaveCount(26);
+  // Light and Dark, twenty-four shipped themes, and Cherry.
+  await expect(menu.locator('[data-testid^="theme-option-"]')).toHaveCount(27);
   await expect(page.getByTestId('theme-option-moonlight')).toBeVisible();
   await expect(page.getByTestId('theme-option-sappy-seals')).toBeVisible();
   await expect(page.getByTestId('theme-option-custom-cherry')).toBeVisible();
@@ -231,7 +231,7 @@ test('losing access falls back to the tone the user was looking at', async ({ pa
   await expect(shell(page)).toHaveCSS('background-color', STOCK_DARK_PAGE);
 });
 
-for (const art of [{ id: 'mallard-order', name: 'Mallard Order' }, { id: 'sealuminati', name: 'Sealuminati' }, { id: 'emonad', name: 'Emonad' }]) {
+for (const art of [{ id: 'ape-society', name: 'The Ape Society' }, { id: 'mallard-order', name: 'Mallard Order' }, { id: 'sealuminati', name: 'Sealuminati' }, { id: 'emonad', name: 'Emonad' }]) {
   test(`${art.name} skin persists, frames real pages and is not editable and clears on access loss`, async ({ page }) => {
     test.setTimeout(120_000);
     const errors = [];
@@ -253,7 +253,7 @@ for (const art of [{ id: 'mallard-order', name: 'Mallard Order' }, { id: 'sealum
         }
       }
     });
-    const framed = new RegExp(`/themes/${art.id}/frame\\.webp`);
+    const framed = new RegExp(`/themes/${art.id}/frame.*\\.(webp|png)`);
     if (art.id === 'emonad') {
       await page.getByTestId('theme-picker-button').click();
       const ids = await page.locator('[data-testid^=theme-option-]').evaluateAll(els => els.map(el => el.getAttribute('data-testid')));
@@ -331,12 +331,12 @@ test('tarot and existing art skins cover Profile, App Hub and Market without fil
   await page.route('**/api/profile', route => route.fulfill({ json: { ...ME, avatar_url: avatar } }));
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
-  for (const id of ['mallard-order', 'sealuminati', 'emonad']) {
+  for (const id of ['ape-society', 'mallard-order', 'sealuminati', 'emonad']) {
     await page.getByTestId('theme-picker-button').click();
     await page.getByTestId(`theme-option-${id}`).click();
     await page.locator('.cl-sidebar').getByRole('button', { name: 'Profile', exact: true }).click();
     await expect(page.locator('.profile-banner')).toBeVisible();
-    await expect(page.locator('.profile-account .glass-card').first()).toHaveCSS('border-image-source', new RegExp(`/themes/${id}/frame\\.webp`));
+    await expect(page.locator('.profile-account .glass-card').first()).toHaveCSS('border-image-source', new RegExp(`/themes/${id}/frame.*\\.(webp|png)`));
     await expect(page.locator('.profile-banner-avatar img')).toHaveCSS('filter', 'none');
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 900 });
@@ -355,7 +355,7 @@ test('tarot and existing art skins cover Profile, App Hub and Market without fil
     await page.locator('.cl-sidebar').getByRole('button', { name: 'Market', exact: true }).click();
     await expect(page.getByRole('img', { name: 'Market Watch', exact: true })).toBeVisible();
     await page.getByRole('group', { name: 'Market Watch view' }).getByRole('button', { name: 'New Listings' }).click();
-    await expect(page.getByTestId('new-listings-panel').getByRole('article')).toHaveCSS('border-image-source', new RegExp(`/themes/${id}/frame\\.webp`));
+    await expect(page.getByTestId('new-listings-panel').getByRole('article')).toHaveCSS('border-image-source', new RegExp(`/themes/${id}/frame.*\\.(webp|png)`));
     await page.setViewportSize({ width: 390, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: `test-results/${id}-market-390.png` });

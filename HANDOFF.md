@@ -2,18 +2,19 @@
 <!-- handoff v1. LIVE STATE ONLY: rewrite in place, keep under ~60 lines.
      History goes in HANDOFF_LOG.md. Machine fields above the first ## are managed by handoff.py. -->
 
-owner: none
-task: -
-lease_until: -
+owner: codex
+task: Ape Society holder gate and personal portrait port
+lease_until: 2026-10-11T22:58-03:00
 repo: .
 verify: npm run check && npm test
-verified: fbbe089 · npm check/explicit sovereign+docs JS syntax;198Node tests;15existing picker journeys;Sovereign holder/motion journey pass. Exact balanceOf,watch-only exclusion,stale response/timeout; browser holder/nonholder/reload/error revocation,animation advances,pointer/ripple,reduced-motion and390/1280 geometry. Desktop/mobile screenshots reviewed. · 2026-10-11T01:24-03:00
-head: fbbe089 (main) dirty 7
-updated: 2026-10-11T01:24-03:00 · codex
+verified: 3622c51 · npm check;198Node tests;all17picker journeys and final Profile/AppHub/Market follow-up pass. Ape Search/Scanner/Swap/Profile/AppHub/Market360/390/1280 geometry,art customization locked,profile recolors ignored,reload/access loss and existing Sovereign holder/motion/color themes pass. Desktop/mobile screenshots reviewed. · 2026-10-11T19:54-03:00
+head: 3622c51 (main) dirty 7
+updated: 2026-10-11T19:58-03:00 · codex
 
 resources: -
 
 ## Now
+- The Ape Society port complete locally below Sovereign: same supplied portrait/frames as wallet, emerald/ivory/gold fixed palette, framed Search/Scanner/Swap/Profile/AppHub/Market; stock responsive navigation, original smooth brands and custom-color behavior preserved. npm check/198Node tests;all17picker journeys plus final Profile/AppHub/Market follow-up pass; screenshots reviewed. docs/APE-SOCIETY-THEME.md; .ape-*.log/.local-artifacts/ape-society/. No commit/deploy/install.
 - Sovereign port complete locally, first Art theme and fixed palette: original wallet orbit/crest, smoked panels/champagne lighting, pointer/touch highlights/press rings, reduced-motion/visibility pause and cleanup. REDACTED Robinhood4663 holder gate checks fresh authenticated profile verified-EVM wallets (no watch-only), block-bound balanceOf,90s freshness/60s refresh/10s timeout; signout/zero/error removes skin. npm check/198Node tests;15existing picker journeys plus Sovereign journey pass. docs/SOVEREIGN-THEME.md; .sovereign-*.log; .local-artifacts/sovereign/. No commit/deploy; wallet unchanged.
 - Art/material themes are fixed palettes locally: no edit controls, old profile recolors ignored; docs picker also locked. Ordinary colors/custom themes remain editable.193Node tests/npm check;14picker journeys plus legacy-profile test pass. docs/ART-THEME-PALETTE-LOCK.md; .art-lock-*.log. No commit/deploy.
 - Emonad tarot theme complete locally, immediately above r3tards: original card backdrop/character, flat rose/vine/moon/star frame, muted purple/silver; smooth original brands, stock portfolio layout. docs/EMONAD-THEME.md; .local-artifacts/emonad/. Checks .emonad-*.log pass; no commit/deploy/install.
@@ -36,7 +37,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User reviews Sovereign locally; deployment remains user-controlled. See docs/SOVEREIGN-THEME.md.
+- User reviews Ape Society previews; no deployment or phone installation performed for this theme.
 
 ## Traps
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.

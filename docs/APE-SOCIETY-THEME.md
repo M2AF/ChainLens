@@ -1,0 +1,11 @@
+# The Ape Society
+
+The wallet's fixed emerald/antique gold theme is ported immediately below Sovereign using the same unchanged supplied artwork. Slim gold frames surround search/scanner/swap/content panels, the carved grand frame surrounds the search hero and picker, and bronze frames distinguish secondary profile account cards. Painterly green surfaces and the supplied Roch Edwards portrait form a coherent backdrop. Local Garamond display type, readable system/mono body and amount text, original smooth brands and warm gold actions preserve the gallery direction.
+
+`public/themes/ape-society/` contains the original PNGs, scoped theme.css and hash provenance. The theme is registered in theme-engine.js, loaded by index.html and included in the shared art hooks. Emonad remains immediately above r3tards. Art skins stay fixed and ignore old recolors; ordinary/custom colors remain editable. Existing ChainLens profile theme eligibility applies; no new NFT gate was requested for this theme. Sovereign remains REDACTED holder-only.
+
+Reference: https://www.theapesociety.io/gallery/. The original supplied frames/portrait are copied unchanged from Downloads; all crop/tint/scale choices are CSS. Existing locally licensed fonts are reused.
+
+Validation: npm check;198 Node tests; all17 theme-picker journeys and an additional final Profile/App Hub/Market follow-up pass. They cover Search/Scanner/Swap/Profile/App Hub/Market,360/390/1280 geometry, profile recolors ignored, custom theme editing, reload, and access-loss cleanup. Reviewed screenshots in `.local-artifacts/ape-society/`; `.ape-*.log` records exact final results. Providers/profile data are local fixtures, no production writes or signatures.
+
+Implemented locally; no commit, deployment or wallet/device installation.

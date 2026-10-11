@@ -209,3 +209,22 @@
 ### 2026-10-11T01:24-03:00 · codex · handoff · fbbe089 (main) dirty 7
 - Holder-gated Sovereign animation port complete locally on ChainLens. Existing art/color flows pass regression checks.
 - next: User reviews Sovereign locally; deployment remains user-controlled. See docs/SOVEREIGN-THEME.md.
+
+### 2026-10-11T19:36-03:00 · codex · claim · 3622c51 (main) dirty 1
+- task: Ape Society art theme port after wallet
+- lease until 2026-10-11T22:36-03:00
+
+### 2026-10-11T19:46-03:00 · codex · checkpoint · 3622c51 (main) dirty 7
+- Ape Society port uses unchanged supplied3PNG frames/Roch_Edwards portrait, fixed emerald/gold palette and shared art hooks.198Node tests/npm check pass. Existing wallet narrow geometry now passes; ChainLens search/scanner/swap mobile journey in .ape-browser.log ongoing. No commit/deploy/install.
+
+### 2026-10-11T19:54-03:00 · codex · verify · 3622c51 (main) dirty 7
+- verified: npm check;198Node tests;all17picker journeys and final Profile/AppHub/Market follow-up pass. Ape Search/Scanner/Swap/Profile/AppHub/Market360/390/1280 geometry,art customization locked,profile recolors ignored,reload/access loss and existing Sovereign holder/motion/color themes pass. Desktop/mobile screenshots reviewed.
+- Original supplied3PNG frames/Roch painting copied unchanged, source hashes match wallet. Gallery reference recorded in docs/APE-SOCIETY-THEME.md; .ape-*.log/.local-artifacts/ape-society/. No commit/deploy/install.
+
+### 2026-10-11T19:54-03:00 · codex · handoff · 3622c51 (main) dirty 7
+- Ape Society theme complete and verified locally in ChainLens after Magic Money. Original assets and fixed art identity retained.
+- next: User reviews Ape Society previews; no deployment or phone installation performed for this theme.
+
+### 2026-10-11T19:58-03:00 · codex · claim · 3622c51 (main) dirty 7
+- task: Ape Society holder gate and personal portrait port
+- lease until 2026-10-11T22:58-03:00

@@ -1,0 +1,26 @@
+/* Original supplied Ape Society frames and Roch Edwards portrait. */
+:root[data-cl-art-theme='ape-society'] {
+  --cl-art-frame:url('/themes/ape-society/frame-gold.png'); --cl-art-texture:var(--ape-portrait, url('/themes/ape-society/portrait.png'));
+  --cl-art-slice:12%; --cl-art-frame-width:22px; --cl-art-inset:30px;
+  --cl-art-display:'CL Garamond',Georgia,serif; --cl-art-body:Arial,sans-serif;
+  --cl-art-gold:#d3b36a; --cl-art-surface:#102c22; --cl-art-input:#04150e; --cl-art-radius:3px;
+}
+.cl-art-choice-ape-society { color:#f3ecda; background:linear-gradient(#071d1660,#071d1660),var(--ape-portrait, url('/themes/ape-society/portrait.png')) center 12%/cover; border-image:url('/themes/ape-society/frame-grand.png') 17% / 18px / 0 stretch; font-family:'CL Garamond',Georgia,serif; }
+.cl-art-choice-ape-society .cl-art-choice-mark { width:40px; height:48px; font-size:0; background:var(--ape-portrait, url('/themes/ape-society/portrait.png')) center/cover; border:1px solid #d3b36a; }
+.cl-art-choice-ape-society .cl-art-choice-description { color:#d8d2b9; font:11px/1.4 Arial,sans-serif; }
+html[data-cl-art-theme='ape-society'] .cl-art-app { background:linear-gradient(#071d1655,#03100bdd),var(--ape-portrait, url('/themes/ape-society/portrait.png')) right top/cover fixed; }
+html[data-cl-art-theme='ape-society'] .cl-sidebar { background:linear-gradient(#0d291eeb,#092319f5),var(--ape-portrait, url('/themes/ape-society/portrait.png')) right top/1600px auto; border-color:#d3b36a60; }
+html[data-cl-art-theme='ape-society'] :is(.cl-art-panel,.glass-card,.dex-swap .panel,.dex-swap .swap-asset-card,.cl-search-page > .space-y-7 > section) { background:linear-gradient(#0d291eea,#092319f5),var(--ape-portrait, url('/themes/ape-society/portrait.png')) right top/1600px auto !important; border-image-repeat:stretch !important; }
+html[data-cl-art-theme='ape-society'] .cl-search-hero { border-image-source:url('/themes/ape-society/frame-grand.png') !important; border-image-slice:17% !important; border-image-width:26px !important; }
+html[data-cl-art-theme='ape-society'] .cl-search-hero h1 { font-family:'CL Garamond',Georgia,serif; letter-spacing:.015em; }
+html[data-cl-art-theme='ape-society'] .profile-account .glass-card { border-image-source:url('/themes/ape-society/frame-bronze.png') !important; border-image-slice:17% !important; }
+html[data-cl-art-theme='ape-society'] :is(.cl-search-form button[type='submit'],.cl-art-action,.dex-swap button.primary) { background:linear-gradient(#a4853c30,#082018) !important; color:#f3ecda !important; font-family:'CL Garamond',Georgia,serif; }
+html[data-cl-art-theme='ape-society'] [data-testid='magic-swap-logo'] img { image-rendering:auto; filter:grayscale(1) sepia(.6) brightness(1.65) drop-shadow(0 1px 2px #000); }
+html[data-cl-art-theme='ape-society'] .cl-sidebar img[alt='ChainLens'] { image-rendering:auto; }
+
+.cl-theme-entry { position:relative; }
+.cl-holder-refresh { position:absolute; right:14px; top:10px; width:26px; height:26px; padding:0; border:1px solid #d3b36a70; border-radius:5px; color:#dfc594; background:#07120dcc; font:20px Arial,sans-serif; cursor:pointer; }
+.cl-holder-refresh:disabled { opacity:.45; cursor:wait; }
+.cl-theme-entry:has(.cl-holder-refresh) .cl-art-choice { padding-right:46px !important; }
+.cl-ape-select { width:100%; display:flex; align-items:center; gap:8px; padding:8px 12px; font-size:10px; }
+.cl-ape-select select { flex:1; min-width:0; padding:6px; border:1px solid #d3b36a70; border-radius:4px; color:#f3ecda; background:#071d16; }

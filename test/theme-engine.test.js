@@ -56,11 +56,11 @@ test('the :root block holds stock Tailwind values', () => {
 
 // ── The shipped themes ───────────────────────────────────────────────────────
 
-test('the twenty-three shipped themes are present, unique, and well formed', () => {
-  assert.equal(themes.BUILTIN_THEMES.length, 23);
+test('the twenty-four shipped themes are present, unique, and well formed', () => {
+  assert.equal(themes.BUILTIN_THEMES.length, 24);
   const ids = themes.BUILTIN_THEMES.map(theme => theme.id);
   assert.equal(ids[ids.indexOf('r3tards') - 1], 'emonad');
-  assert.equal(new Set(ids).size, 23);
+  assert.equal(new Set(ids).size, 24);
   for (const theme of themes.BUILTIN_THEMES) {
     assert.ok(theme.name, `${theme.id} has no name`);
     for (const key of ['bg', 'accent', 'text']) {

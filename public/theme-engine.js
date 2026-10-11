@@ -385,6 +385,7 @@
     { id: 'bitcoin',     name: 'Bitcoin',      colors: { bg: '#000000', accent: '#f2a900', text: '#ababab' } },
     { id: 'sappy-seals', name: 'Sappy Seals',  colors: { bg: '#ffffff', accent: '#000000', text: '#000000' } },
     { id: 'sovereign', name: 'Sovereign', art: true, fixedPalette: true, artDescription: 'Kinetic crystal · REDACTED holders', colors: { bg: '#080c13', accent: '#dfc594', text: '#f5f1e8' } },
+    { id: 'ape-society', name: 'The Ape Society', art: true, fixedPalette: true, artDescription: 'Painted emerald · Antique gilt frames', colors: { bg: '#071d16', accent: '#d3b36a', text: '#f3ecda' } },
     { id: 'mallard-order', name: 'Mallard Order', art: true, fixedPalette: true, artDescription: 'Carved runes · Stone & gold', colors: { bg: '#10100e', accent: '#c6a75e', text: '#eee8d5' } },
     { id: 'sealuminati', name: 'Sealuminati', art: true, fixedPalette: true, artDescription: 'Pixel robes · Violet fire & gold', colors: { bg: '#120b24', accent: '#ffd34d', text: '#f4e9f6' } },
     { id: 'liquid-glass', name: 'Liquid Glass', art: true, fixedPalette: true, artDescription: 'Clear lenses · Fixed atmospheric palette', colors: { bg: '#102039', accent: '#cae8ff', text: '#f6f9ff' } },
@@ -485,6 +486,7 @@
    * colour belongs.
    */
   function applyTheme(colors, artId) {
+    if (artId === 'ape-society' && !(typeof window !== 'undefined' && window.chainlensApe?.allowed())) { applyMode('dark'); return 'dark'; }
     if (artId === 'sovereign' && !(typeof window !== 'undefined' && window.chainlensSovereign?.allowed())) { applyMode('dark'); return 'dark'; }
     if (BUILTIN_BY_ID[artId] && BUILTIN_BY_ID[artId].fixedPalette) colors = BUILTIN_BY_ID[artId].colors;
     var palette = paletteFor(colors);
