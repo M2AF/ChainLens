@@ -7,13 +7,17 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: f893eff · 192Node tests/check and both affected r3tards browser checks pass across runs. Cover-scaled non-repeating background screenshots reviewed; menu/Scanner geometry retained. Local only. · 2026-10-08T23:22-03:00
-head: f893eff (main) dirty 5
-updated: 2026-10-08T23:22-03:00 · codex
+verified: 749613a · Emonad:193Node tests/npm check/6 production JSX precompiles; all14picker tests pass; final silver-logo Emonad journey and expanded3skin Profile/AppHub/Market pass across reruns. Order/reload/recolour/access-loss and geometry checked; screenshots reviewed. · 2026-10-10T21:19-03:00
+head: 749613a (main) dirty 8
+updated: 2026-10-10T21:19-03:00 · codex
 
 resources: -
 
 ## Now
+- Emonad tarot theme complete locally, immediately above r3tards: original card backdrop/character, flat rose/vine/moon/star frame, muted purple/silver; smooth original brands, stock portfolio layout. docs/EMONAD-THEME.md; .local-artifacts/emonad/. Checks .emonad-*.log pass; no commit/deploy/install.
+- Five approved natural material skins implemented locally: Brushed Metal, Leather, Velvet, Walnut and Royal Blue Silk; fixed palettes, shared generated raster surfaces, coordinated cards, smooth logos and seamless brand/portfolio summary. docs/NATURAL-MATERIAL-THEMES.md; .local-artifacts/materials/. No commit/deploy/install.
+- Liquid Glass fixed-palette material skin added locally; no recolour. Shared scene/optical SVG, clear surfaces and transparent brand bars without divider; colourable Glass portfolio summary also seamless. Validation in .liquid-*.log; docs/LIQUID-GLASS.md. No commit/deploy/install.
+- Palette finishes implemented locally Oct10: Glass (translucent frosted), Flat, Fine Grain, Soft Fade; independent local picker and Two-tone surfaces switch (default on; off matching, including Glass), original art suspension and preserved custom colour/profile rules. Glass clearer at22% tint with ambient light/reflections/strong rim; Soft Fade strengthened; wallet summary gradient removed per review. User rejected material patterns; future realistic material skins should have fixed natural palettes. docs/PALETTE-FINISHES.md; .local-artifacts/textures/. No commit/deploy/install.
 - r3tards background refinement on user HEADf893eff: centered cover/no-repeat main and sidebar, matching source zoom/crop; portrait/landscape/mobile screenshots reviewed. Menu/Scanner positions preserved.192Node tests/check and r3tards full journey pass; layout rerun passes after correcting exact48px clearance assertion from strict-less-than to less-or-equal. No wallet edits/commit/deploy.
 - r3tards scaling fixed locally on user HEAD93eb5d0: rectangular viewport-bounded menu, content-width Scanner columns/shrinkable fields and centered cover-scaled non-repeating collage per user source reference. Regression reproduced account/UTXO overflow before fix; all13theme-picker browser tests,192Node tests/check and6JSX precompiles pass. Screenshots reviewed at1080x1800,1080x720,900x900 and360x900 in .local-artifacts/r3tards/r3tards-scaling-*.png. No wallet edits/commit/deploy.
 - r3tards collab complete locally: exact supplied PC.webp, source Schoolbell/Plex Mono fonts, white pill controls, purple panels and smooth neutral logos. 192Node/check,6JSX precompiles and all12picker browser tests pass; desktop/mobile screenshots reviewed including Market. docs/R3TARDS-THEME.md; .local-artifacts/r3tards/. No commit/deploy or wallet edits.
@@ -30,7 +34,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- Review r3tards screenshots in .local-artifacts/r3tards/; user handles ChainLens release.
+- User reviews Emonad Art themes; release remains user-controlled.
 
 ## Traps
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.
@@ -53,6 +57,8 @@ resources: -
 - Fullstack Iteration, Playwright Testing, Visual Iteration: implementation/browser/screenshot validation; Codex skills root C:/Users/balla/.codex/skills.
 
 ## Pointers
+- docs/EMONAD-THEME.md; .local-artifacts/emonad/; .emonad-*.log.
+- docs/NATURAL-MATERIAL-THEMES.md; material CSS/assets and provenance.json; e2e/natural-materials.spec.*; .local-artifacts/materials/; .materials-*.log.
 - docs/R3TARDS-THEME.md; public/themes/r3tards/; supplied C:/Users/balla/Downloads/PC.webp; .local-artifacts/r3tards/; r3tards-*.log.
 - docs/ART-THEMES.md; public/art-themes.css; public/themes/; e2e/theme-picker.spec.js; .local-artifacts/art-themes/; art-themes-*.log.
 - docs/COLLECTION-VIEWER.md;e2e/collection-viewer.spec.js;.local-artifacts/nft-coverage/lil-sappys-{mosaics,viewer-desktop,viewer-mobile}.png;collection-viewer-*.log.

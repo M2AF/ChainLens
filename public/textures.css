@@ -1,0 +1,64 @@
+/* Palette finishes: neutral, flat relief shared by background and panels.
+   Glass uses translucent panels with softly lit edges. */
+:is(:root, .texture-sample)[data-texture='glass'] {
+  --material-image: linear-gradient(135deg, #ffffff20, transparent 45%, #ffffff06);
+  --material-size: 100% 100%;
+}
+:is(:root, .texture-sample)[data-texture='flat'] {
+  --material-image: none;
+  --material-size: 100% 100%;
+}
+:is(:root, .texture-sample)[data-texture='grain'] {
+  --material-image: url('/themes/finishes/grain.svg');
+  --material-size: 128px 128px;
+}
+:is(:root, .texture-sample)[data-texture='fade'] {
+  --material-image: linear-gradient(135deg, #ffffff1a 0%, transparent 52%, #00000026 100%);
+  --material-size: 100% 100%;
+}
+
+:root[data-material-active] :is(.cl-art-app, .cl-sidebar, .cl-art-panel, .glass-card, .dex-swap .panel, .dex-swap .swap-asset-card, .cl-search-hero, .cl-search-field) {
+  background-image: var(--material-image) !important;
+  background-size: var(--material-size) !important;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+/* These neutral surfaces already follow the palette's light/dark text branch. */
+:root[data-surface-active][data-surface-tone='matching'] :is(.cl-sidebar, .cl-art-panel, .glass-card) { background-color: rgb(var(--cl-page)) !important; }
+:root[data-material-active][data-surface-tone='layered'] .cl-search-hero { background-color: rgb(var(--cl-slate-900)); }
+:root[data-material-active][data-surface-tone='layered'][data-cl-tone='light'] .cl-search-hero { background-color: rgb(var(--cl-white)); }
+/* The stock Search hero uses a dark fill in both modes. A matching light page
+   needs light-mode text tiers when that fill becomes the flat page colour. */
+:root[data-surface-active][data-cl-tone='light'] .cl-search-hero { color: rgb(var(--cl-slate-900)); }
+:root[data-surface-active][data-cl-tone='light'] .cl-search-hero :is(p, button:not([type='submit'])) { color: rgb(var(--cl-slate-600)); }
+:root[data-surface-active][data-cl-tone='light'] .cl-search-hero .text-cyan-300 { color: rgb(var(--cl-cyan-700)); }
+:root[data-surface-active][data-cl-tone='light'] .cl-search-hero input { color: rgb(var(--cl-slate-900)); }
+:root[data-surface-active][data-cl-tone='light'] .cl-search-hero input::placeholder { color: rgb(var(--cl-slate-600)); }
+
+.texture-picker { padding: 12px; }
+.texture-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.texture-choice { min-width: 0; border: 1px solid rgb(var(--cl-slate-400) / .3); border-radius: 8px; background: rgb(var(--cl-slate-800) / .08); color: inherit; padding: 6px; font: inherit; font-size: 10px; cursor: pointer; }
+.texture-choice[aria-pressed='true'] { border-color: rgb(var(--cl-cyan-400)); color: inherit; box-shadow: 0 0 0 1px rgb(var(--cl-cyan-400) / .2); }
+.texture-choice:focus-visible { outline: 2px solid rgb(var(--cl-cyan-400)); outline-offset: 2px; }
+.texture-sample { display: block; height: 30px; border-radius: 4px; background-color: rgb(var(--cl-page)); background-image: var(--material-image, none); background-size: var(--material-size, 100% 100%); margin-bottom: 5px; }
+.texture-note { font-size: 11px; color: inherit; line-height: 1.5; margin-top: 8px; }
+.surface-tone-toggle { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; padding: 9px; margin-top: 10px; border: 1px solid rgb(var(--cl-slate-400) / .3); border-radius: 8px; color: inherit; background: transparent; font: inherit; font-size: 11px; cursor: pointer; }
+.surface-tone-toggle[aria-checked='true'] { border-color: rgb(var(--cl-cyan-400) / .6); }
+.surface-tone-toggle:focus-visible { outline: 2px solid rgb(var(--cl-cyan-400)); outline-offset: 2px; }
+
+/* Frosted glass: palette tint, subtle reflections and actual backdrop blur. */
+:root[data-surface-active][data-texture='glass'] { --glass-tint: rgb(var(--cl-slate-900)); }
+:root[data-surface-active][data-texture='glass'][data-cl-tone='light'] { --glass-tint: rgb(var(--cl-white)); }
+:root[data-surface-active][data-texture='glass'][data-surface-tone='matching'] { --glass-tint: rgb(var(--cl-page)); }
+:root[data-surface-active][data-texture='glass'] :is(.cl-sidebar, .cl-art-panel, .glass-card, .dex-swap .panel, .dex-swap .swap-asset-card, .cl-search-hero, .cl-search-field) {
+  background-color: color-mix(in srgb, var(--glass-tint) 22%, transparent) !important;
+  background-image: radial-gradient(ellipse at 0% 0%, #ffffff20, transparent 55%), linear-gradient(125deg, #ffffff08 10%, transparent 35%, transparent 70%, #ffffff0d) !important;
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  border-color: #ffffff30;
+  box-shadow: inset 0 2px 1px #ffffff55, inset 1px 0 1px #ffffff24, inset 0 -1px 1px #ffffff24, 0 12px 32px #00000026;
+}
+
+:root[data-surface-active][data-texture='glass'] .cl-art-app {
+  background-image: radial-gradient(ellipse at 8% 20%, rgb(var(--cl-cyan-400) / .2), transparent 48%), radial-gradient(ellipse at 92% 70%, rgb(var(--cl-cyan-400) / .14), transparent 48%);
+  background-attachment: fixed;
+}

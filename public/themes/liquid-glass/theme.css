@@ -1,0 +1,25 @@
+/* Fixed palette, stock layout and clear optical surfaces. */
+html[data-cl-art-theme='liquid-glass'] { --cl-art-body: Inter, -apple-system, sans-serif; }
+.cl-art-choice-liquid-glass { background: #102039 url('/themes/liquid-glass/scene.svg') center / cover; color:#f6f9ff; border:1px solid #ffffff70; border-radius:20px !important; box-shadow: inset 0 2px #ffffff70; }
+.cl-art-choice-liquid-glass[aria-current='true'] { outline-color:#cae8ff; }
+html[data-cl-art-theme='liquid-glass'] .cl-art-app { background: #102039 url('/themes/liquid-glass/scene.svg') center / cover fixed; }
+html[data-cl-art-theme='liquid-glass'] :is(.cl-sidebar, .cl-art-panel, .glass-card, .dex-swap .panel, .dex-swap .swap-asset-card, .cl-search-hero, .cl-search-field) { background-color: #13213955 !important;
+  background-image: radial-gradient(ellipse at 0% 0%, #ffffff28, transparent 52%), linear-gradient(135deg, #ffffff10, transparent 35%, #ffffff03 70%, #ffffff16) !important;
+  border: 1px solid #ffffff38;
+  border-image: none;
+  border-radius: 22px;
+  backdrop-filter: blur(10px) saturate(145%);
+  -webkit-backdrop-filter: blur(10px) saturate(145%);
+  box-shadow: inset 0 2px 1px #ffffff66, inset 1px 0 1px #ffffff28, inset 0 -1px 1px #ffffff28, 0 12px 28px #00000022; }
+html[data-cl-art-theme='liquid-glass'] .cl-sidebar { border-radius:0 !important; }
+html[data-cl-art-theme='liquid-glass'] .cl-nav-item { border-radius:999px; }
+html[data-cl-art-theme='liquid-glass'] .cl-nav-item.active { background:#ffffff20; color:#f6f9ff; box-shadow:inset 0 1px #ffffff70; }
+html[data-cl-art-theme='liquid-glass'] :is(.cl-search-hero, .cl-search-field) { color:#f6f9ff; }
+html[data-cl-art-theme='liquid-glass'] .cl-search-hero h1 { color:#f6f9ff; }
+html[data-cl-art-theme='liquid-glass'] .cl-search-hero .text-cyan-300 { color:#cae8ff; }
+html[data-cl-art-theme='liquid-glass'] .cl-search-hero :is(p, input) { color:#d2dfec; }
+html[data-cl-art-theme='liquid-glass'] .cl-search-hero input::placeholder { color:#b9cbdc; }
+html[data-cl-art-theme='liquid-glass'] :is(.cl-search-hero button, .dex-swap button:not(:disabled)) { background-color:#ffffff20; color:#f6f9ff; border-color:#ffffff40; box-shadow:inset 0 1px #ffffff60; }
+@supports (backdrop-filter: url('x.svg#refraction')) {
+  html[data-cl-art-theme='liquid-glass'] :is(.cl-art-panel, .glass-card, .cl-search-hero, .cl-sidebar) { backdrop-filter:url('/themes/liquid-glass/optics.svg#refraction') blur(10px) saturate(145%) !important; }
+}

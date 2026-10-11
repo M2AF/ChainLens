@@ -386,6 +386,13 @@
     { id: 'sappy-seals', name: 'Sappy Seals',  colors: { bg: '#ffffff', accent: '#000000', text: '#000000' } },
     { id: 'mallard-order', name: 'Mallard Order', art: true, artDescription: 'Carved runes · Stone & gold', colors: { bg: '#10100e', accent: '#c6a75e', text: '#eee8d5' } },
     { id: 'sealuminati', name: 'Sealuminati', art: true, artDescription: 'Pixel robes · Violet fire & gold', colors: { bg: '#120b24', accent: '#ffd34d', text: '#f4e9f6' } },
+    { id: 'liquid-glass', name: 'Liquid Glass', art: true, fixedPalette: true, artDescription: 'Clear lenses · Fixed atmospheric palette', colors: { bg: '#102039', accent: '#cae8ff', text: '#f6f9ff' } },
+    { id: 'brushed-metal', name: 'Brushed Metal', art: true, fixedPalette: true, artDescription: 'Satin titanium · Fine brushed grain', colors: { bg: '#18252e', accent: '#b9d9ee', text: '#f2f7fa' } },
+    { id: 'leather', name: 'Leather', art: true, fixedPalette: true, artDescription: 'Espresso leather · Stitched edges', colors: { bg: '#28190f', accent: '#d6b67b', text: '#fff3df' } },
+    { id: 'velvet', name: 'Velvet', art: true, fixedPalette: true, artDescription: 'Aubergine pile · Antique gold', colors: { bg: '#210c28', accent: '#d5b97e', text: '#fff2fa' } },
+    { id: 'walnut', name: 'Walnut', art: true, fixedPalette: true, artDescription: 'Oiled walnut · Inset brass trim', colors: { bg: '#2c1b10', accent: '#d5b27b', text: '#fff1de' } },
+    { id: 'royal-silk', name: 'Royal Blue Silk', art: true, fixedPalette: true, artDescription: 'Royal blue silk · Soft directional sheen', colors: { bg: '#0c2058', accent: '#c5ddff', text: '#f4f8ff' } },
+    { id: 'emonad', name: 'Emonad', art: true, artDescription: 'Tarot vines · Black roses & silver moons', colors: { bg: '#171020', accent: '#c8c6b8', text: '#f0eddf' } },
     { id: 'r3tards', name: 'r3tards', art: true, artDescription: 'Doodle collage · Purple & pill buttons', colors: { bg: '#493259', accent: '#ffffff', text: '#ffffff' } }
   ];
 
@@ -477,6 +484,7 @@
    * colour belongs.
    */
   function applyTheme(colors, artId) {
+    if (BUILTIN_BY_ID[artId] && BUILTIN_BY_ID[artId].fixedPalette) colors = BUILTIN_BY_ID[artId].colors;
     var palette = paletteFor(colors);
     var root = document.documentElement;
     Object.keys(palette.vars).forEach(function (name) {

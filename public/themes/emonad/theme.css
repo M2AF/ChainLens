@@ -1,0 +1,31 @@
+/* Original Emonad tarot print; scoped to the selected, unrecoloured skin. */
+:root[data-cl-art-theme='emonad'] {
+  --cl-art-frame: url('/themes/emonad/frame.webp'); --cl-art-texture: url('/themes/emonad/card-back.jpg');
+  --cl-art-slice: 22%; --cl-art-frame-width: 22px; --cl-art-inset: 28px;
+  --cl-art-display: 'CL Cinzel', Georgia, serif; --cl-art-body: Inter, sans-serif;
+  --cl-art-gold: #c8c6b8; --cl-art-surface: #24182f; --cl-art-input: #171020;
+  --cl-art-radius: 4px 12px 4px 12px;
+}
+.cl-art-choice-emonad { color: #f0eddf !important; background: #24182f !important; border-image: url('/themes/emonad/frame.webp') 22% fill / 18px / 0 round; }
+.cl-art-choice-emonad .cl-art-choice-mark {
+  flex: 0 0 28px; width: 28px; height: 42px; color: transparent;
+  background: url('/themes/emonad/card-back.jpg') center / cover; border: 1px solid #c8c6b8; border-radius: 3px;
+}
+.cl-art-choice-emonad strong { font: 700 13px 'CL Cinzel', Georgia, serif; }
+.cl-art-choice-emonad .cl-art-choice-description { color: #c5b8ce; font: 11px/1.45 Inter, sans-serif; }
+html[data-cl-art-theme='emonad'] :is(body, .cl-art-app) {
+  background: linear-gradient(#171020d9, #171020d9), url('/themes/emonad/card-back.jpg') center / cover no-repeat fixed !important;
+}
+html[data-cl-art-theme='emonad'] .cl-sidebar {
+  background: linear-gradient(#171020ed, #171020ed), url('/themes/emonad/card-back.jpg') center / cover no-repeat;
+}
+html[data-cl-art-theme='emonad'] :is(.cl-art-panel, .glass-card, .dex-swap .panel, .dex-swap .swap-asset-card, .cl-search-hero) {
+  border-image: url('/themes/emonad/frame.webp') 22% fill / 22px / 0 round;
+}
+html[data-cl-art-theme='emonad'] .cl-search-hero h2 { color: #f0eddf; }
+html[data-cl-art-theme='emonad'] :is(.cl-logo img, [data-testid='magic-swap-logo'] img) { image-rendering: auto; filter: grayscale(1) brightness(1.35) drop-shadow(0 1px 2px #000); }
+html[data-cl-art-theme='emonad'] :is(button, input, select):focus-visible { outline: 2px solid #c8c6b8; outline-offset: 3px; }
+html[data-cl-art-theme='emonad'] :is(.cl-sidebar > div > img, .cl-main-logo img, [data-testid='magic-swap-logo'] img) {
+  image-rendering: auto; filter: grayscale(1) brightness(1.2) drop-shadow(0 1px 2px #000) !important;
+}
+.cl-art-choice-emonad > span:nth-child(2) { font-family: 'CL Cinzel', Georgia, serif; }

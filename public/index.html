@@ -40,9 +40,14 @@
   <script type="text/babel" src="/nft-favorites.jsx"></script>
   <script type="text/babel" src="/profile-portfolio.jsx"></script>
   <link rel="stylesheet" href="/profile-portfolio.css">
+  <script src="/texture-engine.js"></script>
+  <link rel="stylesheet" href="/textures.css">
   <script src="/theme-engine.js"></script>
   <link rel="stylesheet" href="/art-themes.css">
+  <link rel="stylesheet" href="/themes/emonad/theme.css">
   <link rel="stylesheet" href="/themes/r3tards/theme.css">
+  <link rel="stylesheet" href="/themes/liquid-glass/theme.css">
+  <link rel="stylesheet" href="/themes/materials/theme.css">
   <script src="/app-hub-data.js"></script>
 
   <script>
@@ -1224,6 +1229,16 @@
     const ThemePicker = ({ activeTheme, darkMode, eligible, builtins, customs, onSelect, onEdit }) => {
       const [open, setOpen] = useState(false);
       const boxRef = useRef(null);
+      const materials = window.chainlensTextures;
+      const [texture, setTextureState] = useState(() => materials.get());
+      const [textureSuspended, setTextureSuspended] = useState(() => materials.suspended());
+      const [twoTone, setTwoToneState] = useState(() => materials.getTwoTone());
+      useEffect(() => {
+        const refresh = () => { setTextureState(materials.get()); setTextureSuspended(materials.suspended()); setTwoToneState(materials.getTwoTone()); };
+        window.addEventListener('cl-texture-change', refresh);
+        materials.enable(eligible);
+        return () => window.removeEventListener('cl-texture-change', refresh);
+      }, [eligible]);
 
       // Close on an outside click or Escape. Registered only while open, so the
       // shut picker costs nothing.
@@ -1272,7 +1287,7 @@
             <span className="flex-1 min-w-0 text-[11px] font-bold">{theme.name}{theme.art && <span className="cl-art-choice-description">{theme.artDescription}{theme.edited ? ' · Recoloured' : ''}</span>}</span>
             {selected && <span className="text-cyan-400 text-xs leading-none">✓</span>}
           </button>
-          {!isBaseMode(theme.id) && <button type="button" aria-label={`Edit ${theme.name}`} data-testid={`theme-edit-${theme.id}`}
+          {!isBaseMode(theme.id) && !theme.fixedPalette && <button type="button" aria-label={`Edit ${theme.name}`} data-testid={`theme-edit-${theme.id}`}
             onClick={() => { onEdit(theme); setOpen(false); }}
             className="shrink-0 px-2 py-2 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800/40">✎</button>}
           </div>
@@ -1296,11 +1311,28 @@
           {open && (
             <div role="menu" data-testid="theme-menu"
                  className={`absolute right-0 mt-2 w-72 max-h-[70vh] overflow-y-auto rounded-2xl border backdrop-blur-md p-1.5 shadow-xl ${darkMode ? 'bg-slate-900/95 border-slate-700 dark-scroll' : 'bg-white/95 border-slate-200'}`}>
+              {heading('Texture')}
+              <div className="texture-picker">
+                <div className="texture-grid" aria-label="Surface texture">
+                  {materials.textures.map(t => (
+                    <button type="button" key={t.id} className="texture-choice" aria-pressed={texture === t.id}
+                      data-testid={`texture-option-${t.id}`} onClick={() => materials.set(t.id)}>
+                      <span className="texture-sample" data-texture={t.id} aria-hidden="true" />
+                      <span>{t.name}</span>
+                    </button>
+                  ))}
+                </div>
+                <button type="button" role="switch" className="surface-tone-toggle" aria-checked={twoTone}
+                  onClick={() => materials.setTwoTone(!twoTone)}>
+                  <span>Two-tone surfaces</span><span>{twoTone ? 'On' : 'Off'}</span>
+                </button>
+                <p className="texture-note">{textureSuspended ? 'Saved for colour themes. This art theme uses its own surfaces.' : twoTone ? 'Slightly raised card colours. Works with Glass and every flat finish.' : 'Cards use the background colour. Works with Glass and every flat finish.'}</p>
+              </div>
               {heading('Mode')}
               {BASE_MODES.map(row)}
               {heading('MagicMoney')}
               {builtins.filter(theme => !theme.art).map(row)}
-              {heading('Art themes')}
+              {heading('Art & material themes')}
               {builtins.filter(theme => theme.art).map(row)}
               {heading('Your themes')}
               {customs.length > 0 ? customs.map(row) : (
@@ -1814,7 +1846,7 @@
         const entries = engine.sanitizeEntries(themeAccess.entries);
         return engine.BUILTIN_THEMES.map(theme => {
           const override = entries[`custom-builtin-${theme.id}`];
-          return override && override.d !== 1
+          return !theme.fixedPalette && override && override.d !== 1
             ? { ...theme, colors: override.c, edited: true }
             : theme;
         });
@@ -1823,6 +1855,7 @@
       const saveTheme = async (change) => {
         if (!authToken || !themeAccess.eligible || themeSaveBusy) return;
         const engine = window.chainlensThemes;
+        if (change.builtin && engine.builtinById(change.id)?.fixedPalette) return;
         const id = change.builtin ? `custom-builtin-${change.id}` : change.id || `custom-${crypto.randomUUID()}`;
         if (!change.builtin && !change.id && customThemes.length >= engine.MAX_SYNCED_THEMES) {
           setThemeSaveError('All six custom theme slots are used.');

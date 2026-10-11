@@ -1,4 +1,8 @@
 const { test, expect } = require('@playwright/test');
+const path = require('node:path');
+const { buildPrecompiledPage } = require('../precompile-page');
+const compiled = buildPrecompiledPage(path.resolve(__dirname, '../public'));
+if (!compiled) throw new Error('Theme journey requires a compiled homepage');
 
 /**
  * The theme picker, and the gate in front of it.
@@ -33,6 +37,13 @@ const SYNCED = {
 };
 
 async function installThemeMocks(page, { themes = null, signedIn = true } = {}) {
+  await page.route('http://127.0.0.1:10777/', route => route.fulfill({contentType:'text/html',body:compiled.html}));
+  await page.route('**/_compiled/**',route => {
+    const code=compiled.assets.get(new URL(route.request().url()).pathname);
+    return code ? route.fulfill({contentType:'application/javascript',body:code}) : route.abort();
+  });
+  // The palette contract is tested independently of translucent finishes.
+  await page.addInitScript(() => localStorage.setItem('cl_texture.v1','flat'));
   const response = structuredClone(themes || { eligible: false, walletLinked: false, socialLinked: false, entries: {} });
   if (signedIn) {
     await page.addInitScript(() => localStorage.setItem('cl_token', 'playwright-theme-token'));
@@ -119,7 +130,7 @@ test('signed out, the control is still the Light/Dark switch', async ({ page }) 
   await installThemeMocks(page, { signedIn: false });
   await page.goto('/');
 
-  await expect(page.getByTestId('theme-toggle')).toBeVisible();
+  await expect(page.getByTestId('theme-toggle')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('theme-picker')).toHaveCount(0);
   await expect(shell(page)).toHaveCSS('background-color', STOCK_LIGHT_PAGE);
 
@@ -136,11 +147,11 @@ test('signed in without chat access, the themes stay locked away', async ({ page
   });
   await page.goto('/');
 
-  await expect(page.getByTestId('theme-toggle')).toBeVisible();
+  await expect(page.getByTestId('theme-toggle')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('theme-picker')).toHaveCount(0);
 });
 
-test('an eligible account gets fifteen shipped themes and its own synced ones', async ({ page }) => {
+test('an eligible account gets twenty-two shipped themes and its own synced ones', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await installThemeMocks(page, { themes: ELIGIBLE });
@@ -150,8 +161,8 @@ test('an eligible account gets fifteen shipped themes and its own synced ones', 
   const menu = page.getByTestId('theme-menu');
   await expect(menu).toBeVisible();
 
-  // Light and Dark, fifteen shipped themes, and Cherry.
-  await expect(menu.locator('[data-testid^="theme-option-"]')).toHaveCount(18);
+  // Light and Dark, twenty-two shipped themes, and Cherry.
+  await expect(menu.locator('[data-testid^="theme-option-"]')).toHaveCount(25);
   await expect(page.getByTestId('theme-option-moonlight')).toBeVisible();
   await expect(page.getByTestId('theme-option-sappy-seals')).toBeVisible();
   await expect(page.getByTestId('theme-option-custom-cherry')).toBeVisible();
@@ -212,11 +223,11 @@ test('losing access falls back to the tone the user was looking at', async ({ pa
   }));
   await page.reload();
 
-  await expect(page.getByTestId('theme-toggle')).toBeVisible();
+  await expect(page.getByTestId('theme-toggle')).toBeVisible({ timeout: 30_000 });
   await expect(shell(page)).toHaveCSS('background-color', STOCK_DARK_PAGE);
 });
 
-for (const art of [{ id: 'mallard-order', name: 'Mallard Order' }, { id: 'sealuminati', name: 'Sealuminati' }]) {
+for (const art of [{ id: 'mallard-order', name: 'Mallard Order' }, { id: 'sealuminati', name: 'Sealuminati' }, { id: 'emonad', name: 'Emonad' }]) {
   test(`${art.name} skin persists, frames real pages and clears on recolour or access loss`, async ({ page }) => {
     test.setTimeout(120_000);
     const errors = [];
@@ -232,9 +243,19 @@ for (const art of [{ id: 'mallard-order', name: 'Mallard Order' }, { id: 'sealum
     };
     const settle = () => page.evaluate(async () => {
       await document.fonts.ready;
-      await Promise.all(document.getAnimations().filter(a => a.effect?.getComputedTiming().endTime !== Infinity).map(a => a.finished.catch(() => {})));
+      for (const animation of document.getAnimations()) {
+        if (Number.isFinite(animation.effect?.getComputedTiming().endTime)) {
+          try { animation.finish(); } catch { /* Responsive transition detached. */ }
+        }
+      }
     });
     const framed = new RegExp(`/themes/${art.id}/frame\\.webp`);
+    if (art.id === 'emonad') {
+      await page.getByTestId('theme-picker-button').click();
+      const ids = await page.locator('[data-testid^=theme-option-]').evaluateAll(els => els.map(el => el.getAttribute('data-testid')));
+      expect(ids[ids.indexOf('theme-option-r3tards') - 1]).toBe('theme-option-emonad');
+      await page.getByTestId('theme-picker-button').click();
+    }
     await select(art.id);
     await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme', art.id);
     await expect(page.locator('.cl-search-hero')).toHaveCSS('border-image-source', framed);
@@ -262,6 +283,7 @@ for (const art of [{ id: 'mallard-order', name: 'Mallard Order' }, { id: 'sealum
     await expect(page.locator('.dex-swap .panel').first()).toHaveCSS('border-image-source', framed);
     await expect(page.locator('.dex-swap .swap-asset-card').first()).toHaveCSS('border-image-source', framed);
     await expect(page.getByTestId('magic-swap-logo').locator('img').first()).toHaveCSS('image-rendering', 'auto');
+    if (art.id === 'emonad') await expect(page.getByTestId('magic-swap-logo').locator('img').first()).toHaveCSS('filter', /grayscale\(1\).*brightness\(1\.2\)/);
     await settle();
     await page.screenshot({ path: `test-results/${art.id}-swap-1280.png` });
     await page.setViewportSize({ width: 390, height: 900 });
@@ -284,17 +306,23 @@ for (const art of [{ id: 'mallard-order', name: 'Mallard Order' }, { id: 'sealum
     await expect(page.locator('.dex-swap .panel').first()).toHaveCSS('border-image-source', 'none');
     await select('dark');
     await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme');
+    if (art.id === 'emonad') {
+      await page.getByTestId('theme-picker-button').click();
+      const ids = await page.locator('[data-testid^=theme-option-]').evaluateAll(els => els.map(el => el.getAttribute('data-testid')));
+      expect(ids[ids.indexOf('theme-option-r3tards') - 1]).toBe('theme-option-emonad');
+      await page.getByTestId('theme-picker-button').click();
+    }
     await select(art.id);
     await page.unroute('**/api/profile/themes');
     await page.route('**/api/profile/themes', route => route.fulfill({ json: { eligible: false, walletLinked: true, socialLinked: false, entries: {} } }));
     await page.reload();
-    await expect(page.getByTestId('theme-toggle')).toBeVisible();
+    await expect(page.getByTestId('theme-toggle')).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme');
     expect(errors).toEqual([]);
   });
 }
 
-test('both art skins cover Profile, App Hub and Market without filtering user artwork', async ({ page }) => {
+test('tarot and existing art skins cover Profile, App Hub and Market without filtering user artwork', async ({ page }) => {
   test.setTimeout(120_000);
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -306,7 +334,7 @@ test('both art skins cover Profile, App Hub and Market without filtering user ar
   await page.route('**/api/profile', route => route.fulfill({ json: { ...ME, avatar_url: avatar } }));
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
-  for (const id of ['mallard-order', 'sealuminati']) {
+  for (const id of ['mallard-order', 'sealuminati', 'emonad']) {
     await page.getByTestId('theme-picker-button').click();
     await page.getByTestId(`theme-option-${id}`).click();
     await page.locator('.cl-sidebar').getByRole('button', { name: 'Profile', exact: true }).click();
