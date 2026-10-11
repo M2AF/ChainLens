@@ -10,9 +10,10 @@ The previous README described visual design and early architecture. It remains a
 |---|---|
 | Search | Search the web through the Cloudflare Search Worker and SearXNG, find App Hub entries, and recognize wallet addresses for scanning. Search is the landing page. |
 | Scanner | Connect a detected wallet or enter public addresses, then view NFTs, tokens, balances, and transaction activity. Results are grouped by address family. |
-| Market | Browse top coins and price charts. Market data depends on external providers. |
-| Magic Swap | Discover tokens and request quotes through the Magic Money swap Worker. The connected wallet signs through its provider; cross-chain status is tracked after submission. Route availability depends on the pair, provider, wallet, and safety checks. |
-| Profile | Sign in with supported wallet signatures, Google, Discord, or a previously registered passkey; link watch-only addresses and manage profile details. |
+| Market | Browse top coins and price charts. **New Listings** mode shows exchange listing announcements (searchable, newest first) with a compact price chart per listing from the announcing exchange's own candles where available. Market data depends on external providers. |
+| Magic Swap | Discover tokens and request quotes through the Magic Money swap Worker. The connected wallet signs through its provider; cross-chain status is tracked after submission. Quick 25/50/75/100% amount buttons fill the pay field. Cardano routes (Minswap) are offered only to Magic Money, which validates and signs them. Route availability depends on the pair, provider, wallet, and safety checks. |
+| Profile | Sign in with supported wallet signatures, Google, Discord, or a previously registered passkey; link watch-only addresses and manage profile details. The Profile tab includes a banner and an NFT gallery across all linked wallets (Overview mosaic, Holdings, Favorites), with favourites synced with Magic Money through the ChainLens ID. |
+| Themes | Colour themes, custom colours from Magic Money, and **art themes** (Mallard Order, Sealuminati, r3tards) for eligible signed-in accounts. See [Art themes](docs/ART-THEMES.md). |
 | Messenger | World Chat and friend direct messages for eligible signed-in accounts; GIF search uses GIPHY when configured. |
 
 The scanner supports 18 EVM networks (Ethereum, Arbitrum One, Optimism, Base, Polygon, Avalanche, Blast, Gnosis, Monad, Abstract, ApeChain, Robinhood Chain, Arc, Ronin, Soneium, WorldChain, Zora, HyperEVM), plus Solana, Polkadot, Tron, Cardano, Bitcoin, and Dogecoin. The live registry is [`public/chain-catalog.js`](public/chain-catalog.js). One EVM address can scan all EVM networks; the other address families use their own formats. A connected extension is optional for scanning. ChainLens does not ask for a seed phrase or private key.
@@ -39,7 +40,9 @@ For a basic local run, no database or wallet is required. Features that rely on 
 | Google / Discord login | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`; configure callback URLs with `GOOGLE_CALLBACK_URL` and `DISCORD_CALLBACK_URL` if the defaults do not match. |
 | Passkeys | Apply `sql/cl_passkeys.sql`; `WEBAUTHN_RP_ID` and `WEBAUTHN_ORIGINS` can set the relying party and allowed origins. Passkeys are added to an existing account before they can be used to sign in. |
 | Messenger and themes | Apply `sql/cl_chat.sql` and `sql/cl_themes.sql`. `GIPHY_API_KEY` enables chat GIF search. Messenger requires a verified wallet and a linked Google or Discord account. |
+| Profile banner | Apply `sql/cl_profile_banner.sql` before deploying the backend that stores `cl_users.banner_url`. |
 | Synced spam assets | Apply `sql/cl_asset_filters.sql`. Local filters work without sync; signed-in users can merge them across ChainLens and Magic Money. Earlier hidden assets become spam. |
+| New Listings | Served by the hosted Search Worker; `NEW_LISTINGS_WORKER_BASE_URL` overrides it. Listing charts use public exchange candle APIs and need no key. See [New Listings](docs/NEW-LISTINGS.md). |
 | Search | `SEARCH_WORKER_BASE_URL` overrides the hosted Search Worker used by the compatibility proxy. See [Search deployment](SEARCH_DEPLOYMENT.md). |
 | Magic Swap | `MM_SWAP_WORKER_URL` overrides the hosted swap Worker; configure `MM_SWAP_CLIENT_TOKEN` for its server-to-Worker client tag (not authentication). `CHAINLENS_JUPITER_FEE=off` disables the Jupiter fee in DEX quotes. Exchange Swap uses the same Worker URL and its existing server-side `SIMPLESWAP_API_KEY` and `CHANGENOW_API_KEY` secrets; no provider key belongs in ChainLens or the browser. |
 
