@@ -7,13 +7,14 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 749613a · Emonad:193Node tests/npm check/6 production JSX precompiles; all14picker tests pass; final silver-logo Emonad journey and expanded3skin Profile/AppHub/Market pass across reruns. Order/reload/recolour/access-loss and geometry checked; screenshots reviewed. · 2026-10-10T21:19-03:00
-head: 749613a (main) dirty 8
-updated: 2026-10-10T21:19-03:00 · codex
+verified: 1faccb1 · npm check;193Node tests;14existing picker journeys and additional all-art legacy-profile override test pass. Art/material palettes fixed, no editor controls; docs picker locked; ordinary color/custom editing preserved. · 2026-10-10T22:11-03:00
+head: 1faccb1 (main) dirty 6
+updated: 2026-10-10T22:11-03:00 · codex
 
 resources: -
 
 ## Now
+- Art/material themes are fixed palettes locally: no edit controls, old profile recolors ignored; docs picker also locked. Ordinary colors/custom themes remain editable.193Node tests/npm check;14picker journeys plus legacy-profile test pass. docs/ART-THEME-PALETTE-LOCK.md; .art-lock-*.log. No commit/deploy.
 - Emonad tarot theme complete locally, immediately above r3tards: original card backdrop/character, flat rose/vine/moon/star frame, muted purple/silver; smooth original brands, stock portfolio layout. docs/EMONAD-THEME.md; .local-artifacts/emonad/. Checks .emonad-*.log pass; no commit/deploy/install.
 - Five approved natural material skins implemented locally: Brushed Metal, Leather, Velvet, Walnut and Royal Blue Silk; fixed palettes, shared generated raster surfaces, coordinated cards, smooth logos and seamless brand/portfolio summary. docs/NATURAL-MATERIAL-THEMES.md; .local-artifacts/materials/. No commit/deploy/install.
 - Liquid Glass fixed-palette material skin added locally; no recolour. Shared scene/optical SVG, clear surfaces and transparent brand bars without divider; colourable Glass portfolio summary also seamless. Validation in .liquid-*.log; docs/LIQUID-GLASS.md. No commit/deploy/install.
@@ -34,7 +35,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User reviews Emonad Art themes; release remains user-controlled.
+- User reviews fixed art palettes; no deployment authorized.
 
 ## Traps
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.

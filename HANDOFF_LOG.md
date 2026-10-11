@@ -182,3 +182,15 @@
 ### 2026-10-10T21:19-03:00 · codex · handoff · 749613a (main) dirty 8
 - Emonad implemented and verified locally; above r3tards. Final silver-logo and access-loss checks pass; no commit/deploy.
 - next: User reviews Emonad Art themes; release remains user-controlled.
+
+### 2026-10-10T22:04-03:00 · codex · claim · 1faccb1 (main) dirty 1
+- task: Art theme customization lock and browser dynamic theme review
+- lease until 2026-10-11T01:04-03:00
+
+### 2026-10-10T22:11-03:00 · codex · verify · 1faccb1 (main) dirty 6
+- verified: npm check;193Node tests;14existing picker journeys and additional all-art legacy-profile override test pass. Art/material palettes fixed, no editor controls; docs picker locked; ordinary color/custom editing preserved.
+- docs/ART-THEME-PALETTE-LOCK.md; .art-lock-*.log. No commit/deploy.
+
+### 2026-10-10T22:11-03:00 · codex · handoff · 1faccb1 (main) dirty 6
+- ChainLens art/material customization removed and verified locally.
+- next: User reviews fixed art palettes; no deployment authorized.

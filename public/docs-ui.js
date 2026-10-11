@@ -26,7 +26,7 @@
   const customs = () => eligible ? engine.liveThemes(entries) : [];
   const builtins = () => engine.BUILTIN_THEMES.map(theme => {
     const override = engine.sanitizeEntries(entries)[`custom-builtin-${theme.id}`];
-    return override && override.d !== 1 ? { ...theme, colors: override.c, edited: true } : theme;
+    return !theme.fixedPalette && override && override.d !== 1 ? { ...theme, colors: override.c, edited: true } : theme;
   });
   const findTheme = id => base.find(theme => theme.id === id)
     || (eligible ? [...builtins(), ...customs()].find(theme => theme.id === id) : null);
@@ -90,7 +90,7 @@
       const check = document.createElement('span'); check.textContent = '✓'; check.style.color = 'var(--cyan)'; choice.append(check);
     }
     choice.addEventListener('click', () => choose(theme.id)); row.append(choice);
-    if (editable) {
+    if (editable && !theme.art && !theme.fixedPalette) {
       const edit = document.createElement('button');
       edit.type = 'button'; edit.className = 'theme-edit'; edit.textContent = '✎';
       edit.setAttribute('aria-label', `Edit ${theme.name}`);
@@ -128,6 +128,7 @@
   }
 
   function openEditor(theme) {
+    if (theme && (theme.art || theme.fixedPalette)) return;
     editing = theme;
     confirmDelete = false;
     $('themeDialogTitle').textContent = theme ? (engine.builtinById(theme.id) ? `Recolour ${theme.name}` : 'Edit theme') : 'Create theme';

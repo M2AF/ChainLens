@@ -228,7 +228,7 @@ test('losing access falls back to the tone the user was looking at', async ({ pa
 });
 
 for (const art of [{ id: 'mallard-order', name: 'Mallard Order' }, { id: 'sealuminati', name: 'Sealuminati' }, { id: 'emonad', name: 'Emonad' }]) {
-  test(`${art.name} skin persists, frames real pages and clears on recolour or access loss`, async ({ page }) => {
+  test(`${art.name} skin persists, frames real pages and is not editable and clears on access loss`, async ({ page }) => {
     test.setTimeout(120_000);
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -290,17 +290,10 @@ for (const art of [{ id: 'mallard-order', name: 'Mallard Order' }, { id: 'sealum
     await settle();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: `test-results/${art.id}-swap-390.png` });
-    // Recolouring a built-in deliberately wears a palette; reverting restores its art.
+    // Art palettes retain their identity and have no editor.
     await page.getByTestId('theme-picker-button').click();
-    await page.getByRole('button', { name: `Edit ${art.name}`, exact: true }).click();
-    await page.getByLabel('Background hex').fill('#123456');
-    await page.getByRole('button', { name: 'Save colours', exact: true }).click();
-    await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme');
-    await expect(page.locator('.dex-swap .panel').first()).toHaveCSS('border-image-source', 'none');
+    await expect(page.getByRole('button', { name: `Edit ${art.name}`, exact: true })).toHaveCount(0);
     await page.getByTestId('theme-picker-button').click();
-    await page.getByRole('button', { name: `Edit ${art.name}`, exact: true }).click();
-    await page.getByRole('button', { name: 'Revert to default', exact: true }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme', art.id);
     await select('custom-cherry');
     await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme');
     await expect(page.locator('.dex-swap .panel').first()).toHaveCSS('border-image-source', 'none');
@@ -446,14 +439,8 @@ test('r3tards collab uses supplied artwork, pill controls and isolated materials
   await page.setViewportSize({ width: 390, height: 900 });
   await screenshot('market-390');
   await page.getByTestId('theme-picker-button').click();
-  await page.getByRole('button', { name: 'Edit r3tards', exact: true }).click();
-  await page.getByLabel('Background hex').fill('#123456');
-  await page.getByRole('button', { name: 'Save colours', exact: true }).click();
-  await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme');
-  await expect(page.locator('.cl-art-app')).toHaveCSS('background-image', 'none');
+  await expect(page.getByRole('button', { name: 'Edit r3tards', exact: true })).toHaveCount(0);
   await page.getByTestId('theme-picker-button').click();
-  await page.getByRole('button', { name: 'Edit r3tards', exact: true }).click();
-  await page.getByRole('button', { name: 'Revert to default', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme', 'r3tards');
   await select('sealuminati');
   await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme', 'sealuminati');
@@ -502,4 +489,22 @@ test('r3tards scanner and theme menu fit tall and narrow desktop viewports', asy
     await page.screenshot({ path: `test-results/r3tards-scaling-menu-${width}x${height}.png` });
     await page.getByTestId('theme-picker-button').click();
   }
+});
+
+
+test('all art themes ignore legacy profile recolors and expose no editor', async ({ page }) => {
+  const arts = require('../public/theme-engine').BUILTIN_THEMES.filter(theme => theme.art);
+  const entries = { ...SYNCED };
+  for (const art of arts) entries[`custom-builtin-${art.id}`] = { n:art.name, c:{bg:'#123456',accent:'#abcdef',text:'#ffffff'}, t:Date.now() };
+  await installThemeMocks(page, { themes:{ ...ELIGIBLE, entries } });
+  await page.goto('/');
+  for (const art of arts) {
+    await page.getByTestId('theme-picker-button').click();
+    await expect(page.getByTestId(`theme-edit-${art.id}`)).toHaveCount(0);
+    await page.getByTestId(`theme-option-${art.id}`).click();
+    await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme', art.id);
+    expect(await page.locator('html').evaluate(el => el.style.getPropertyValue('--cl-page'))).toBe(require('../public/theme-engine').toRgbSpaced(require('../public/theme-engine').parseHex(art.colors.bg)));
+  }
+  await page.getByTestId('theme-picker-button').click();
+  await expect(page.getByRole('button', { name:'Edit Crimson',exact:true })).toBeVisible();
 });

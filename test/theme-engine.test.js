@@ -284,7 +284,7 @@ test('swatchOf reports background then accent, and survives junk', () => {
 });
 
 
-test('art identity is explicit and cannot leak into custom colours, recolours or base modes', () => {
+test('art identity stays fixed and cannot leak into custom colours or base modes', () => {
   const previous = global.document;
   const attributes = new Map(), styles = new Map();
   global.document = { documentElement: {
@@ -301,7 +301,9 @@ test('art identity is explicit and cannot leak into custom colours, recolours or
       assert.equal(attributes.has('data-cl-art-theme'), false);
       themes.applyTheme(art.colors, id);
       themes.applyTheme({ ...art.colors, bg: '#123456' }, id);
-      assert.equal(attributes.has('data-cl-art-theme'), false);
+      assert.equal(art.fixedPalette, true);
+      assert.equal(attributes.get('data-cl-art-theme'), id);
+      assert.equal(styles.get('--cl-page'), spaced(art.colors.bg));
       themes.applyTheme(art.colors, id);
       themes.applyMode('dark');
       assert.equal(attributes.has('data-cl-art-theme'), false);
