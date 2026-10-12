@@ -374,3 +374,22 @@
 ### 2026-10-12T03:33-03:00 · codex · handoff · b93c583 (main) dirty 7
 - Sidebar seal behind opaque foreground navigation; shared modern theme-coloured scrollbars complete and visually reviewed. All targeted checks pass. No commit/deploy.
 - next: User review and deploy frontend when authorized; changes include new public/scrollbars.css loaded main and Docs.
+
+### 2026-10-12T17:22-03:00 · codex · claim · 1faf750 (main) dirty 1
+- task: Profile search public profile links and chat page presence
+- lease until 2026-10-12T20:22-03:00
+
+### 2026-10-12T17:29-03:00 · codex · checkpoint · 1faf750 (main) dirty 5
+- Public profile allowlist endpoint, ID/link search, shared person menu and single mounted page/pop-out chat implemented locally. Presence SQL prepared; tests in progress; existing 204 Node checks pass and seven JSX scripts compile.
+- next: Run social browser/API tests and verify presence schema access
+
+### 2026-10-12T17:44-03:00 · codex · checkpoint · 1faf750 (main) dirty 8
+- 211 Node tests/npm check and seven JSX scripts pass. Six existing chat regressions plus two sidebar journeys pass; five initial social journeys pass. Spacing fixture selector corrected; final social/spacing screenshots rerun in .social-final-journeys.log. Applied user-approved RLS/grant fix to three account tables; service-role profile/link reads verified via connector; advisor errors gone. Local .env Supabase key unregistered; real local profile HTTP 503, no feature deployment.
+- next: Review final eight browser journeys and screenshots; release handoff
+
+### 2026-10-12T17:46-03:00 · codex · verify · 1faf750 (main) dirty 8
+- verified: HEAD1faf750: npm check/211Node/seven JSX; sixteen unique browser journeys across final social/spacing and existing chat/sidebar runs pass. Desktop/mobile profile/chat/pop-out screenshots reviewed. Supabase presence plus approved account RLS fix applied, privileges/service-role reads/expiry verified. Local key unregistered; mocked UI and connector DB verification, no frontend/backend deployment.
+
+### 2026-10-12T17:47-03:00 · codex · handoff · 1faf750 (main) dirty 8
+- Profile search/deep links and chat page/pop-out/presence verified locally:211Node/seven JSX/16browser; screenshots reviewed. Approved Supabase RLS fix and presence schema live. Frontend/backend not deployed; local Supabase key unregistered. docs/PROFILE-SEARCH-CHAT.md has complete scope/files/evidence.
+- next: User review/deploy ChainLens frontend/backend when authorized and verify real authenticated flows using production credentials

@@ -319,13 +319,13 @@ test('World Chat, friend acceptance, DMs, GIPHY, and profile ID work together', 
   await expect(ownWorldMessage).toHaveCount(0);
   await expect(page.getByText('Message deleted')).toBeVisible();
 
-  await page.getByRole('button', { name: /^Friends/ }).click();
-  await expect(page.getByText(ME.id, { exact: true })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'People' })).toBeVisible();
+  await expect(page.getByText(ME.id, { exact: true }).first()).toBeVisible();
   await page.getByLabel("Friend's ChainLens ID").fill('c828bf80-3280-4c46-a8bb-503a442e0743');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.getByText('Friend request sent')).toBeVisible();
   await page.getByRole('button', { name: 'Accept' }).click();
-  await page.getByRole('button', { name: /Chain Friend/ }).click();
+  await page.getByRole('button', { name: 'Message Chain Friend', exact: true }).click();
   await expect(page.getByText('Hey from your friend list.')).toBeVisible();
 
   const directLink = 'https://chainlensnft.info/docs';
@@ -350,14 +350,14 @@ test('World Chat, friend acceptance, DMs, GIPHY, and profile ID work together', 
   await page.getByLabel('Open GIPHY picker').click();
   await page.screenshot({ path: 'test-results/chat-desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Close chat' }).click();
-  await page.locator('.fixed.top-4.right-4 .switch-bg').click();
-  await expect(page.getByText('Dark', { exact: true })).toBeVisible();
+  // Reopen the chat page after closing the conversation.
+
   await page.getByTestId('chat-trigger').click();
   await page.screenshot({ path: 'test-results/chat-desktop-dark.png', fullPage: true });
 
   await page.getByRole('button', { name: 'Close chat' }).click();
   await page.getByRole('button', { name: 'Profile', exact: true }).click();
-  await expect(page.getByText(ME.id, { exact: true })).toBeVisible();
+  await expect(page.getByText(ME.id, { exact: true }).first()).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
 
@@ -374,6 +374,7 @@ test('opening Chat on Magic Swap keeps Messenger fully inside the viewport', asy
   await expect(page.getByTestId('exchange-panel')).toBeVisible();
   await page.getByTestId('chat-trigger').click();
 
+  await page.getByRole('button', { name: 'Pop out chat' }).click();
   const panel = page.getByTestId('chat-panel');
   await expect(panel).toBeVisible();
   await expect(panel.getByRole('heading', { name: 'Messenger' })).toBeVisible();
@@ -394,6 +395,7 @@ test('mobile chat panel fits the viewport and retains both tabs', async ({ page 
   await page.goto('/');
   await page.getByRole('button', { name: 'Open menu' }).click();
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Chat' }).click();
+  await page.getByRole('button', { name: 'Pop out chat' }).click();
   const panel = page.getByTestId('chat-panel');
   await expect(panel).toBeVisible();
   await expect(panel.getByRole('button', { name: 'World Chat' })).toBeVisible();
@@ -432,7 +434,7 @@ test('unread badge is server state, shared with the wallet', async ({ page }) =>
   await expect(trigger).toHaveAttribute('aria-label', /1 friend request, 3 unread messages/);
 
   await trigger.click();
-  await page.getByRole('button', { name: /^Friends/ }).click();
+  await expect(page.getByRole('complementary', { name: 'People' })).toBeVisible();
 
   // Per-friend counts come from the same aggregate, so the list agrees with the
   // badge without one request per thread.
@@ -440,7 +442,7 @@ test('unread badge is server state, shared with the wallet', async ({ page }) =>
   await expect(page.getByRole('button', { name: /Chain Friend, 1 unread message$/ })).toBeVisible();
 
   // Reading Second Friend's thread clears ONLY that thread.
-  await page.getByRole('button', { name: /Second Friend/ }).click();
+  await page.getByRole('button', { name: /Message Second Friend/ }).click();
   await expect(page.getByText('Second thread, second line.')).toBeVisible();
   await expect.poll(() => chatMock.unreadFor(FRIEND_B.id), { timeout: 10_000 }).toBe(0);
   await expect(badge).toHaveText('2', { timeout: 10_000 });
@@ -454,7 +456,7 @@ test('unread badge is server state, shared with the wallet', async ({ page }) =>
   // local read state is involved on either side.
   chatMock.markReadElsewhere(FRIEND);
   await expect(badge).toHaveText('1', { timeout: 30_000 });
-  await expect(page.getByRole('button', { name: /^Chain Friend$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Message Chain Friend', exact: true })).toBeVisible();
 
   expect(pageErrors).toEqual([]);
 });

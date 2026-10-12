@@ -10,7 +10,7 @@ test('desktop sidebar opens Magic Swap as a page and centers utility dialogs', a
     'Search', 'Scanner', 'Magic Swap', 'App Hub', 'Market', 'Chat', 'Profile', 'Docs', 'Wallet', 'Donate',
   ]);
   await expect(nav.getByRole('button', { name: 'Magic Swap' })).toBeVisible();
-  await expect(page.getByPlaceholder('Search anything, an app, or a wallet...')).toBeVisible();
+  await expect(page.getByPlaceholder('Search an app, wallet, or ChainLens ID...')).toBeVisible();
   expect(await page.locator('.cl-primary-content').evaluate(el => parseFloat(getComputedStyle(el).paddingTop))).toBe(80);
 
   await nav.getByRole('button', { name: 'Magic Swap' }).click();
@@ -39,6 +39,8 @@ test('desktop sidebar opens Magic Swap as a page and centers utility dialogs', a
   }
 
   await nav.getByRole('button', { name: 'Chat' }).click();
+  await expect(page).toHaveURL(/\/chat$/);
+  await page.getByRole('button', { name: 'Pop out chat' }).click();
   const chat = page.getByTestId('chat-panel');
   await expect(chat).toBeVisible();
   const before = await chat.boundingBox();

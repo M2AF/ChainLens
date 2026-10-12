@@ -20,7 +20,7 @@ test('Search, Scanner, Market and Profile align below the theme control on deskt
 
   for (const tab of ['Search', 'Scanner', 'Market', 'Profile']) {
     await nav.getByRole('button', { name: tab, exact: true }).click();
-    const panel = page.locator('.cl-primary-content > main, .cl-primary-content > div.max-w-6xl, .cl-primary-content > div.max-w-3xl').first();
+    const panel = page.locator('.cl-primary-content > main, .cl-primary-content > div.max-w-6xl, .cl-primary-content > div.max-w-3xl, .cl-primary-content .profile-workspace').filter({ visible: true }).first();
     await expect(panel).toBeVisible();
     const top = (await panel.boundingBox()).y;
     expect(top, `${tab} should clear the theme control`).toBeGreaterThanOrEqual(pickerBottom + 16);

@@ -1910,6 +1910,8 @@ app.put('/api/profile/themes', requireAuth, async (req, res) => {
 // profile are the exact UUIDs used to send friend requests.
 // ══════════════════════════════════════════════════════════════════════════════
 
+require('./profile-social-service').mountProfileSocial(app, { db: supabase, rateLimit: searchRateLimit, requireAuth, requireChatAccess });
+
 app.get('/api/chat/status', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
   try {

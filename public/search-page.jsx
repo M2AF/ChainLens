@@ -32,12 +32,14 @@
     } catch { /* history unavailable */ }
   };
 
-  const SearchPage = ({ darkMode, apps = [], onOpenScanner, onOpenAppHub }) => {
+  const SearchPage = ({ darkMode, apps = [], onOpenScanner, onOpenAppHub, onOpenProfile }) => {
     const [query, setQuery] = useState('');
     const [submittedQuery, setSubmittedQuery] = useState('');
     const [webResults, setWebResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [profileResult, setProfileResult] = useState(null);
+    const [profileError, setProfileError] = useState('');
     const requestRef = useRef(null);
 
     useEffect(() => () => requestRef.current?.abort(), []);
@@ -58,11 +60,22 @@
       writeUrlQuery(value);
       setWebResults([]);
       setError('');
+      setProfileResult(null);
+      setProfileError('');
       requestRef.current?.abort();
       const controller = new AbortController();
       requestRef.current = controller;
       setLoading(true);
       try {
+        const profileId = window.ChainLensProfiles.parseId(value);
+        if (profileId) {
+          const response = await fetch(`/api/profiles/${profileId}`, { signal: controller.signal });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            if (requestRef.current === controller) setProfileError(payload.error || 'Profile search is unavailable.');
+          } else if (requestRef.current === controller) setProfileResult(payload);
+          return;
+        }
         const response = await fetch(`${WEB_SEARCH_API}?q=${encodeURIComponent(value)}`, { signal: controller.signal });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Web search is temporarily unavailable.');
@@ -116,7 +129,7 @@
                     onChange={event => setQuery(event.target.value)}
                     maxLength="200"
                     autoComplete="off"
-                    placeholder="Search anything, an app, or a wallet..."
+                    placeholder="Search an app, wallet, or ChainLens ID..."
                     className="w-full bg-transparent py-3 text-base text-white placeholder:text-slate-500 outline-none md:text-lg"
                   />
                 </div>
@@ -137,7 +150,14 @@
         </section>
 
         <div className="mt-7 space-y-7" aria-live="polite">
-          {!submittedQuery && (
+          {window.ChainLensProfiles.parseId(submittedQuery) && <section data-testid="profile-search-result" className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
+            <h2 className="font-heading text-2xl font-extrabold mb-4">ChainLens profile</h2>
+            {loading ? <p>Finding profile…</p> : profileError ? <p role="status">{profileError}</p> : profileResult && <button type="button" onClick={() => onOpenProfile(profileResult.id)} className="flex w-full items-center gap-4 text-left rounded-xl p-3 hover:bg-cyan-500/10">
+              {profileResult.avatar_url ? <img src={profileResult.avatar_url} alt="" referrerPolicy="no-referrer" className="h-14 w-14 rounded-full object-cover" /> : <span className="h-14 w-14 rounded-full bg-cyan-500/20 flex items-center justify-center font-bold">{initials(profileResult.display_name)}</span>}
+              <span className="min-w-0 flex-1"><strong className="block">{profileResult.display_name}</strong><span className={`block break-all text-xs font-mono ${muted}`}>{profileResult.id}</span></span><span className="text-cyan-500 text-xs font-bold">View Profile →</span>
+            </button>}
+          </section>}
+          {(!submittedQuery || window.ChainLensProfiles.parseId(submittedQuery)) && (
             <section className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-6">
                 <div>
@@ -146,7 +166,7 @@
                 </div>
                 <button onClick={() => onOpenAppHub('')} className="text-xs font-bold uppercase tracking-widest text-cyan-500 hover:text-cyan-400">Browse App Hub →</button>
               </div>
-              <AppGrid apps={appResults} darkMode={darkMode} allApps={apps} />
+              <AppGrid apps={getSearchFeaturedApps(apps)} darkMode={darkMode} allApps={apps} />
             </section>
           )}
 
@@ -165,7 +185,7 @@
             </section>
           )}
 
-          {submittedQuery && appResults.length > 0 && (
+          {submittedQuery && !window.ChainLensProfiles.parseId(submittedQuery) && appResults.length > 0 && (
             <section className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-6">
                 <div>
@@ -178,7 +198,7 @@
             </section>
           )}
 
-          {submittedQuery && (
+          {submittedQuery && !window.ChainLensProfiles.parseId(submittedQuery) && (
             <section className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
               <div className="mb-6">
                 <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-blue-500 mb-2">Across the web</p>

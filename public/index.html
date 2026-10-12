@@ -38,6 +38,9 @@
   <script src="/nft-image.js"></script>
   <script src="/nft-session.js"></script>
   <script type="text/babel" src="/nft-favorites.jsx"></script>
+  <script src="/profile-id.js"></script>
+  <script type="text/babel" src="/profile-social.jsx"></script>
+  <link rel="stylesheet" href="/profile-social.css">
   <script type="text/babel" src="/profile-portfolio.jsx"></script>
   <link rel="stylesheet" href="/profile-portfolio.css">
   <script src="/texture-engine.js"></script>
@@ -522,14 +525,12 @@
       );
     };
 
-    const ChatMessage = ({ message, own, darkMode, allowLinks, deleting, onDelete, onMediaLoad }) => (
+    const ChatMessage = ({ message, own, darkMode, allowLinks, deleting, onDelete, onMediaLoad, personActions }) => (
       <div className={`flex gap-2.5 ${own ? 'flex-row-reverse' : ''}`} data-message-id={message.id}>
         <ChatAvatar profile={message.author} size={30} />
         <div className={`min-w-0 max-w-[78%] ${own ? 'text-right' : ''}`}>
           <div className={`flex items-baseline gap-2 mb-1 ${own ? 'justify-end' : ''}`}>
-            <span className={`text-[10px] font-black truncate ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-              {message.author?.display_name || 'ChainLens user'}
-            </span>
+            {message.author?.id ? <window.ProfileActions person={message.author} {...personActions} /> : <span>ChainLens user</span>}
             <span className={`text-[8px] flex-shrink-0 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{formatChatTime(message.created_at)}</span>
             {own && (
               <button type="button" onClick={() => onDelete(message)} disabled={deleting}
@@ -581,7 +582,7 @@
       return '$' + number.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
     };
 
-    const ChatWidget = ({ open, onClose, onOpenProfile, darkMode, authToken, userProfile, unread, onUnreadRefresh, pinned, onTogglePin }) => {
+    const ChatWidget = ({ open, onClose, onOpenProfile, darkMode, authToken, userProfile, unread, onUnreadRefresh, pinned, onTogglePin, pageMode, onToggleMode, onViewPerson, messageTarget }) => {
       const [position, setPosition] = useState(null);
       const dragStart = useRef(null);
       const panelRef = useRef(null);
@@ -609,6 +610,10 @@
         window.addEventListener('resize', clamp);
         return () => window.removeEventListener('resize', clamp);
       }, []);
+      const [peopleOpen, setPeopleOpen] = useState(false);
+      const [presence, setPresence] = useState({ people: [], available: false });
+      const presenceSession = useRef(crypto.randomUUID());
+      const modeScroll = useRef(0);
       const [tab, setTab] = useState('world');
       const [status, setStatus] = useState(null);
       const [statusLoading, setStatusLoading] = useState(false);
@@ -617,10 +622,22 @@
       const [friends, setFriends] = useState({ friends: [], incoming: [], outgoing: [] });
       const [friendsLoading, setFriendsLoading] = useState(false);
       const [selectedFriend, setSelectedFriend] = useState(null);
+      useEffect(() => { if (pageMode && !selectedFriend && tab !== 'world') setTab('world'); }, [pageMode, selectedFriend?.id, tab]);
       const [directMessages, setDirectMessages] = useState([]);
       const [directLoading, setDirectLoading] = useState(false);
       const [friendId, setFriendId] = useState('');
       const [draft, setDraft] = useState('');
+      const conversationDrafts = useRef({});
+      const draftRef = useRef('');
+      const previousConversation = useRef('world');
+      draftRef.current = draft;
+      useEffect(() => {
+        const key = selectedFriend?.id || 'world';
+        if (key === previousConversation.current) return;
+        conversationDrafts.current[previousConversation.current] = draftRef.current;
+        previousConversation.current = key;
+        setDraft(conversationDrafts.current[key] || '');
+      }, [selectedFriend?.id]);
       const [sending, setSending] = useState(false);
       const [deletingMessageId, setDeletingMessageId] = useState(null);
       const [busyFriendship, setBusyFriendship] = useState(null);
@@ -752,6 +769,10 @@
 
       useEffect(() => {
         setStatus(null);
+        setDraft('');
+        conversationDrafts.current = {};
+        previousConversation.current = 'world';
+        setFriends({ friends: [], incoming: [], outgoing: [] });
         setMessages([]);
         setDirectMessages([]);
         setSelectedFriend(null);
@@ -766,7 +787,7 @@
       }, []);
 
       useEffect(() => {
-        if (!open || !authToken) return;
+        if (!authToken) return;
         let cancelled = false;
         setStatusLoading(true);
         api('/api/chat/status')
@@ -785,7 +806,7 @@
       }, [open, status?.eligible, tab, loadWorld]);
 
       useEffect(() => {
-        if (!open || !status?.eligible || tab !== 'friends') return;
+        if (!open || !status?.eligible) return;
         loadFriends(false);
         const interval = setInterval(() => loadFriends(true), 6000);
         return () => clearInterval(interval);
@@ -935,6 +956,42 @@
         }
       };
 
+      const selectConversation = friend => {
+        setSelectedFriend(friend); setTab(friend ? 'friends' : 'world'); setPeopleOpen(false); setShowGifs(false);
+      };
+      useEffect(() => {
+        if (messageTarget) selectConversation(messageTarget);
+      }, [messageTarget]);
+      useEffect(() => {
+        if (!authToken || !status?.eligible) { setPresence({ people: [], available: false }); return; }
+        let cancelled = false;
+        const beat = () => api('/api/chat/presence', { method: 'POST', body: JSON.stringify({
+          session_id: presenceSession.current, active: document.visibilityState === 'visible',
+          in_world: open && tab === 'world' && !selectedFriend,
+        }) }).catch(() => {});
+        const refresh = async () => {
+          if (!open || document.visibilityState !== 'visible') return;
+          try { const body = await api('/api/chat/presence'); if (!cancelled) setPresence({ people: body.people || [], available: true }); }
+          catch { if (!cancelled) setPresence({ people: [], available: false }); }
+        };
+        beat().then(refresh);
+        const timer = setInterval(() => beat().then(refresh), 20000);
+        const visibility = () => beat().then(refresh);
+        document.addEventListener('visibilitychange', visibility);
+        return () => { cancelled = true; clearInterval(timer); document.removeEventListener('visibilitychange', visibility); };
+      }, [api, authToken, status?.eligible, open, tab, selectedFriend?.id]);
+      useEffect(() => {
+        if (!authToken) return;
+        const leave = () => fetch('/api/chat/presence', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }, body: JSON.stringify({ session_id: presenceSession.current, active: false, in_world: false }) }).catch(() => {});
+        window.addEventListener('pagehide', leave);
+        return () => { window.removeEventListener('pagehide', leave); leave(); };
+      }, [authToken]);
+      const toggleMode = () => {
+        modeScroll.current = feedRef.current?.scrollTop || 0;
+        onToggleMode();
+        requestAnimationFrame(() => { if (feedRef.current) feedRef.current.scrollTop = modeScroll.current; });
+      };
+
       const loadGifs = async (query = '') => {
         if (!status?.giphyApiKey) {
           setError('GIF search is waiting for GIPHY_API_KEY to be configured.');
@@ -985,63 +1042,14 @@
       const unreadByFriend = new Map((unread?.conversations || []).map(row => [row.friend_id, row.unread]));
       const friendsTabBadge = (friends.incoming?.length || 0) + (unread?.unread_direct || 0);
 
-      return (
-        <section ref={panelRef} aria-label="ChainLens Messenger" data-testid="chat-panel"
-          className={`fixed z-[110] w-[min(calc(100vw-2rem),430px)] h-[min(72vh,590px)] rounded-[1.5rem] border shadow-2xl backdrop-blur-xl overflow-hidden flex flex-col ${panel}`}
-          style={position ? { left: position.left, top: position.top } : { left: window.innerWidth > 900 ? 322 : 16, bottom: 24 }} onClick={event => event.stopPropagation()}>
-          <header className={`px-4 pt-3 border-b cursor-move touch-none select-none ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}
-            onPointerDown={beginDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}>
-            <div className="flex items-center justify-between gap-3 pb-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-slate-950 shadow-lg shadow-cyan-500/20">
-                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 5.5h16v11H8l-4 3v-14Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M8 10h8M8 13h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                </span>
-                <div className="min-w-0">
-                  <p className={`text-[8px] font-black uppercase tracking-[0.2em] ${muted}`}>ChainLens</p>
-                  <h2 className="font-heading font-extrabold text-sm truncate">Messenger</h2>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-              <button onClick={onTogglePin} aria-label={pinned ? 'Unpin chat' : 'Pin chat'} aria-pressed={pinned} title={pinned ? 'Unpin chat' : 'Pin chat'}
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${pinned ? 'bg-cyan-500 text-slate-950' : darkMode ? 'bg-slate-800 text-slate-400 hover:text-cyan-300' : 'bg-slate-100 text-slate-500 hover:text-cyan-600'}`}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m8 3 8 8M14 2l8 8-4 1-3 3-2 6-3-3-6 5 5-6-3-3 3-3 1-4Z"/></svg>
-              </button>
-              <button onClick={onClose} aria-label="Close chat"
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${darkMode ? 'bg-slate-800 text-slate-400 hover:bg-red-500 hover:text-white' : 'bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white'}`}>×</button>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-1">
-              {[['world', 'World Chat'], ['friends', `Friends${friendsTabBadge ? ` (${friendsTabBadge})` : ''}`]].map(([value, label]) => (
-                <button key={value} onClick={() => { setTab(value); setSelectedFriend(null); setShowGifs(false); setError(''); }}
-                  className={`py-2.5 rounded-t-xl text-[10px] font-black uppercase tracking-widest border-b-2 transition-colors ${tab === value ? 'border-cyan-400 text-cyan-400' : `border-transparent ${muted}`}`}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </header>
-
-          {!authToken ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
-              <span className="text-4xl mb-4">💬</span>
-              <h3 className="font-heading font-extrabold text-lg">Sign in to chat</h3>
-              <p className={`text-xs leading-relaxed mt-2 ${muted}`}>Messenger uses your synced ChainLens name, profile picture, and ID.</p>
-              <button onClick={onOpenProfile} className="mt-5 px-5 py-3 rounded-xl bg-cyan-500 text-slate-950 text-xs font-black uppercase tracking-widest">Open Profile</button>
-            </div>
-          ) : statusLoading && !status ? (
-            <div className={`flex-1 flex items-center justify-center text-xs ${muted}`}>Checking your account…</div>
-          ) : status && !status.eligible ? (
-            <div className="flex-1 flex flex-col items-center justify-center px-7 text-center">
-              <span className="text-4xl mb-4">🔐</span>
-              <h3 className="font-heading font-extrabold text-lg">Unlock Messenger</h3>
-              <p className={`text-xs leading-relaxed mt-2 ${muted}`}>Chat requires one verified wallet and either Google or Discord on the same ChainLens account.</p>
-              <div className={`w-full mt-5 rounded-2xl border overflow-hidden text-left ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
-                <div className={`px-4 py-3 flex items-center justify-between text-xs ${darkMode ? 'bg-slate-950/50' : 'bg-slate-50'}`}><span>Verified wallet</span><strong className={status.walletLinked ? 'text-emerald-400' : 'text-amber-400'}>{status.walletLinked ? 'Linked ✓' : 'Required'}</strong></div>
-                <div className={`px-4 py-3 flex items-center justify-between text-xs border-t ${darkMode ? 'border-slate-800 bg-slate-950/50' : 'border-slate-200 bg-slate-50'}`}><span>Google or Discord</span><strong className={status.socialLinked ? 'text-emerald-400' : 'text-amber-400'}>{status.socialLinked ? 'Linked ✓' : 'Required'}</strong></div>
-              </div>
-              <button onClick={onOpenProfile} className="mt-5 px-5 py-3 rounded-xl bg-cyan-500 text-slate-950 text-xs font-black uppercase tracking-widest">Manage Profile</button>
-            </div>
-          ) : status?.eligible && tab === 'friends' && !selectedFriend ? (
+      const personActions = { userProfile, authToken, onView: onViewPerson, onMessage: selectConversation, onChange: () => loadFriends(true) };
+      const friendsPanel = (
             <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
+              <button type="button" onClick={() => selectConversation(null)} className="w-full rounded-xl px-3 py-3 text-left font-bold text-cyan-400">World Chat</button>
+              <div className="space-y-3"><h3 className="text-xs font-bold">In World Chat · {presence.people.filter(p => p.in_world).length}</h3>
+                {!presence.available && <p className="text-xs opacity-60">Presence unavailable</p>}
+                {presence.people.filter(p => p.in_world).map(person => <div key={person.id} className="flex items-center gap-2"><ChatAvatar profile={person} size={26} /><window.ProfileActions person={person} {...personActions} /></div>)}
+              </div>
               <div className={`rounded-2xl border p-3 ${darkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`text-[8px] font-black uppercase tracking-widest mb-1 ${muted}`}>Your ChainLens ID</div>
                 <div className="flex items-center gap-2">
@@ -1065,7 +1073,7 @@
                     {friends.incoming.map(request => (
                       <div key={request.friendship_id} className={`rounded-2xl border p-3 flex items-center gap-3 ${darkMode ? 'border-slate-800 bg-slate-950/50' : 'border-slate-200 bg-white'}`}>
                         <ChatAvatar profile={request} />
-                        <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate">{request.display_name}</div><div className={`font-mono text-[7px] truncate ${muted}`}>{request.id}</div></div>
+                        <div className="min-w-0 flex-1"><window.ProfileActions person={request} {...personActions} /><div className={`font-mono text-[7px] truncate ${muted}`}>{request.id}</div></div>
                         <button onClick={() => changeFriendship(request, 'accept')} disabled={busyFriendship === request.friendship_id} className="text-[9px] font-black uppercase text-emerald-400">Accept</button>
                         <button onClick={() => changeFriendship(request, 'remove')} disabled={busyFriendship === request.friendship_id} aria-label="Decline friend request" className={`text-sm ${muted}`}>×</button>
                       </div>
@@ -1079,20 +1087,17 @@
                     ) : friends.friends.map(friend => {
                       const friendUnread = unreadByFriend.get(friend.id) || 0;
                       return (
-                        <button key={friend.id} onClick={() => { setSelectedFriend(friend); setShowGifs(false); }}
-                          aria-label={friendUnread
-                            ? `${friend.display_name}, ${friendUnread} unread message${friendUnread === 1 ? '' : 's'}`
-                            : friend.display_name}
+                        <div key={friend.id}
                           className={`w-full rounded-2xl border p-3 flex items-center gap-3 text-left transition-colors ${darkMode ? 'border-slate-800 bg-slate-950/50 hover:border-cyan-500/60' : 'border-slate-200 bg-white hover:border-cyan-400'}`}>
                           <ChatAvatar profile={friend} />
-                          <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate">{friend.display_name}</div><div className={`font-mono text-[7px] truncate ${muted}`}>{friend.id}</div></div>
+                          <div className="min-w-0 flex-1"><window.ProfileActions person={friend} {...personActions} /><div className="text-[10px] opacity-60"><span className={`cl-presence-dot ${presence.people.some(p => p.id === friend.id) ? 'online' : ''}`} />{presence.available ? (presence.people.some(p => p.id === friend.id) ? 'Online' : 'Offline') : 'Status unavailable'}</div><div className={`font-mono text-[7px] truncate ${muted}`}>{friend.id}</div></div>
                           {friendUnread > 0 && (
                             <span aria-hidden="true" className="flex-shrink-0 min-w-[18px] rounded-full bg-cyan-500 px-1.5 text-center text-[9px] font-black leading-[18px] text-slate-950">
                               {friendUnread > 99 ? '99+' : friendUnread}
                             </span>
                           )}
-                          <span className="text-cyan-400">›</span>
-                        </button>
+                          <button aria-label={`Message ${friend.display_name}${friendUnread ? `, ${friendUnread} unread message${friendUnread === 1 ? '' : 's'}` : ''}`} onClick={() => selectConversation(friend)} className="text-cyan-400">Message ›</button>
+                        </div>
                       );
                     })}
                   </div>
@@ -1101,7 +1106,7 @@
                     <div className={`text-[9px] font-black uppercase tracking-widest ${muted}`}>Sent requests</div>
                     {friends.outgoing.map(request => (
                       <div key={request.friendship_id} className={`rounded-xl px-3 py-2 flex items-center gap-2 text-xs ${darkMode ? 'bg-slate-950/40' : 'bg-slate-50'}`}>
-                        <span className="flex-1 truncate">{request.display_name}</span><span className={`text-[8px] ${muted}`}>Pending</span>
+                        <window.ProfileActions person={request} {...personActions} /><span className={`text-[8px] ${muted}`}>Pending</span>
                         <button onClick={() => changeFriendship(request, 'remove')} className={`text-[9px] font-black uppercase ${muted}`}>Cancel</button>
                       </div>
                     ))}
@@ -1109,13 +1114,15 @@
                 </>
               )}
             </div>
-          ) : status?.eligible ? (
+      );
+      const conversationPanel = (
             <>
+              {!selectedFriend && <div className="px-4 py-3 border-b border-slate-700/30"><h3 className="font-bold text-sm">World Chat</h3><p className="text-[10px] opacity-60">{presence.available ? `${presence.people.filter(p => p.in_world).length} people in chat` : 'Presence unavailable'}</p></div>}
               {selectedFriend && (
                 <div className={`px-3 py-2 flex items-center gap-2 border-b ${darkMode ? 'border-slate-800 bg-slate-950/50' : 'border-slate-100 bg-slate-50'}`}>
                   <button onClick={() => { setSelectedFriend(null); setDirectMessages([]); setShowGifs(false); }} aria-label="Back to friends" className={`w-8 h-8 rounded-full ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-200'}`}>‹</button>
                   <ChatAvatar profile={selectedFriend} size={30} />
-                  <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate">{selectedFriend.display_name}</div><div className={`font-mono text-[7px] truncate ${muted}`}>{selectedFriend.id}</div></div>
+                  <div className="min-w-0 flex-1"><window.ProfileActions person={selectedFriend} {...personActions} /><div className={`font-mono text-[7px] truncate ${muted}`}>{selectedFriend.id}</div></div>
                   <button onClick={() => changeFriendship(selectedFriend, 'remove')} className={`text-[8px] font-black uppercase tracking-widest ${muted}`}>Unfriend</button>
                 </div>
               )}
@@ -1128,7 +1135,7 @@
                     <div className={`h-full flex flex-col items-center justify-center text-center px-8 ${muted}`}><span className="text-3xl mb-3">👋</span><p className="text-xs">{selectedFriend ? `Start a conversation with ${selectedFriend.display_name}.` : 'World Chat is quiet. Say hello!'}</p></div>
                   ) : currentMessages.map(message => (
                     <ChatMessage key={message.id} message={message} own={message.author?.id === userProfile?.id}
-                      darkMode={darkMode} allowLinks={Boolean(selectedFriend)} onMediaLoad={handleChatMediaLoad}
+                      personActions={personActions} darkMode={darkMode} allowLinks={Boolean(selectedFriend)} onMediaLoad={handleChatMediaLoad}
                       deleting={deletingMessageId === String(message.id)} onDelete={deleteMessage} />
                   ))}
                 </div>
@@ -1173,6 +1180,71 @@
                 </button>
               </form>
             </>
+      );
+
+      return (
+        <section ref={panelRef} aria-label="ChainLens Messenger" data-testid="chat-panel"
+          className={`${pageMode ? `cl-chat-page ${peopleOpen ? 'people-open' : ''}` : 'fixed z-[110] w-[min(calc(100vw-2rem),430px)] h-[min(72vh,590px)] rounded-[1.5rem]'} border shadow-2xl backdrop-blur-xl flex flex-col ${panel}`}
+          style={pageMode ? undefined : position ? { left: position.left, top: position.top } : { left: window.innerWidth > 900 ? 322 : 16, bottom: 24 }} onClick={event => event.stopPropagation()}>
+          <header className={`px-4 pt-3 border-b cursor-move touch-none select-none ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}
+            onPointerDown={pageMode ? undefined : beginDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}>
+            <div className="flex items-center justify-between gap-3 pb-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-slate-950 shadow-lg shadow-cyan-500/20">
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 5.5h16v11H8l-4 3v-14Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M8 10h8M8 13h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                </span>
+                <div className="min-w-0">
+                  <p className={`text-[8px] font-black uppercase tracking-[0.2em] ${muted}`}>ChainLens</p>
+                  <h2 className="font-heading font-extrabold text-sm truncate">Messenger</h2>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+              <button type="button" onClick={toggleMode} className="px-3 py-2 text-xs font-bold text-cyan-400">{pageMode ? 'Pop out chat' : 'Open chat page'}</button>
+              <button type="button" onClick={() => setPeopleOpen(value => !value)} className={pageMode ? 'cl-chat-mobile-toggle text-xs px-2 py-2' : 'hidden'} aria-expanded={peopleOpen}>People</button>
+              {!pageMode && <button onClick={onTogglePin} aria-label={pinned ? 'Unpin chat' : 'Pin chat'} aria-pressed={pinned} title={pinned ? 'Unpin chat' : 'Pin chat'}
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${pinned ? 'bg-cyan-500 text-slate-950' : darkMode ? 'bg-slate-800 text-slate-400 hover:text-cyan-300' : 'bg-slate-100 text-slate-500 hover:text-cyan-600'}`}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m8 3 8 8M14 2l8 8-4 1-3 3-2 6-3-3-6 5 5-6-3-3 3-3 1-4Z"/></svg>
+              </button>
+              }
+              <button onClick={onClose} aria-label="Close chat"
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${darkMode ? 'bg-slate-800 text-slate-400 hover:bg-red-500 hover:text-white' : 'bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white'}`}>×</button>
+              </div>
+            </div>
+            <div className={pageMode ? 'hidden' : 'grid grid-cols-2 gap-1'}>
+              {[['world', 'World Chat'], ['friends', `Friends${friendsTabBadge ? ` (${friendsTabBadge})` : ''}`]].map(([value, label]) => (
+                <button key={value} onClick={() => { setTab(value); setSelectedFriend(null); setShowGifs(false); setError(''); }}
+                  className={`py-2.5 rounded-t-xl text-[10px] font-black uppercase tracking-widest border-b-2 transition-colors ${tab === value ? 'border-cyan-400 text-cyan-400' : `border-transparent ${muted}`}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </header>
+
+          {!authToken ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
+              <span className="text-4xl mb-4">💬</span>
+              <h3 className="font-heading font-extrabold text-lg">Sign in to chat</h3>
+              <p className={`text-xs leading-relaxed mt-2 ${muted}`}>Messenger uses your synced ChainLens name, profile picture, and ID.</p>
+              <button onClick={onOpenProfile} className="mt-5 px-5 py-3 rounded-xl bg-cyan-500 text-slate-950 text-xs font-black uppercase tracking-widest">Open Profile</button>
+            </div>
+          ) : statusLoading && !status ? (
+            <div className={`flex-1 flex items-center justify-center text-xs ${muted}`}>Checking your account…</div>
+          ) : status && !status.eligible ? (
+            <div className="flex-1 flex flex-col items-center justify-center px-7 text-center">
+              <span className="text-4xl mb-4">🔐</span>
+              <h3 className="font-heading font-extrabold text-lg">Unlock Messenger</h3>
+              <p className={`text-xs leading-relaxed mt-2 ${muted}`}>Chat requires one verified wallet and either Google or Discord on the same ChainLens account.</p>
+              <div className={`w-full mt-5 rounded-2xl border overflow-hidden text-left ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+                <div className={`px-4 py-3 flex items-center justify-between text-xs ${darkMode ? 'bg-slate-950/50' : 'bg-slate-50'}`}><span>Verified wallet</span><strong className={status.walletLinked ? 'text-emerald-400' : 'text-amber-400'}>{status.walletLinked ? 'Linked ✓' : 'Required'}</strong></div>
+                <div className={`px-4 py-3 flex items-center justify-between text-xs border-t ${darkMode ? 'border-slate-800 bg-slate-950/50' : 'border-slate-200 bg-slate-50'}`}><span>Google or Discord</span><strong className={status.socialLinked ? 'text-emerald-400' : 'text-amber-400'}>{status.socialLinked ? 'Linked ✓' : 'Required'}</strong></div>
+              </div>
+              <button onClick={onOpenProfile} className="mt-5 px-5 py-3 rounded-xl bg-cyan-500 text-slate-950 text-xs font-black uppercase tracking-widest">Manage Profile</button>
+            </div>
+          ) : status?.eligible ? (
+            <div className={pageMode ? 'cl-chat-workspace' : 'flex flex-col flex-1 min-h-0'}>
+              {(pageMode || (tab === 'friends' && !selectedFriend)) && <aside className={pageMode ? 'cl-chat-people' : 'flex flex-col flex-1 min-h-0'} aria-label="People">{friendsPanel}</aside>}
+              {(pageMode || tab === 'world' || selectedFriend) && <div className="cl-chat-conversation">{conversationPanel}</div>}
+            </div>
           ) : (
             <div className={`flex-1 flex items-center justify-center text-xs px-8 text-center ${muted}`}>{error || 'Messenger is unavailable.'}</div>
           )}
@@ -1489,15 +1561,23 @@
 
     const App = () => {
       const tabFromLocation = () => {
+        if (window.ChainLensProfiles.pathId(window.location.pathname)) return 'public-profile';
+        if (window.location.pathname === '/chat') return 'chat';
         if (window.location.pathname === '/magic-swap') return 'magic-swap';
         const tab = new URLSearchParams(window.location.search).get('tab');
-        return ['search', 'portfolio', 'swap', 'market', 'profile'].includes(tab) ? tab : 'search';
+        return ['search', 'portfolio', 'swap', 'market', 'profile', 'chat'].includes(tab) ? tab : 'search';
       };
       const [activeTab, setActiveTab] = useState(tabFromLocation);
+      const [publicProfileId, setPublicProfileId] = useState(() => window.ChainLensProfiles.pathId(window.location.pathname));
+      const [messageTarget, setMessageTarget] = useState(null);
+      const lastChatPage = useRef({ tab: 'search', profileId: null });
+      useEffect(() => {
+        if (activeTab !== 'chat') lastChatPage.current = { tab: activeTab, profileId: publicProfileId };
+      }, [activeTab, publicProfileId]);
       const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
       const [swapMode, setSwapMode] = useState('wallet');
       useEffect(() => {
-        const onPopState = () => setActiveTab(tabFromLocation());
+        const onPopState = () => { setPublicProfileId(window.ChainLensProfiles.pathId(window.location.pathname)); setActiveTab(tabFromLocation()); };
         window.addEventListener('popstate', onPopState);
         return () => window.removeEventListener('popstate', onPopState);
       }, []);
@@ -3423,7 +3503,7 @@
       };
 
       const navigateTo = (tab) => {
-        const path = tab === 'magic-swap' ? '/magic-swap' : '/';
+        const path = tab === 'magic-swap' ? '/magic-swap' : tab === 'chat' ? '/chat' : '/';
         if (window.location.pathname !== path) window.history.pushState({}, '', path);
         setActiveTab(tab);
         setMobileMenuOpen(false);
@@ -3432,10 +3512,15 @@
         if (!chatPinned) setShowChat(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       };
+      const viewPerson = id => {
+        window.history.pushState({}, '', `/${id}`); setPublicProfileId(id); setActiveTab('public-profile');
+        setMobileMenuOpen(false); if (!chatPinned) setShowChat(false); window.scrollTo(0, 0);
+      };
+      const messagePerson = friend => { setMessageTarget(friend); navigateTo('chat'); };
       const openUtility = (utility) => {
         setMobileMenuOpen(false);
         if (utility === 'chat') {
-          setShowChat(true);
+          navigateTo('chat');
           setShowWallet(false);
           setShowDonate(false);
         } else if (utility === 'wallet') {
@@ -3487,10 +3572,26 @@
             </nav>
             <ChainLensSappy.SappySeal/>
           </aside>
-          <div className="cl-main min-h-screen">
+          <div className={`cl-main min-h-screen ${activeTab === 'chat' ? 'chat-mode' : ''}`}>
+          <ChatWidget
+            open={activeTab === 'chat' || showChat}
+            onClose={() => { setShowChat(false); setChatPinned(false); if (activeTab === 'chat') navigateTo('search'); }}
+            onTogglePin={() => setChatPinned(value => !value)}
+            pinned={chatPinned}
+            pageMode={activeTab === 'chat'}
+            onToggleMode={() => { if (activeTab === 'chat') { const previous = lastChatPage.current; if (previous.tab === 'public-profile') viewPerson(previous.profileId); else navigateTo(previous.tab); setShowChat(true); } else { navigateTo('chat'); setShowChat(false); } }}
+            onViewPerson={viewPerson}
+            messageTarget={messageTarget}
+            onOpenProfile={() => { setShowChat(false); setChatPinned(false); navigateTo('profile'); }}
+            darkMode={darkMode}
+            authToken={authToken}
+            userProfile={userProfile}
+            unread={chatUnread}
+            onUnreadRefresh={refreshChatUnread}
+          />
           <MarketTicker darkMode={darkMode} />
           <button aria-label="Open menu" onClick={() => setMobileMenuOpen(true)} className={`fixed left-4 top-4 z-[60] min-[901px]:hidden rounded-xl border px-3 py-2 text-xl ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>☰</button>
-          <div className={`max-w-[1600px] mx-auto p-4 md:p-8 pt-12 ${['search', 'portfolio', 'market', 'profile'].includes(activeTab) ? 'cl-primary-content' : ''}`}>
+          <div hidden={activeTab === 'chat'} className={`max-w-[1600px] mx-auto p-4 md:p-8 pt-12 ${['search', 'portfolio', 'market', 'profile', 'public-profile'].includes(activeTab) ? 'cl-primary-content' : ''}`}>
             <div className="cl-main-logo flex-col items-center mb-8">
               <div className="relative group">
                   <img 
@@ -3762,12 +3863,13 @@
                 </div>
             </div>
 
-            {activeTab === 'search' ? (
+            {activeTab === 'public-profile' ? <window.PublicProfile id={publicProfileId} userProfile={userProfile} authToken={authToken} onView={viewPerson} onMessage={messagePerson} /> : activeTab === 'search' ? (
                 <ChainLensSearchPage
                   darkMode={darkMode}
                   apps={appHubData?.apps || []}
                   onOpenScanner={openScannerFromSearch}
                   onOpenAppHub={openAppHubFromSearch}
+                  onOpenProfile={viewPerson}
                 />
             ) : activeTab === 'portfolio' ? (
                 <>
@@ -4989,18 +5091,7 @@
           {(showDonate || showWallet || (showChat && !chatPinned)) && (
             <div className="fixed inset-0 z-[95] bg-slate-950/45" onClick={() => { setShowDonate(false); setShowWallet(false); if (!chatPinned) setShowChat(false); }} />
           )}
-          <ChatWidget
-            open={showChat}
-            onClose={() => { setShowChat(false); setChatPinned(false); }}
-            onTogglePin={() => setChatPinned(value => !value)}
-            pinned={chatPinned}
-            onOpenProfile={() => { setShowChat(false); setChatPinned(false); navigateTo('profile'); }}
-            darkMode={darkMode}
-            authToken={authToken}
-            userProfile={userProfile}
-            unread={chatUnread}
-            onUnreadRefresh={refreshChatUnread}
-          />
+
 
           {/* Wallet pop-up panel */}
           {showWallet && (

@@ -7,13 +7,14 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: b93c583 · User HEADb93c583 reconciled: npm check/204Node/six JSX plus3 browser cases pass (Sappy actual WebGL13motions/mobile/gates and new stacking/scrollbars, palette switch/reload, Docs). Compact sidebar screenshot reviewed. .sidebar-scroll-*.log; wallet unchanged; local only. · 2026-10-12T03:33-03:00
-head: b93c583 (main) dirty 7
-updated: 2026-10-12T03:33-03:00 · codex
+verified: 1faf750 · HEAD1faf750: npm check/211Node/seven JSX; sixteen unique browser journeys across final social/spacing and existing chat/sidebar runs pass. Desktop/mobile profile/chat/pop-out screenshots reviewed. Supabase presence plus approved account RLS fix applied, privileges/service-role reads/expiry verified. Local key unregistered; mocked UI and connector DB verification, no frontend/backend deployment. · 2026-10-12T17:46-03:00
+head: 1faf750 (main) dirty 8
+updated: 2026-10-12T17:47-03:00 · codex
 
 resources: -
 
 ## Now
+- Profile ID/link search and basic public /<uuid> profiles; shared name actions, /chat two-panel/mobile page and draggable/pinned pop-out complete locally. Single component retains conversation/drafts/scroll; online/in-world presence expires75s. HEAD1faf750: npm check/211Node/seven JSX plus16 unique browser cases pass; screenshots reviewed. docs/PROFILE-SEARCH-CHAT.md; .social-*.log; .local-artifacts/profile-social/. Supabase presence table and user-approved account RLS/grant fix applied/verified; no feature deployment/commit or wallet source edits.
 - Sidebar seal layering/scrollbars complete locally on user HEADb93c583: opaque navigation/header above unchanged seal, isolated stacking; shared rounded palette/art-accent thumbs with transparent tracks/no arrows on main and Docs. Syntax/204Node/six JSX plus Sappy actual WebGL13motions/mobile/gate, palette switch/reload and Docs checks pass. .sidebar-scroll-*.log; .local-artifacts/sappy-seals/sidebar-scrollbars.png reviewed. No wallet edits/commit/deploy.
 - ChainLens Light/Dark options/switch removed; new/legacy base IDs migrateMoonlight. Missing finish defaultsSoftFade, two-toneon; explicit other selections/finishes retained. Moonlight guest and access/holder fallback, other eligibility unchanged; Docs loads finishes too. Syntax/204Node/six JSX;10browser cases+final2fallback/Sappy+2guestfinish/gate pass; screenshot reviewed. docs/MOONLIGHT-DEFAULT.md; .moonlight-default-*.log; .local-artifacts/moonlight-default/guest.png. User HEADa3e6d9a reconciled. No wallet/DB edits/commit/deploy.
 - User-approved ChainLens seal size doubled exactly:440x320 scene/180px footer, bottom-sidebar placement; wallet unchanged. Main/Docs Art and Material disclosure labels now white rounded pills/black text with white rail to right chevron, collapsed by default. Syntax/202Node/six JSX/3browser journeys pass including full13-motion Sappy and mobile/gate/variant checks; previews reviewed. .sappy-double-*.log; .sappy-pill-*.log; .local-artifacts/sappy-seals/double-size-preview.png. No commit/deploy.
@@ -48,9 +49,10 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User review and deploy frontend when authorized; changes include new public/scrollbars.css loaded main and Docs.
+- User review/deploy ChainLens frontend/backend when authorized and verify real authenticated flows using production credentials
 
 ## Traps
+- Local Supabase key is unregistered; fixture-backed browser/API tests plus connector DB checks do not prove authenticated HTTP integration. Production keys were not read/changed. Account browser-role grants revoked with explicit user approval; Express and Magic Money Worker use service_role. Public profile response must remain four-field allowlist.
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.
 - Image loader owns displayed DOM src; keep React src constant to avoid duplicate no-store gateway requests. Retry endpoints accept known canonical token identities only.
 - Deploy new public/nft-session.js with index.html and profile-portfolio.jsx; Scanner shares the cache. Tokens/transactions still need calls. Failed sources can retry; Profile revalidates successful NFTs after five minutes when revisited or visible.
@@ -63,6 +65,7 @@ resources: -
 - Favorites require updated backend/Worker before clients; old sanitizers discard f/u. Live same-ID device sync needs deployment QA; no database migration needed.
 
 ## Skills
+- Profile/social/chat -> Fullstack Iteration, Visual Iteration, Playwright Testing, supabase:supabase, wallet-security-auditor | used: shared mounted chat state, responsive screenshots, API privacy tests and backend-only RLS/access review | Codex: runtime catalog skills; Supabase plugin catalog path | Claude: unknown.
 - Art theme port -> magic-money-art-themes | used: approved wallet assets, scoped material identity, smooth logos and responsive validation | Codex: C:/Users/balla/.codex/skills/magic-money-art-themes/SKILL.md | Claude: C:/Users/balla/.claude/skills/magic-money-art-themes/SKILL.md.
 - New Listings collector -> cloudflare,durable-objects,workers-best-practices,wrangler,architecture-review | used: lifecycle/SQLite/reconnect/runtime-test and deployment guidance | Codex: C:/Users/balla/.codex/skills/<name>/SKILL.md | Claude: unknown.
 - Shared profile preferences -> supabase:supabase | used: existing table/auth boundary and read-only connectivity check | source: Supabase plugin | Codex: C:/Users/balla/.codex/plugins/cache/openai-curated-remote/supabase/1.0.0/skills/supabase/SKILL.md | Claude: unknown.
@@ -71,6 +74,7 @@ resources: -
 - Fullstack Iteration, Playwright Testing, Visual Iteration: implementation/browser/screenshot validation; Codex skills root C:/Users/balla/.codex/skills.
 
 ## Pointers
+- docs/PROFILE-SEARCH-CHAT.md; .social-tests-verified.log; .social-final-journeys.log; .social-regression.log; .local-artifacts/profile-social/; sql/cl_chat_presence.sql; sql/cl_account_access_hardening.sql.
 - docs/EMONAD-THEME.md; .local-artifacts/emonad/; .emonad-*.log.
 - docs/NATURAL-MATERIAL-THEMES.md; material CSS/assets and provenance.json; e2e/natural-materials.spec.*; .local-artifacts/materials/; .materials-*.log.
 - docs/R3TARDS-THEME.md; public/themes/r3tards/; supplied C:/Users/balla/Downloads/PC.webp; .local-artifacts/r3tards/; r3tards-*.log.
