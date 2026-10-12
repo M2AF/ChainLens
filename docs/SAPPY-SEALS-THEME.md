@@ -15,3 +15,5 @@ Validation: npm run check,202Node tests, homepage six-JSX precompile, generated 
 Evidence `.sappy-{check,tests,browser}.log` and final `.sappy-final-browser.log`; screenshots `.local-artifacts/sappy-seals/{desktop,picker,mobile-sidebar}.png`. Local implementation only; no commit/deploy, production verification or native phone installation.
 
 Final Sappy stylesheet loads after generic art/material sheets; selected tile white outline/18px rounding verified. Correct default atlas SHA256 matches supplied source.
+
+Approved size follow-up: ChainLens model/canvas fit doubled exactly (440x320 canvas;180px footer;56px model offset;24px CSS bottom offset). Both original and alternate atlases stay inside the sidebar and navigation remains independently scrollable. Wallet source is unchanged. Local screenshot `.local-artifacts/sappy-seals/double-size-preview.png` reviewed and size approved by user. Syntax/202Node/six-JSX and Sappy full actual-motion/mobile/gate journey pass in `.sappy-double-*.log` and final `.sappy-pill-*.log`; no deployment.

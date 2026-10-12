@@ -10,6 +10,8 @@ source=source.replace(/^import \{alternateSeal.*$/m,'');
 const motions=Object.fromEntries(fs.readdirSync(path.join(assets,'Motions')).filter(file=>file.endsWith('.json')).map(file=>['Motions/'+file,'/themes/sappy-seals/Motions/'+encodeURIComponent(file)]));
 source=source.replace(/^const motions=.*$/m,`const motions=${JSON.stringify(motions)};`);
 source=fs.readFileSync(path.join(wallet,'src/renderer/lib/seal-appearance.ts'),'utf8').replaceAll('mm.sappy-seal.alternate.v1','cl_sappy_seal_alternate.v1').replaceAll('mm-sappy-seal-appearance','cl-sappy-seal-appearance')+'\n'+source;
+// ChainLens sidebar uses exactly twice the wallet's approved model/canvas fit.
+source=source.replace('width:220,height:160','width:440,height:320').replace('model.position.set(w/2,h+28)','model.position.set(w/2,h+56)');
 // A translated mobile drawer touches the viewport edge at zero visible area.
 source=source.replace("new IntersectionObserver(entries=>{visible=entries[0]?.isIntersecting??false;sync()})","new IntersectionObserver(entries=>{visible=(entries[0]?.intersectionRatio??0)>0;sync()},{threshold:[0,0.01]})");
 if(source.includes('import.meta'))throw new Error('Unsupported wallet asset wiring');

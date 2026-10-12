@@ -327,3 +327,18 @@
 ### 2026-10-12T02:25-03:00 · codex · handoff · c5c78b6 (main) dirty 9
 - Art and Material groups default collapsed; builtin/custom colors/Create New grouped above in main and Docs.202Node/4browser/six JSX checks pass; screenshot reviewed. No deployment.
 - next: User review and deploy frontend only when authorized.
+
+### 2026-10-12T02:33-03:00 · codex · claim · c1b3f44 (main) dirty 1
+- task: Double sidebar Sappy seal and capture deployment preview
+- lease until 2026-10-12T05:33-03:00
+
+### 2026-10-12T02:36-03:00 · codex · checkpoint · c1b3f44 (main) dirty 10
+- User approved doubled Sappy after screenshot;202Node/syntax/WebGL journey pass. Added main/Docs dropdown white label pills with black text and white connector to chevron; default collapse and custom-color ordering preserved. Starting final disclosure/Sappy checks in .sappy-pill-*.log.
+- next: Review final pill/rail screenshot and release; no deploy.
+
+### 2026-10-12T02:39-03:00 · codex · verify · c1b3f44 (main) dirty 12
+- verified: User HEADc1b3f44 reconciled:syntax/202Node tests/six JSX precompile;3final browser journeys pass. Exact doubled Sappy canvas/footer with actual13 motions, tracking, variant/reload, mobile/hidden/reduced and holder checks; main/Docs white pill black text white rail/chevron headers retain default-collapse/custom-color ordering/keyboard. Screenshots reviewed; user approved seal size. No deploy/wallet edit.
+
+### 2026-10-12T02:39-03:00 · codex · handoff · c1b3f44 (main) dirty 12
+- Double-size seal preview approved by user; dropdown headers white pills/black labels with white rails to arrows. Final202Node/3browser/six JSX checks and screenshots pass. No deployment.
+- next: User visual review of disclosure pill/rail styling; deploy frontend only when authorized.

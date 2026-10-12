@@ -151,7 +151,7 @@ var ChainLensSappy = (() => {
         const scale = Math.min(w / model.width, h / model.height);
         model.scale.set(scale);
         model.anchor.set(0.5, 1);
-        model.position.set(w / 2, h + 28);
+        model.position.set(w / 2, h + 56);
         model.update(16);
         app.render();
       };
@@ -167,7 +167,7 @@ var ChainLensSappy = (() => {
         try {
           const { PIXI } = await runtime();
           if (disposed) return;
-          app = new PIXI.Application({ view, width: 220, height: 160, transparent: true, backgroundAlpha: 0, antialias: true, autoStart: false, resolution: Math.min(devicePixelRatio || 1, 1.5) });
+          app = new PIXI.Application({ view, width: 440, height: 320, transparent: true, backgroundAlpha: 0, antialias: true, autoStart: false, resolution: Math.min(devicePixelRatio || 1, 1.5) });
           app.ticker.maxFPS = 30;
           const absolute = (url) => new URL(url, window.location.href).href;
           const groups = {};

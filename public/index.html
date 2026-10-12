@@ -1362,7 +1362,7 @@
               )}
               {[{name:'Art Designs',material:false},{name:'Material Designs',material:true}].map(group => (
                 <details key={group.name} className="cl-theme-design-section">
-                  <summary>{group.name}<span aria-hidden="true">⌄</span></summary>
+                  <summary><span className="cl-design-label">{group.name}</span><span className="cl-design-line" aria-hidden="true"/><span className="cl-design-chevron" aria-hidden="true">⌄</span></summary>
                   {builtins.filter(theme => theme.art && !!theme.material === group.material).map(row)}
                 </details>
               ))}

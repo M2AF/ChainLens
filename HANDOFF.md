@@ -7,13 +7,14 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: c5c78b6 · Current user HEADc5c78b6 reverified: syntax/202Node tests/six JSX;4browser journeys pass for default-collapsed main/Docs groups, custom colours/Create New above groups, keyboard/independent opening, colour CRUD/reload and full Sappy animation/gate behavior. Screenshot reviewed; .sections-collapsed-*.log. No deploy/wallet edit. · 2026-10-12T02:25-03:00
-head: c5c78b6 (main) dirty 9
-updated: 2026-10-12T02:25-03:00 · codex
+verified: c1b3f44 · User HEADc1b3f44 reconciled:syntax/202Node tests/six JSX precompile;3final browser journeys pass. Exact doubled Sappy canvas/footer with actual13 motions, tracking, variant/reload, mobile/hidden/reduced and holder checks; main/Docs white pill black text white rail/chevron headers retain default-collapse/custom-color ordering/keyboard. Screenshots reviewed; user approved seal size. No deploy/wallet edit. · 2026-10-12T02:39-03:00
+head: c1b3f44 (main) dirty 12
+updated: 2026-10-12T02:39-03:00 · codex
 
 resources: -
 
 ## Now
+- User-approved ChainLens seal size doubled exactly:440x320 scene/180px footer, bottom-sidebar placement; wallet unchanged. Main/Docs Art and Material disclosure labels now white rounded pills/black text with white rail to right chevron, collapsed by default. Syntax/202Node/six JSX/3browser journeys pass including full13-motion Sappy and mobile/gate/variant checks; previews reviewed. .sappy-double-*.log; .sappy-pill-*.log; .local-artifacts/sappy-seals/double-size-preview.png. No commit/deploy.
 - ChainLens main/Docs picker now groups builtin and custom colors/Create New before independent Art Designs/Material Designs dropdowns; both default collapsed on each menu opening. Seven art/six materials; native keyboard toggles and gates preserved. Syntax/202Node/six JSX and4browser journeys pass (defaults/order, custom CRUD/reload, Docs, Sappy motion/gate). Screenshot reviewed; .sections-collapsed-*.log; .local-artifacts/design-sections/chainlens-default-collapsed.png. No wallet edits/commit/deploy.
 - Sappy Seals art ported locally: sappy-seals-art, fixed Flat black/white, canonical Ethereum holder gate, correct default/alternate atlases with26px toggle beside refresh. Shared Live2D pointer/touch and13 click motions in bottom sidebar across pages; offscreen/reduced-motion/closed-drawer pause and teardown.25themes/7art/6materials; old Sappy colour->Mint migration preserved. Syntax/202Node/six JSX and4browser journeys pass; screenshots reviewed. docs/SAPPY-SEALS-THEME.md; scripts/build-sappy-seals.js; .sappy-*.log; .local-artifacts/sappy-seals/. Wallet source unchanged. No commit/deploy/install.
 - Default Sappy Seals colour preset replaced with Mint & Money (mint-money) in wallet/ChainLens: exact readonly cl_themes source custom-7aovlrf0py on requested ID ec18dcf5-3271-46fd-8029-41e5b2f39eed, bg0c1e19/accent30ffae/texte8f4ff. Old saved Sappy IDs migrate, old overrides do not carry, cached exact custom copies use absorptionv2 with built-in recolours protected. Mint counts were24/12colours; current ChainLens25 includes new Sappy art. Five TS;172files2508tests;4final bundles;wallet migration/selection/holder journey and3ChainLens colour/migration journeys pass;202Node tests. Screenshots reviewed;docs/MINT-MONEY-PRESET.md;.mint-money-*.log. No DB writes/commit/deploy/install.
@@ -45,7 +46,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User review and deploy frontend only when authorized.
+- User visual review of disclosure pill/rail styling; deploy frontend only when authorized.
 
 ## Traps
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.

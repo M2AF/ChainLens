@@ -666,6 +666,8 @@ test('Art Designs and Material Designs start collapsed and open independently',a
   const art=page.locator('details.cl-theme-design-section').filter({has:page.locator('summary',{hasText:'Art Designs'})});
   const materials=page.locator('details.cl-theme-design-section').filter({has:page.locator('summary',{hasText:'Material Designs'})});
   await expect(art).not.toHaveAttribute('open');await expect(materials).not.toHaveAttribute('open');
+  for(const section of [art,materials]){await expect(section.locator('.cl-design-label')).toHaveCSS('background-color','rgb(255, 255, 255)');await expect(section.locator('.cl-design-label')).toHaveCSS('color','rgb(0, 0, 0)');await expect(section.locator('.cl-design-line')).toHaveCSS('background-color','rgb(255, 255, 255)');}
+
   expect(await page.getByTestId('theme-create').evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('details.cl-theme-design-section'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
   await expect(art.getByTestId('theme-option-mallard-order')).toBeHidden();await expect(materials.getByTestId('theme-option-liquid-glass')).toBeHidden();
   await expect(art.locator('[data-testid^="theme-option-"]')).toHaveCount(7);await expect(materials.locator('[data-testid^="theme-option-"]')).toHaveCount(6);
@@ -722,7 +724,12 @@ test('Sappy Seals sidebar art tracks, cycles all motions, changes artwork and en
     await page.mouse.click(box.x+box.width/2,box.y+box.height/2);
     await expect.poll(async()=>Number(await host.getAttribute('data-click-count'))).toBeGreaterThan(before);seen.add(await host.getAttribute('data-click-motion'));
   }expect(seen.size).toBe(13);
-  await page.screenshot({path:'.local-artifacts/sappy-seals/desktop.png'});
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await openThemePicker(page);await page.getByRole('button',{name:'Use alternate seal artwork',exact:true}).click();await expect(host).toHaveAttribute('data-artwork','alternate');
+  await page.getByRole('button',{name:'Use alternate seal artwork',exact:true}).click();await expect(host).toHaveAttribute('data-artwork','original');await openThemePicker(page);
+  await expect(host).toHaveCSS('height','180px');await expect(canvas).toHaveCSS('width','440px');await expect(canvas).toHaveCSS('height','320px');
+  await page.screenshot({path:'.local-artifacts/sappy-seals/desktop.png'});await page.screenshot({path:'.local-artifacts/sappy-seals/double-size-preview.png'});
+  await page.emulateMedia({reducedMotion:'no-preference'});
   await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Scanner',exact:true}).click();await expect(host).toHaveCount(1);
   await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Search',exact:true}).click();await expect(host).toHaveCount(1);
   await openThemePicker(page);

@@ -135,7 +135,11 @@
       const shipped=builtins();
       for (const group of [{name:'Art Designs',material:false},{name:'Material Designs',material:true}]) {
         const section = document.createElement('details');section.className='theme-design-section';
-        const summary=document.createElement('summary');summary.textContent=group.name;section.append(summary);
+        const summary=document.createElement('summary');
+        const label=document.createElement('span');label.className='theme-design-label';label.textContent=group.name;
+        const line=document.createElement('span');line.className='theme-design-line';line.setAttribute('aria-hidden','true');
+        const arrow=document.createElement('span');arrow.className='theme-design-chevron';arrow.textContent='⌄';arrow.setAttribute('aria-hidden','true');
+        summary.append(label,line,arrow);section.append(summary);
         shipped.filter(theme=>theme.art && !!theme.material===group.material).forEach(theme=>addRow(theme,false,section));
         menu.append(section);
       }
