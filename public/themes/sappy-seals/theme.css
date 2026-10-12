@@ -6,8 +6,10 @@ html[data-cl-art-theme='sappy-seals-art'] .cl-search-hero > [aria-hidden='true']
 html[data-cl-art-theme='sappy-seals-art'] :is(.cl-search-field,.app-hub-card,.profile-tile,.profile-tabs,.profile-gallery-tools,.cl-ticker,[data-testid='theme-menu'],.dex-swap input,.dex-swap select) {background:#080808!important;background-image:none!important;border-color:#333;border-radius:14px;box-shadow:none;backdrop-filter:none;}
 html[data-cl-art-theme='sappy-seals-art'] :is(.cl-search-form button[type='submit'],.profile-scan-action,.dex-swap button.primary,.cl-art-action) {background:#fff!important;color:#000!important;border:1px solid #fff;border-radius:10px;box-shadow:none;}
 html[data-cl-art-theme='sappy-seals-art'] .cl-nav-item.active {background:#181818;color:#fff;box-shadow:inset 3px 0 #fff;}
-html[data-cl-art-theme='sappy-seals-art'] .cl-sidebar {border-color:#333;}
-html[data-cl-art-theme='sappy-seals-art'] .cl-sidebar nav {min-height:0;}
+html[data-cl-art-theme='sappy-seals-art'] .cl-sidebar {border-color:#333;isolation:isolate;}
+/* Keep the animated artwork beneath the opaque navigation surface. */
+html[data-cl-art-theme='sappy-seals-art'] .cl-sidebar > :not(.sappy-seal-peek) {position:relative;z-index:1;}
+html[data-cl-art-theme='sappy-seals-art'] .cl-sidebar nav {min-height:0;background:#000;}
 html[data-cl-art-theme='sappy-seals-art'] .cl-sidebar img {image-rendering:auto;filter:none;}
 html[data-cl-art-theme='sappy-seals-art'] [data-testid='magic-swap-logo'] img {image-rendering:auto;filter:grayscale(1) brightness(1.7);}
 html[data-cl-art-theme='sappy-seals-art'] :is(button,input,select,a):focus-visible {outline:2px solid #fff;outline-offset:3px;}
@@ -19,7 +21,7 @@ html[data-cl-art-theme='sappy-seals-art'] :is(button,input,select,a):focus-visib
 .cl-theme-entry:has(.sappy-seal-appearance) .cl-art-choice {padding-right:80px!important;}
 .sappy-seal-appearance {position:absolute;right:48px;top:10px;width:26px;height:26px;display:grid;place-items:center;padding:0;color:#fff;background:#090909;border:1px solid #777;border-radius:5px;cursor:pointer;}
 .sappy-seal-appearance[aria-pressed='true'] {background:#292929;box-shadow:inset 0 0 0 1px #fff;}
-.cl-sidebar > .sappy-seal-peek {height:180px;position:relative;overflow:hidden;pointer-events:none;flex-shrink:0;border-bottom:1px solid #555;}
+.cl-sidebar > .sappy-seal-peek {height:180px;position:relative;z-index:0;overflow:hidden;pointer-events:none;flex-shrink:0;border-bottom:1px solid #555;}
 .sappy-seal-canvas {position:absolute;left:50%;bottom:-24px;transform:translateX(-50%);width:440px;height:320px;opacity:0;}
 .sappy-seal-fallback {position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);width:200px;height:180px;object-fit:contain;}
 .sappy-seal-peek[data-ready='true'] .sappy-seal-canvas {opacity:1;}

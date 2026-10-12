@@ -184,6 +184,8 @@ test('an eligible account gets twenty-five shipped themes and its own synced one
 test('choosing a theme repaints the app and outlives a reload', async ({ page }) => {
   await installThemeMocks(page, { themes: ELIGIBLE });
   await page.goto('/');
+  const scrollbarColor=()=>page.getByTestId('primary-nav-scroll').evaluate(el=>getComputedStyle(el,'::-webkit-scrollbar-thumb').backgroundColor);
+  const beforeScrollColor=await scrollbarColor();
 
   await openThemePicker(page);
   await page.getByTestId('theme-option-crimson').click();
@@ -191,12 +193,16 @@ test('choosing a theme repaints the app and outlives a reload', async ({ page })
   await expect(page.getByTestId('theme-menu')).toHaveCount(0);
   await expect(shell(page)).toHaveCSS('background-color', CRIMSON_PAGE);
   await expect(page.getByTestId('theme-picker-button')).toContainText('Crimson');
+  const crimsonScrollColor=await scrollbarColor();expect(crimsonScrollColor).not.toBe(beforeScrollColor);
+  // Hover increases opacity without changing the theme's RGB tint.
+  expect((await page.locator('html').evaluate(el=>getComputedStyle(el,'::-webkit-scrollbar-thumb').backgroundColor)).split(' / ')[0]).toBe(crimsonScrollColor.split(' / ')[0]);
   // A light theme would leave the dark utility classes rendering the light
   // branch, so the tone has to be stamped as well as the colours.
   await expect(page.locator('html')).toHaveAttribute('data-cl-tone', 'dark');
 
   await page.reload();
   await expect(shell(page)).toHaveCSS('background-color', CRIMSON_PAGE);
+  expect(await scrollbarColor()).toBe(crimsonScrollColor);
 });
 
 test('a synced theme renders from the colours the wallet wrote', async ({ page }) => {
@@ -709,6 +715,11 @@ test('Sappy Seals sidebar art tracks, cycles all motions, changes artwork and en
   await expect(host).toHaveAttribute('data-ready','true',{timeout:20000});
   await expect(host).toHaveAttribute('data-artwork','original');
   await expect(shell(page)).toHaveCSS('background-color','rgb(0, 0, 0)');
+  const nav=page.getByTestId('primary-nav-scroll');
+  await expect(nav).toHaveCSS('z-index','1');await expect(host).toHaveCSS('z-index','0');
+  await expect(nav).toHaveCSS('background-color','rgb(0, 0, 0)');
+  const scrollStyle=await nav.evaluate(el=>({width:getComputedStyle(el,'::-webkit-scrollbar').width,track:getComputedStyle(el,'::-webkit-scrollbar-track').backgroundColor,thumb:getComputedStyle(el,'::-webkit-scrollbar-thumb').backgroundColor,radius:getComputedStyle(el,'::-webkit-scrollbar-thumb').borderRadius,buttons:getComputedStyle(el,'::-webkit-scrollbar-button').display}));
+  expect(scrollStyle).toMatchObject({width:'8px',track:'rgba(0, 0, 0, 0)',radius:'999px',buttons:'none'});expect(scrollStyle.thumb).toBe('color(srgb 1 1 1 / 0.48)');
   const sidebar=await page.locator('.cl-sidebar').boundingBox(),box=await host.boundingBox();
   expect(box.y+box.height).toBe(sidebar.y+sidebar.height);expect(box.x).toBe(sidebar.x);
   await page.mouse.move(10,500);await page.waitForTimeout(600);const left=Number(await canvas.getAttribute('data-head-angle'));
@@ -723,6 +734,10 @@ test('Sappy Seals sidebar art tracks, cycles all motions, changes artwork and en
   await page.getByRole('button',{name:'Use alternate seal artwork',exact:true}).click();await expect(host).toHaveAttribute('data-artwork','original');await openThemePicker(page);
   await expect(host).toHaveCSS('height','180px');await expect(canvas).toHaveCSS('width','440px');await expect(canvas).toHaveCSS('height','320px');
   await page.screenshot({path:'.local-artifacts/sappy-seals/desktop.png'});await page.screenshot({path:'.local-artifacts/sappy-seals/double-size-preview.png'});
+  await page.setViewportSize({width:1280,height:760});await page.getByTestId('donate-trigger').scrollIntoViewIfNeeded();
+  expect(await nav.evaluate(el=>el.scrollHeight>el.clientHeight)).toBe(true);
+  await page.screenshot({path:'.local-artifacts/sappy-seals/sidebar-scrollbars.png'});
+  await page.setViewportSize({width:1280,height:1000});
   await page.emulateMedia({reducedMotion:'no-preference'});
   await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Scanner',exact:true}).click();await expect(host).toHaveCount(1);
   await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Search',exact:true}).click();await expect(host).toHaveCount(1);
@@ -755,6 +770,8 @@ test('Sappy Seals sidebar art tracks, cycles all motions, changes artwork and en
 
 test('Docs separates art and materials into default-collapsed dropdowns',async({page})=>{
   await installThemeMocks(page,{themes:ELIGIBLE});await page.goto('/docs');
+  expect(await page.locator('html').evaluate(el=>getComputedStyle(el,'::-webkit-scrollbar').width)).toBe('8px');
+  expect(await page.locator('#themeMenu').evaluate(el=>getComputedStyle(el,'::-webkit-scrollbar-track').backgroundColor)).toBe('rgba(0, 0, 0, 0)');
   await expect.poll(()=>page.locator('#themeMenu details.theme-design-section').count()).toBe(2);
   await page.locator('#themePickerButton').click();
   expect(await page.locator('#themeMenu .theme-create').evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('#themeMenu details'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);

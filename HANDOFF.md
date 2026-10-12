@@ -7,13 +7,14 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: a3e6d9a · User HEADa3e6d9a reconciled:syntax/204Node/six JSX;10browser cases+final2 fallback/Sappy+2guest finishes/gates pass. No visible Light/Dark, legacy selection migration, Moonlight fade/two-tone guest/Docs baseline, explicit preferences retained, revoked holder/profile fallback and existing gates/animations verified. Screenshot reviewed; .moonlight-default-*.log. No deploy/wallet/DB changes. · 2026-10-12T03:06-03:00
-head: a3e6d9a (main) dirty 18
-updated: 2026-10-12T03:06-03:00 · codex
+verified: b93c583 · User HEADb93c583 reconciled: npm check/204Node/six JSX plus3 browser cases pass (Sappy actual WebGL13motions/mobile/gates and new stacking/scrollbars, palette switch/reload, Docs). Compact sidebar screenshot reviewed. .sidebar-scroll-*.log; wallet unchanged; local only. · 2026-10-12T03:33-03:00
+head: b93c583 (main) dirty 7
+updated: 2026-10-12T03:33-03:00 · codex
 
 resources: -
 
 ## Now
+- Sidebar seal layering/scrollbars complete locally on user HEADb93c583: opaque navigation/header above unchanged seal, isolated stacking; shared rounded palette/art-accent thumbs with transparent tracks/no arrows on main and Docs. Syntax/204Node/six JSX plus Sappy actual WebGL13motions/mobile/gate, palette switch/reload and Docs checks pass. .sidebar-scroll-*.log; .local-artifacts/sappy-seals/sidebar-scrollbars.png reviewed. No wallet edits/commit/deploy.
 - ChainLens Light/Dark options/switch removed; new/legacy base IDs migrateMoonlight. Missing finish defaultsSoftFade, two-toneon; explicit other selections/finishes retained. Moonlight guest and access/holder fallback, other eligibility unchanged; Docs loads finishes too. Syntax/204Node/six JSX;10browser cases+final2fallback/Sappy+2guestfinish/gate pass; screenshot reviewed. docs/MOONLIGHT-DEFAULT.md; .moonlight-default-*.log; .local-artifacts/moonlight-default/guest.png. User HEADa3e6d9a reconciled. No wallet/DB edits/commit/deploy.
 - User-approved ChainLens seal size doubled exactly:440x320 scene/180px footer, bottom-sidebar placement; wallet unchanged. Main/Docs Art and Material disclosure labels now white rounded pills/black text with white rail to right chevron, collapsed by default. Syntax/202Node/six JSX/3browser journeys pass including full13-motion Sappy and mobile/gate/variant checks; previews reviewed. .sappy-double-*.log; .sappy-pill-*.log; .local-artifacts/sappy-seals/double-size-preview.png. No commit/deploy.
 - ChainLens main/Docs picker now groups builtin and custom colors/Create New before independent Art Designs/Material Designs dropdowns; both default collapsed on each menu opening. Seven art/six materials; native keyboard toggles and gates preserved. Syntax/202Node/six JSX and4browser journeys pass (defaults/order, custom CRUD/reload, Docs, Sappy motion/gate). Screenshot reviewed; .sections-collapsed-*.log; .local-artifacts/design-sections/chainlens-default-collapsed.png. No wallet edits/commit/deploy.
@@ -47,7 +48,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User review; deploy frontend only when authorized.
+- User review and deploy frontend when authorized; changes include new public/scrollbars.css loaded main and Docs.
 
 ## Traps
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.

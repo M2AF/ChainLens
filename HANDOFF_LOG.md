@@ -357,3 +357,20 @@
 ### 2026-10-12T03:06-03:00 · codex · handoff · a3e6d9a (main) dirty 18
 - Default Moonlight/SoftFade/two-toneon; Light/Dark removed from main/Docs selection and guest switch. Explicit other preferences preserved.204Node/syntax/six JSX and default/migration/fallback/gate browser checks pass. No deployment.
 - next: User review; deploy frontend only when authorized.
+
+### 2026-10-12T03:28-03:00 · codex · claim · b93c583 (main) dirty 1
+- task: Fix sidebar seal stacking and theme scrollbars
+- lease until 2026-10-12T06:28-03:00
+
+### 2026-10-12T03:29-03:00 · codex · checkpoint · b93c583 (main) dirty 5
+- Sidebar Sappy navigation now has an opaque foreground stacking layer above the unchanged seal; shared palette-aware rounded scrollbars added to main and Docs. Running syntax, Node tests and Sappy browser QA; logs .sidebar-scroll-*.log.
+
+### 2026-10-12T03:33-03:00 · codex · checkpoint · b93c583 (main) dirty 7
+- Actual Sappy WebGL/all13motions/mobile/gate journey passed with new stacking and scroll styles;204Node/syntax pass. Compact screenshot reviewed. Palette comparison initially included intended hover alpha; corrected to compare RGB tint; final palette/Docs run pending .sidebar-scroll-palette-final.log.
+
+### 2026-10-12T03:33-03:00 · codex · verify · b93c583 (main) dirty 7
+- verified: User HEADb93c583 reconciled: npm check/204Node/six JSX plus3 browser cases pass (Sappy actual WebGL13motions/mobile/gates and new stacking/scrollbars, palette switch/reload, Docs). Compact sidebar screenshot reviewed. .sidebar-scroll-*.log; wallet unchanged; local only.
+
+### 2026-10-12T03:33-03:00 · codex · handoff · b93c583 (main) dirty 7
+- Sidebar seal behind opaque foreground navigation; shared modern theme-coloured scrollbars complete and visually reviewed. All targeted checks pass. No commit/deploy.
+- next: User review and deploy frontend when authorized; changes include new public/scrollbars.css loaded main and Docs.
