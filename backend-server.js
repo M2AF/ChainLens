@@ -349,6 +349,7 @@ const dbFindFriendship = async (userId, otherUserId) => {
 };
 
 const dbGetAcceptedFriendship = async (userId, otherUserId) => {
+  if (await require('./profile-community-service').areBlocked(supabase,userId,otherUserId)) return null;
   const friendship = await dbFindFriendship(userId, otherUserId);
   return friendship?.status === 'accepted' ? friendship : null;
 };
@@ -391,7 +392,14 @@ const dbChatUnread = async (userId) => {
   ]);
   if (unreadResult.error) throw unreadResult.error;
   if (pendingResult.error) throw pendingResult.error;
-  return summarizeChatUnread(unreadResult.data, pendingResult.count);
+  const blocked=await require('./profile-community-service').blockedIds(supabase,userId);
+  let pendingCount=pendingResult.count;
+  if(blocked.size){
+    const pending=await supabase.from('cl_friendships').select('requested_by').or(`user_low.eq.${userId},user_high.eq.${userId}`).eq('status','pending').neq('requested_by',userId);
+    if(pending.error)throw pending.error;
+    pendingCount=(pending.data || []).filter(row=>!blocked.has(row.requested_by)).length;
+  }
+  return summarizeChatUnread((unreadResult.data || []).filter(row=>!blocked.has(row.friend_id)),pendingCount);
 };
 
 const chatMessageWindows = new Map();
@@ -1631,6 +1639,12 @@ app.get('/api/profile', requireAuth, async (req, res) => {
 app.patch('/api/profile', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
   const updates = {};
+  for (const key of ['public_wallets','public_favorites']) {
+    if(req.body[key] !== undefined) {
+      if(typeof req.body[key] !== 'boolean') return res.status(400).json({error:'Profile visibility must be true or false'});
+      updates[key]=req.body[key];
+    }
+  }
 
   if (req.body.display_name !== undefined) {
     if (typeof req.body.display_name !== 'string') {
@@ -1911,6 +1925,8 @@ app.put('/api/profile/themes', requireAuth, async (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 require('./profile-social-service').mountProfileSocial(app, { db: supabase, rateLimit: searchRateLimit, requireAuth, requireChatAccess });
+require('./profile-community-service').mountProfileCommunity(app, { db:supabase,rateLimit:searchRateLimit,requireAuth,
+  resolveFavorite:require('./public-favorites').createFavoriteResolver({fetchImpl:fetch,apiKeys:API_KEYS,repairMetadata:(network,nfts)=>nftMetadataRepair(network,nfts)}) });
 
 app.get('/api/chat/status', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
@@ -1938,7 +1954,8 @@ app.get('/api/chat/world', requireAuth, requireChatAccess, async (req, res) => {
     const { data, error } = await query;
     if (error) return chatDbFailure(res, error);
     const rows = after === null ? [...(data || [])].reverse() : (data || []);
-    res.json({ messages: await dbHydrateChatMessages(rows) });
+    const blocked = await require('./profile-community-service').blockedIds(supabase,req.user.sub);
+    res.json({ messages: await dbHydrateChatMessages(rows.filter(row => !blocked.has(row.user_id))) });
   } catch (error) {
     if (error.message === 'Invalid message cursor') return res.status(400).json({ error: error.message });
     chatDbFailure(res, error);
@@ -1993,6 +2010,7 @@ app.delete('/api/chat/world/:messageId', requireAuth, requireChatAccess, async (
 });
 
 const dbListChatFriends = async (userId) => {
+  const blocked = await require('./profile-community-service').blockedIds(supabase,userId);
   const { data, error } = await supabase.from('cl_friendships')
     .select('*')
     .or(`user_low.eq.${userId},user_high.eq.${userId}`)
@@ -2010,6 +2028,7 @@ const dbListChatFriends = async (userId) => {
   const summary = { friends: [], incoming: [], outgoing: [] };
   for (const row of rows) {
     const otherId = row.user_low === userId ? row.user_high : row.user_low;
+    if(blocked.has(otherId)) continue;
     const profile = byId.get(otherId);
     if (!profile) continue;
     const item = {
@@ -2045,6 +2064,7 @@ app.post('/api/chat/friends', requireAuth, requireChatAccess, async (req, res) =
     return res.status(400).json({ error: error.message });
   }
   try {
+    if(await require('./profile-community-service').areBlocked(supabase,req.user.sub,chainlensId)) return res.status(403).json({error:'Friend requests are unavailable for this profile'});
     const { data: target, error: targetError } = await supabase.from('cl_users')
       .select(CHAT_PROFILE_COLUMNS).eq('id', chainlensId).maybeSingle();
     if (targetError) return chatDbFailure(res, targetError, 'Could not look up that ChainLens ID');
@@ -2090,6 +2110,8 @@ app.post('/api/chat/friends/:friendshipId/accept', requireAuth, requireChatAcces
       return res.status(404).json({ error: 'Friend request not found' });
     }
     if (friendship.status !== 'pending') return res.status(409).json({ error: 'Friend request is no longer pending' });
+    const otherId=friendship.user_low===req.user.sub?friendship.user_high:friendship.user_low;
+    if(await require('./profile-community-service').areBlocked(supabase,req.user.sub,otherId)) return res.status(403).json({error:'Friend requests are unavailable for this profile'});
     if (friendship.requested_by === req.user.sub) {
       return res.status(403).json({ error: 'The recipient must accept this request' });
     }

@@ -1,5 +1,5 @@
 const { isUuid } = require('./chat-service');
-const PUBLIC_PROFILE_COLUMNS = 'id, display_name, avatar_url, banner_url';
+const PUBLIC_PROFILE_COLUMNS = 'id, display_name, avatar_url, banner_url, public_wallets, public_favorites';
 const PRESENCE_TTL = 75_000;
 const publicProfile = row => ({ id: row.id, display_name: row.display_name || 'ChainLens user', avatar_url: row.avatar_url || null, banner_url: row.banner_url || null });
 
@@ -12,7 +12,14 @@ function mountProfileSocial(app, { db, rateLimit, requireAuth, requireChatAccess
       const { data, error } = await db.from('cl_users').select(PUBLIC_PROFILE_COLUMNS).eq('id', id).maybeSingle();
       if (error) throw error;
       res.set('Cache-Control', 'no-store');
-      return data ? res.json(publicProfile(data)) : res.status(404).json({ error: 'No ChainLens profile has that ID' });
+      if (!data) return res.status(404).json({ error: 'No ChainLens profile has that ID' });
+      const profile = { ...publicProfile(data), public_favorites:data.public_favorites !== false, public_wallets:data.public_wallets !== false };
+      if (data.public_wallets !== false) {
+        const wallets = await db.from('cl_wallets').select('chain,address,label,watch_only').eq('user_id',id);
+        if(wallets.error)throw wallets.error;
+        profile.wallets = (wallets.data || []).map(w => ({chain:w.chain,address:w.address,label:w.label || null,watch_only:!!w.watch_only}));
+      }
+      return res.json(profile);
     } catch { res.status(503).json({ error: 'Profiles are temporarily unavailable' }); }
   });
 
@@ -53,7 +60,8 @@ function mountProfileSocial(app, { db, rateLimit, requireAuth, requireChatAccess
         profiles = result.data || [];
       }
       res.set('Cache-Control', 'no-store');
-      res.json({ people: profiles.map(profile => ({ id: profile.id, display_name: profile.display_name, avatar_url: profile.avatar_url, online: true, in_world: users.get(profile.id) })) });
+      const blocked = await require('./profile-community-service').blockedIds(db,req.user.sub);
+      res.json({ people: profiles.filter(profile => !blocked.has(profile.id)).map(profile => ({ id: profile.id, display_name: profile.display_name, avatar_url: profile.avatar_url, online: true, in_world: users.get(profile.id) })) });
     } catch { res.status(503).json({ error: 'Presence is temporarily unavailable' }); }
   });
 }

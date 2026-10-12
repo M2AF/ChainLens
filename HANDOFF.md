@@ -7,13 +7,14 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 1faf750 · HEAD1faf750: npm check/211Node/seven JSX; sixteen unique browser journeys across final social/spacing and existing chat/sidebar runs pass. Desktop/mobile profile/chat/pop-out screenshots reviewed. Supabase presence plus approved account RLS fix applied, privileges/service-role reads/expiry verified. Local key unregistered; mocked UI and connector DB verification, no frontend/backend deployment. · 2026-10-12T17:46-03:00
-head: 1faf750 (main) dirty 8
-updated: 2026-10-12T17:47-03:00 · codex
+verified: 7be2d33 · HEAD7be2d33: npm check/226Node/ten JSX pass; final13 profile/contact/chat cases plus prior seven chat/favorite sync cases pass (20 unique); own-link final rerun passes; real favorites metadata15/15 and real image decode15/15 with mocked profile transport. Desktop/mobile GIF/profile/owner screenshots reviewed. Additive backend-only schema applied, role write/read/rollback checks pass; advisor no errors. No app deployment or wallet edits; local Supabase key remains unregistered. · 2026-10-12T19:02-03:00
+head: 7be2d33 (main) dirty 11
+updated: 2026-10-12T19:03-03:00 · codex
 
 resources: -
 
 ## Now
+- Public profile v2/GIF modal complete locally on user HEAD7be2d33: own UUID uses Profile workspace; others show synced mainnet favorites, optional wallets, separate friend/message/more actions with share/block/report and copyable ID. Backend blocks cover requests/DMs/world/friends/presence/unread. Owner visibility controls; focused GIF modal preserves draft. npm check/226Node/ten JSX;20 unique browser journeys plus own-link rerun and actual15/15image decode pass; screenshots reviewed. docs/PUBLIC-PROFILE-GALLERY.md; .profile-v2-*.log; .local-artifacts/profile-v2/. Additive RLS schema applied/transaction-tested; app not deployed, wallet unchanged.
 - Profile ID/link search and basic public /<uuid> profiles; shared name actions, /chat two-panel/mobile page and draggable/pinned pop-out complete locally. Single component retains conversation/drafts/scroll; online/in-world presence expires75s. HEAD1faf750: npm check/211Node/seven JSX plus16 unique browser cases pass; screenshots reviewed. docs/PROFILE-SEARCH-CHAT.md; .social-*.log; .local-artifacts/profile-social/. Supabase presence table and user-approved account RLS/grant fix applied/verified; no feature deployment/commit or wallet source edits.
 - Sidebar seal layering/scrollbars complete locally on user HEADb93c583: opaque navigation/header above unchanged seal, isolated stacking; shared rounded palette/art-accent thumbs with transparent tracks/no arrows on main and Docs. Syntax/204Node/six JSX plus Sappy actual WebGL13motions/mobile/gate, palette switch/reload and Docs checks pass. .sidebar-scroll-*.log; .local-artifacts/sappy-seals/sidebar-scrollbars.png reviewed. No wallet edits/commit/deploy.
 - ChainLens Light/Dark options/switch removed; new/legacy base IDs migrateMoonlight. Missing finish defaultsSoftFade, two-toneon; explicit other selections/finishes retained. Moonlight guest and access/holder fallback, other eligibility unchanged; Docs loads finishes too. Syntax/204Node/six JSX;10browser cases+final2fallback/Sappy+2guestfinish/gate pass; screenshot reviewed. docs/MOONLIGHT-DEFAULT.md; .moonlight-default-*.log; .local-artifacts/moonlight-default/guest.png. User HEADa3e6d9a reconciled. No wallet/DB edits/commit/deploy.
@@ -49,10 +50,10 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User review/deploy ChainLens frontend/backend when authorized and verify real authenticated flows using production credentials
+- User review/deploy ChainLens frontend/backend when authorized; verify real authenticated favorites/visibility/block/report flows with deployment credentials
 
 ## Traps
-- Local Supabase key is unregistered; fixture-backed browser/API tests plus connector DB checks do not prove authenticated HTTP integration. Production keys were not read/changed. Account browser-role grants revoked with explicit user approval; Express and Magic Money Worker use service_role. Public profile response must remain four-field allowlist.
+- Local Supabase key is unregistered; fixture-backed API/profile transport plus connector DB/live media checks do not prove authenticated HTTP integration. Production keys were not read/changed. Express/Magic Money Worker use service_role. Public profile allowlist now includes visibility flags and optional sanitized wallet list per explicit user request; emails/social/provider identity stay private. Favorite galleries derive only current mainnet f entries, never tombstones or filter payloads.
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.
 - Image loader owns displayed DOM src; keep React src constant to avoid duplicate no-store gateway requests. Retry endpoints accept known canonical token identities only.
 - Deploy new public/nft-session.js with index.html and profile-portfolio.jsx; Scanner shares the cache. Tokens/transactions still need calls. Failed sources can retry; Profile revalidates successful NFTs after five minutes when revisited or visible.
@@ -65,6 +66,7 @@ resources: -
 - Favorites require updated backend/Worker before clients; old sanitizers discard f/u. Live same-ID device sync needs deployment QA; no database migration needed.
 
 ## Skills
+- Public favorite metadata/privacy -> architecture-review, cardano-wallet-core, supabase:supabase | used: shared favorite-key source, bounded native/CIP metadata fallback, backend-only gallery/block/report records and rollback role tests | Codex: runtime catalog | Claude: unknown.
 - Profile/social/chat -> Fullstack Iteration, Visual Iteration, Playwright Testing, supabase:supabase, wallet-security-auditor | used: shared mounted chat state, responsive screenshots, API privacy tests and backend-only RLS/access review | Codex: runtime catalog skills; Supabase plugin catalog path | Claude: unknown.
 - Art theme port -> magic-money-art-themes | used: approved wallet assets, scoped material identity, smooth logos and responsive validation | Codex: C:/Users/balla/.codex/skills/magic-money-art-themes/SKILL.md | Claude: C:/Users/balla/.claude/skills/magic-money-art-themes/SKILL.md.
 - New Listings collector -> cloudflare,durable-objects,workers-best-practices,wrangler,architecture-review | used: lifecycle/SQLite/reconnect/runtime-test and deployment guidance | Codex: C:/Users/balla/.codex/skills/<name>/SKILL.md | Claude: unknown.
@@ -74,6 +76,7 @@ resources: -
 - Fullstack Iteration, Playwright Testing, Visual Iteration: implementation/browser/screenshot validation; Codex skills root C:/Users/balla/.codex/skills.
 
 ## Pointers
+- docs/PUBLIC-PROFILE-GALLERY.md; sql/cl_public_profile_gallery.sql; .profile-v2-final-browser.log; .profile-v2-node-final.log; .profile-v2-live-artwork-verified.log; .profile-v2-live-browser-final.log; .local-artifacts/profile-v2/{real-favorites-gallery.png,live-image-decoding.json}.
 - docs/PROFILE-SEARCH-CHAT.md; .social-tests-verified.log; .social-final-journeys.log; .social-regression.log; .local-artifacts/profile-social/; sql/cl_chat_presence.sql; sql/cl_account_access_hardening.sql.
 - docs/EMONAD-THEME.md; .local-artifacts/emonad/; .emonad-*.log.
 - docs/NATURAL-MATERIAL-THEMES.md; material CSS/assets and provenance.json; e2e/natural-materials.spec.*; .local-artifacts/materials/; .materials-*.log.

@@ -17,6 +17,12 @@ async function mocks(page, signedIn = true) {
     const id = new URL(route.request().url()).pathname.split('/').pop();
     return fulfill(route, id === ME.id ? ME : id === FRIEND.id ? FRIEND : { error: 'No ChainLens profile has that ID' }, [ME.id, FRIEND.id].includes(id) ? 200 : 404);
   });
+  await page.route('**/api/profiles/*/favorites', route => fulfill(route,{assets:[],hidden:false,total:0,nextOffset:null}));
+  await page.route('**/api/profiles/*/relationship', route => {
+    const id = new URL(route.request().url()).pathname.split('/')[3];
+    const row=friends.find(f=>f.id===id);
+    return fulfill(route,{blocked:false,interactionAllowed:true,friendship:row?{friendship_id:row.friendship_id,status:'accepted'}:null});
+  });
   await page.route('**/api/chat/status', route => fulfill(route, { eligible: true, walletLinked: true, socialLinked: true }));
   await page.route('**/api/chat/unread', route => fulfill(route, { pending_requests: 0, unread_direct: 0, conversations: [] }));
   await page.route('**/api/chat/read', route => fulfill(route, { success: true }));
@@ -45,7 +51,7 @@ test('ID and profile-link search sits above Featured Apps and opens a public dee
   expect((await result.boundingBox()).y).toBeLessThan((await featured.boundingBox()).y);
   await result.getByRole('button').click(); await expect(page).toHaveURL(new RegExp(ME.id + '$'));
   await expect(page.getByRole('heading', { name: ME.display_name, exact: true })).toBeVisible();
-  await page.reload(); await expect(page.getByText('This public profile shows only identity details.')).toBeVisible();
+  await page.reload(); await expect(page.getByRole('heading',{name:'Favorited NFTs',exact:true})).toBeVisible();
   await page.screenshot({ path: 'test-results/public-profile-desktop.png', fullPage: true });
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Search', exact: true }).click();
   await page.locator('#chainlens-search').fill(`https://www.chainlensnft.info/${ME.id}`);
@@ -113,8 +119,7 @@ test('world-message menu stays visible, copies a profile link, and public friend
   const people = page.getByRole('complementary', { name: 'People' }); await people.getByRole('button', { name: 'Chain Friend', exact: true }).click();
   await page.getByRole('menuitem', { name: 'View Profile' }).click(); await expect(page).toHaveURL(new RegExp(FRIEND.id + '$'));
   await expect(page.getByRole('heading', { name: FRIEND.display_name })).toBeVisible();
-  await page.getByRole('region', { name: 'Public profile' }).getByRole('button', { name: 'Chain Friend', exact: true }).click();
-  await page.getByRole('menuitem', { name: 'Message', exact: true }).click(); await expect(page).toHaveURL(/\/chat$/);
+  await page.getByRole('region', { name: 'Public profile', exact:true }).getByRole('button', { name: 'Message Chain Friend', exact: true }).click(); await expect(page).toHaveURL(/\/chat$/);
   await expect(page.getByTestId('direct-message-feed').getByText('Private hello')).toBeVisible();
 });
 test('presence failures are labelled unavailable and unknown profile searches keep Featured Apps', async ({ page }) => {

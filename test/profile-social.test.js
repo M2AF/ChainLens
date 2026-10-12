@@ -36,7 +36,7 @@ test('public endpoint reads only allowlisted columns; invalid IDs never reach da
   assert.equal((await fetch(f.url + '/api/profiles/invalid')).status, 400); assert.equal(f.calls.length, 0);
   const res = await fetch(f.url + '/api/profiles/' + ID); assert.equal(res.status, 200);
   assert.equal((await res.json()).email, undefined);
-  assert.deepEqual(f.calls[0].methods[0], ['select', 'id, display_name, avatar_url, banner_url']);
+  assert.deepEqual(f.calls[0].methods[0], ['select', 'id, display_name, avatar_url, banner_url, public_wallets, public_favorites']);
 });
 test('profile endpoint distinguishes missing profile from unavailable database', async t => {
   const f = await fixture(t, [{ data: null }, { error: new Error('private db failure') }]);

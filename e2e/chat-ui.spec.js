@@ -288,6 +288,7 @@ test('chat opens at the newest message and offers a scroll-to-bottom control', a
 
   await page.getByRole('button', { name: 'Close chat' }).click();
   await page.getByTestId('chat-trigger').click();
+  await expect(newestGif).toBeVisible();
   await expect.poll(distanceFromBottom).toBeLessThanOrEqual(2);
   await feed.evaluate(element => element.scrollTo({ top: 0, behavior: 'auto' }));
   await expect(page.getByRole('button', { name: 'Scroll to bottom' })).toBeVisible();
@@ -344,10 +345,10 @@ test('World Chat, friend acceptance, DMs, GIPHY, and profile ID work together', 
   await expect(page.getByText('Powered by GIPHY')).toBeVisible();
   await expect(page.getByText('30 GIFs')).toBeVisible();
   await expect(page.locator('button[title^="Celebration"]')).toHaveCount(30);
-  await expect(page.getByRole('button', { name: 'Celebration', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Celebration', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Send Celebration', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Send Celebration', exact: true }).click();
   await expect(page.getByTestId('direct-message-feed').locator('img[alt^="GIF from"]')).toBeVisible();
-  await page.getByLabel('Open GIPHY picker').click();
+  await expect(page.getByRole('dialog', { name:'Choose a GIF' })).toBeHidden();
   await page.screenshot({ path: 'test-results/chat-desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Close chat' }).click();
   // Reopen the chat page after closing the conversation.

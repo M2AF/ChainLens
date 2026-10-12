@@ -393,3 +393,18 @@
 ### 2026-10-12T17:47-03:00 · codex · handoff · 1faf750 (main) dirty 8
 - Profile search/deep links and chat page/pop-out/presence verified locally:211Node/seven JSX/16browser; screenshots reviewed. Approved Supabase RLS fix and presence schema live. Frontend/backend not deployed; local Supabase key unregistered. docs/PROFILE-SEARCH-CHAT.md has complete scope/files/evidence.
 - next: User review/deploy ChainLens frontend/backend when authorized and verify real authenticated flows using production credentials
+
+### 2026-10-12T18:36-03:00 · codex · claim · 7be2d33 (main) dirty 1
+- task: GIF modal public favorites profile controls privacy block report
+- lease until 2026-10-12T21:36-03:00
+
+### 2026-10-12T18:45-03:00 · codex · checkpoint · 7be2d33 (main) dirty 8
+- GIF picker moved to focused portal modal with search/categories; public profile uses separate friend/message/more controls and copyable ID. Own ID links use Profile workspace. Gallery reads synced mainnet favorite keys plus sanitized snapshots/provider resolver; owner visibility flags and block/report API guards added. Additive SQL applied backend-only with RLS. Node/JSX checks in progress; old allowlist assertion updated for explicit visibility flags.
+- next: Run gallery/privacy/block API tests and modal/profile browser screenshots
+
+### 2026-10-12T19:02-03:00 · codex · verify · 7be2d33 (main) dirty 11
+- verified: HEAD7be2d33: npm check/226Node/ten JSX pass; final13 profile/contact/chat cases plus prior seven chat/favorite sync cases pass (20 unique); own-link final rerun passes; real favorites metadata15/15 and real image decode15/15 with mocked profile transport. Desktop/mobile GIF/profile/owner screenshots reviewed. Additive backend-only schema applied, role write/read/rollback checks pass; advisor no errors. No app deployment or wallet edits; local Supabase key remains unregistered.
+
+### 2026-10-12T19:03-03:00 · codex · handoff · 7be2d33 (main) dirty 11
+- Public profile gallery/controls and focused GIF modal complete locally:226Node/ten JSX/20browser, final own-link rerun, real15/15 favorite artwork decode; screenshots reviewed. Own links use Profile; other profiles have optional wallets/favorites and share/block/report. Additive SQL live/RLS verified; reports pending operator queue. No app deploy/commit/wallet edits. docs/PUBLIC-PROFILE-GALLERY.md has files and evidence.
+- next: User review/deploy ChainLens frontend/backend when authorized; verify real authenticated favorites/visibility/block/report flows with deployment credentials

@@ -39,7 +39,8 @@
   <script src="/nft-session.js"></script>
   <script type="text/babel" src="/nft-favorites.jsx"></script>
   <script src="/profile-id.js"></script>
-  <script type="text/babel" src="/profile-social.jsx"></script>
+  <script type="text/babel" src="/social-modals.jsx"></script>
+  <script type="text/babel" src="/profile-controls.jsx"></script><script type="text/babel" src="/public-profile-gallery.jsx"></script><script type="text/babel" src="/profile-social.jsx"></script>
   <link rel="stylesheet" href="/profile-social.css">
   <script type="text/babel" src="/profile-portfolio.jsx"></script>
   <link rel="stylesheet" href="/profile-portfolio.css">
@@ -647,6 +648,9 @@
       const [gifQuery, setGifQuery] = useState('');
       const [gifs, setGifs] = useState([]);
       const [gifsLoading, setGifsLoading] = useState(false);
+      const gifRequest = useRef(null);
+      useEffect(()=>{if(!showGifs)gifRequest.current?.abort();},[showGifs]);
+      useEffect(()=>()=>gifRequest.current?.abort(),[]);
       const [showScrollToBottom, setShowScrollToBottom] = useState(false);
       const worldCursor = useRef(0);
       const directCursor = useRef(0);
@@ -770,6 +774,7 @@
       useEffect(() => {
         setStatus(null);
         setDraft('');
+        setShowGifs(false);
         conversationDrafts.current = {};
         previousConversation.current = 'world';
         setFriends({ friends: [], incoming: [], outgoing: [] });
@@ -835,7 +840,7 @@
       // not seen it, and clearing the cursor here would clear the badge on their
       // wallet for a message they never read.
       const markConversationRead = useCallback(() => {
-        if (!open || !authToken || !status?.eligible) return;
+        if (!open || showGifs || !authToken || !status?.eligible) return;
         if (!shouldStickToBottom.current) return;
         const list = selectedFriend ? directMessages : messages;
         const newest = list.length ? Number(list[list.length - 1].id) : 0;
@@ -850,7 +855,7 @@
           // World Chat is excluded from the badge, so only a DM needs a refresh.
           .then(() => { if (selectedFriend) onUnreadRefresh?.(); })
           .catch(() => { markedRead.current[key] = 0; });   // let a later tick retry
-      }, [open, authToken, status?.eligible, selectedFriend, directMessages, messages, api, onUnreadRefresh]);
+      }, [open, showGifs, authToken, status?.eligible, selectedFriend, directMessages, messages, api, onUnreadRefresh]);
 
       useEffect(() => {
         if (!feedRef.current) return;
@@ -887,7 +892,7 @@
             updateCursor(worldCursor, [body.message]);
             setMessages(current => mergeChatMessages(current, [body.message]));
           }
-          setDraft('');
+          if(type==='text')setDraft('');
           setShowGifs(false);
         } catch (requestError) {
           setError(requestError.message);
@@ -997,6 +1002,8 @@
           setError('GIF search is waiting for GIPHY_API_KEY to be configured.');
           return;
         }
+        gifRequest.current?.abort();
+        const controller = new AbortController(); gifRequest.current = controller;
         setGifsLoading(true);
         setError('');
         try {
@@ -1010,9 +1017,10 @@
             url.searchParams.set('q', search.slice(0, 50));
             url.searchParams.set('lang', 'en');
           }
-          const response = await fetch(url.toString());
+          const response = await fetch(url.toString(), {signal:controller.signal});
           const body = await response.json();
           if (!response.ok || !Array.isArray(body.data)) throw new Error('GIPHY search is unavailable right now');
+          if (gifRequest.current !== controller) return;
           setGifs(body.data.map(gif => ({
             id: gif.id,
             title: gif.title || 'GIPHY GIF',
@@ -1020,9 +1028,9 @@
             preview: gif.images?.fixed_width?.webp || gif.images?.fixed_width?.url || gif.images?.original?.url,
           })).filter(gif => gif.url && gif.preview));
         } catch (requestError) {
-          setError(requestError.message || 'GIPHY search failed');
+          if(requestError.name !== 'AbortError') setError(requestError.message || 'GIPHY search failed');
         } finally {
-          setGifsLoading(false);
+          if(gifRequest.current === controller) setGifsLoading(false);
         }
       };
 
@@ -1148,26 +1156,6 @@
                 )}
               </div>
 
-              {showGifs && (
-                <div className={`h-64 border-t flex flex-col ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                  <form onSubmit={event => { event.preventDefault(); loadGifs(gifQuery); }} className="p-2 flex gap-2">
-                    <input value={gifQuery} onChange={event => setGifQuery(event.target.value)} placeholder="Search GIPHY" maxLength="50"
-                      className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-xs outline-none focus:border-cyan-400 ${darkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`} />
-                    <button className="px-3 rounded-xl bg-cyan-500 text-slate-950 text-[9px] font-black uppercase">Search</button>
-                  </form>
-                  <div className="flex-1 overflow-y-auto px-2 pb-2">
-                    {gifsLoading ? <div className={`h-full flex items-center justify-center text-xs ${muted}`}>Finding GIFs…</div> : (
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {gifs.map(gif => <button key={gif.id} onClick={() => sendMessage('gif', gif.url)} disabled={sending} title={gif.title} className="aspect-square rounded-lg overflow-hidden bg-slate-800"><img src={gif.preview} alt={gif.title} className="w-full h-full object-cover" loading="lazy" /></button>)}
-                      </div>
-                    )}
-                  </div>
-                  <div className={`px-3 py-1 flex items-center justify-between text-[8px] font-black uppercase tracking-widest ${muted}`}>
-                    <span>{gifs.length ? `${gifs.length} GIFs` : ''}</span><span>Powered by GIPHY</span>
-                  </div>
-                </div>
-              )}
-
               <form onSubmit={event => { event.preventDefault(); sendMessage('text', draft); }}
                 className={`p-2.5 border-t flex items-end gap-2 ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
                 <button type="button" onClick={openGifPicker} aria-label="Open GIPHY picker"
@@ -1183,6 +1171,7 @@
       );
 
       return (
+        <>
         <section ref={panelRef} aria-label="ChainLens Messenger" data-testid="chat-panel"
           className={`${pageMode ? `cl-chat-page ${peopleOpen ? 'people-open' : ''}` : 'fixed z-[110] w-[min(calc(100vw-2rem),430px)] h-[min(72vh,590px)] rounded-[1.5rem]'} border shadow-2xl backdrop-blur-xl flex flex-col ${panel}`}
           style={pageMode ? undefined : position ? { left: position.left, top: position.top } : { left: window.innerWidth > 900 ? 322 : 16, bottom: 24 }} onClick={event => event.stopPropagation()}>
@@ -1255,6 +1244,8 @@
             </div>
           )}
         </section>
+        {showGifs && <window.GifPickerModal query={gifQuery} setQuery={setGifQuery} gifs={gifs} loading={gifsLoading} error={error} onSearch={loadGifs} onSend={url => sendMessage('gif',url)} onClose={() => setShowGifs(false)} sending={sending} />}
+        </>
       );
     };
 
@@ -1733,7 +1724,15 @@
       const [authToken, setAuthToken] = useState(() => localStorage.getItem('cl_token'));
       const [userProfile, setUserProfile] = useState(null);
       const { favorites: nftFavorites, toggleFavorite: toggleNftFavorite } = window.useProfileNftFavorites(userProfile?.id, authToken);
+
+
+      useEffect(() => {
+        if(!publicProfileId || window.ChainLensProfiles.pathId(window.location.pathname)!==publicProfileId)return;
+        const destination=userProfile?.id===publicProfileId?'profile':'public-profile';
+        if(activeTab!==destination)setActiveTab(destination);
+      }, [activeTab,userProfile?.id,publicProfileId]);
       const profilePortfolio = window.useProfilePortfolio(userProfile, authToken, activeTab === 'profile');
+      window.useFavoriteArtworkSnapshots(userProfile?.id,authToken,nftFavorites,[...nfts,...profilePortfolio.assets]);
       const [authLoading, setAuthLoading] = useState(false);
       const [walletConnecting, setWalletConnecting] = useState(null); // 'evm'|'solana'|'cardano'|'google'|'discord'
       const [walletPickerType, setWalletPickerType] = useState(null);
@@ -3513,7 +3512,7 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
       };
       const viewPerson = id => {
-        window.history.pushState({}, '', `/${id}`); setPublicProfileId(id); setActiveTab('public-profile');
+        window.history.pushState({}, '', `/${id}`); setPublicProfileId(id); setActiveTab(userProfile?.id === id ? 'profile' : 'public-profile');
         setMobileMenuOpen(false); if (!chatPinned) setShowChat(false); window.scrollTo(0, 0);
       };
       const messagePerson = friend => { setMessageTarget(friend); navigateTo('chat'); };
@@ -3863,7 +3862,7 @@
                 </div>
             </div>
 
-            {activeTab === 'public-profile' ? <window.PublicProfile id={publicProfileId} userProfile={userProfile} authToken={authToken} onView={viewPerson} onMessage={messagePerson} /> : activeTab === 'search' ? (
+            {activeTab === 'public-profile' ? <window.PublicProfile key={publicProfileId} id={publicProfileId} userProfile={userProfile} authToken={authToken} onView={viewPerson} onMessage={messagePerson} darkMode={darkMode} /> : activeTab === 'search' ? (
                 <ChainLensSearchPage
                   darkMode={darkMode}
                   apps={appHubData?.apps || []}
@@ -4788,6 +4787,7 @@
                                 <span className="flex-shrink-0 font-sans text-[8px] font-black uppercase tracking-widest">{copiedProfileId ? 'Copied ✓' : 'Copy'}</span>
                               </button>
 } authFetch={authFetch} onSave={(id, url) => setUserProfile(p => p?.id === id ? { ...p, banner_url: url || null } : p)} />
+                      <window.PublicProfileSettings profile={userProfile} authToken={authToken} onSave={(updates,owner) => setUserProfile(current => current?.id===owner ? {...current,...updates} : current)} />
                       <window.ProfilePortfolio portfolio={profilePortfolio} favorites={nftFavorites} toggleFavorite={toggleNftFavorite} onSelect={openAsset} resolveImg={resolveImg} darkMode={darkMode} filterEntries={filterEntries} toggleSpam={toggleSpam} />
                     </div>
                     </div>

@@ -1,5 +1,11 @@
 # Profile search and Messenger page
 
+The public-profile interface and field allowlist were extended by
+[Public profile gallery and GIF modal](PUBLIC-PROFILE-GALLERY.md): own links now
+use the Profile workspace; other profiles show synced favorites, optional wallets
+and dedicated friend/message/more controls. The notes below describe the initial
+implementation and are superseded where that document specifies new behavior.
+
 Implemented locally on 2026-10-12. Frontend/backend deployment is still pending.
 
 Search accepts an exact ChainLens UUID or an HTTPS profile link on
