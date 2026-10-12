@@ -186,12 +186,12 @@ test('texture remains independent across palettes, previews, art and reload', as
   expect(errors).toEqual([]);
 });
 
-test('saved textures follow the same account gate as palettes', async ({ page }) => {
+test('saved finishes apply to the guest Moonlight default', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('cl_texture.v1', 'grain'));
   await installThemeMocks(page, { signedIn: false });
   await page.goto('/');
-  await expect(page.getByTestId('theme-toggle')).toBeVisible();
-  await expect(page.locator('html')).not.toHaveAttribute('data-material-active');
+  await expect(page.getByTestId('theme-default')).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('data-material-active','');
 });
 
 

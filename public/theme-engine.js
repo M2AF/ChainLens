@@ -487,9 +487,9 @@
    * colour belongs.
    */
   function applyTheme(colors, artId) {
-    if (['mallard-order','sealuminati','r3tards','emonad','sappy-seals-art'].includes(artId) && !(typeof window !== 'undefined' && window.chainlensCollections?.allowed(artId))) { applyMode('dark'); return 'dark'; }
-    if (artId === 'ape-society' && !(typeof window !== 'undefined' && window.chainlensApe?.allowed())) { applyMode('dark'); return 'dark'; }
-    if (artId === 'sovereign' && !(typeof window !== 'undefined' && window.chainlensSovereign?.allowed())) { applyMode('dark'); return 'dark'; }
+    if (['mallard-order','sealuminati','r3tards','emonad','sappy-seals-art'].includes(artId) && !(typeof window !== 'undefined' && window.chainlensCollections?.allowed(artId))) { return applyTheme(BUILTIN_BY_ID.moonlight.colors); }
+    if (artId === 'ape-society' && !(typeof window !== 'undefined' && window.chainlensApe?.allowed())) { return applyTheme(BUILTIN_BY_ID.moonlight.colors); }
+    if (artId === 'sovereign' && !(typeof window !== 'undefined' && window.chainlensSovereign?.allowed())) { return applyTheme(BUILTIN_BY_ID.moonlight.colors); }
     if (BUILTIN_BY_ID[artId] && BUILTIN_BY_ID[artId].fixedPalette) colors = BUILTIN_BY_ID[artId].colors;
     var palette = paletteFor(colors);
     var root = document.documentElement;
@@ -528,7 +528,8 @@
     STOPS: STOPS,
     BUILTIN_THEMES: BUILTIN_THEMES,
     MAX_SYNCED_THEMES: MAX_SYNCED_THEMES,
-    migrateThemeId: function (id) { return id === 'sappy-seals' ? 'mint-money' : id; },
+    DEFAULT_THEME_ID: 'moonlight',
+    migrateThemeId: function (id) { return !id || id === 'light' || id === 'dark' ? 'moonlight' : id === 'sappy-seals' ? 'mint-money' : id; },
     builtinById: function (id) { return BUILTIN_BY_ID[id] || null; },
     parseHex: parseHex,
     toHex: toHex,

@@ -131,6 +131,6 @@ test('natural materials have fixed palettes and retain stock responsive geometry
 test('saved natural material does not bypass the theme account gate',async({page})=>{
   await page.addInitScript(()=>localStorage.setItem('cl_theme','royal-silk'));
   await installThemeMocks(page,{signedIn:false}); await page.goto('/');
-  await expect(page.getByTestId('theme-toggle')).toBeVisible();
+  await expect(page.getByTestId('theme-default')).toBeVisible();
   await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme');
 });

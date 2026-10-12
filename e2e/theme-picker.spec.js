@@ -35,9 +35,6 @@ const ME = {
 
 /** Crimson, from the wallet's shipped set — the theme these tests wear. */
 const CRIMSON_PAGE = 'rgb(24, 6, 10)';
-/** Stock Tailwind slate-50 / slate-950: the app with no theme on it. */
-const STOCK_LIGHT_PAGE = 'rgb(248, 250, 252)';
-const STOCK_DARK_PAGE = 'rgb(2, 6, 23)';
 
 const SYNCED = {
   // A theme built in the wallet…
@@ -140,19 +137,16 @@ const ELIGIBLE = { eligible: true, walletLinked: true, socialLinked: true, entri
 /** The app shell, whose background is the page colour a theme sets. */
 const shell = (page) => page.locator('#root > div').first();
 
-test('signed out, the control is still the Light/Dark switch', async ({ page }) => {
-  const pageErrors = [];
-  page.on('pageerror', error => pageErrors.push(error.message));
-  await installThemeMocks(page, { signedIn: false });
-  await page.goto('/');
-
-  await expect(page.getByTestId('theme-toggle')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('theme-picker')).toHaveCount(0);
-  await expect(shell(page)).toHaveCSS('background-color', STOCK_LIGHT_PAGE);
-
-  await page.getByRole('switch', { name: 'Dark mode' }).click();
-  await expect(shell(page)).toHaveCSS('background-color', STOCK_DARK_PAGE);
-  expect(pageErrors).toEqual([]);
+test('signed out uses Moonlight Soft Fade with two-tone and no Light Dark switch',async({page})=>{
+  await installThemeMocks(page,{signedIn:false});
+  await page.addInitScript(()=>{localStorage.removeItem('cl_texture.v1');localStorage.removeItem('cl_surfaces_two_tone.v1')});
+  await page.goto('/');await expect(page.getByTestId('theme-default')).toContainText('Moonlight');
+  await expect(page.getByRole('switch',{name:'Dark mode'})).toHaveCount(0);
+  await expect(shell(page)).toHaveCSS('background-color','rgb(6, 11, 24)');
+  await expect(page.locator('html')).toHaveAttribute('data-texture','fade');await expect(page.locator('html')).toHaveAttribute('data-surface-tone','layered');await expect(page.locator('html')).toHaveAttribute('data-surface-active','');
+  await expect(shell(page)).toHaveCSS('background-image',/linear-gradient/);
+  await page.screenshot({path:'.local-artifacts/moonlight-default/guest.png'});
+  await page.reload();await expect(page.getByTestId('theme-default')).toContainText('Moonlight');
 });
 
 test('signed in without chat access, the themes stay locked away', async ({ page }) => {
@@ -163,11 +157,11 @@ test('signed in without chat access, the themes stay locked away', async ({ page
   });
   await page.goto('/');
 
-  await expect(page.getByTestId('theme-toggle')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('theme-default')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('theme-picker')).toHaveCount(0);
 });
 
-test('an eligible account gets twenty-four shipped themes and its own synced ones', async ({ page }) => {
+test('an eligible account gets twenty-five shipped themes and its own synced ones', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await installThemeMocks(page, { themes: ELIGIBLE });
@@ -177,8 +171,8 @@ test('an eligible account gets twenty-four shipped themes and its own synced one
   const menu = page.getByTestId('theme-menu');
   await expect(menu).toBeVisible();
 
-  // Light and Dark, twenty-four shipped themes, and Cherry.
-  await expect(menu.locator('[data-testid^="theme-option-"]')).toHaveCount(27);
+  // Twenty-five shipped themes and Cherry; retired modes are absent.
+  await expect(menu.locator('[data-testid^="theme-option-"]')).toHaveCount(26);
   await expect(page.getByTestId('theme-option-moonlight')).toBeVisible();
   await expect(page.getByTestId('theme-option-mint-money')).toBeVisible();
   await expect(page.getByTestId('theme-option-custom-cherry')).toBeVisible();
@@ -211,7 +205,7 @@ test('a synced theme renders from the colours the wallet wrote', async ({ page }
   await expect(page.getByTestId('theme-picker-button')).toBeVisible();
 
   const sidebar = page.locator('.cl-sidebar');
-  await expect(sidebar).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  expect(await sidebar.evaluate(el=>getComputedStyle(el).backgroundColor)).not.toBe('rgb(255, 255, 255)');
 
   await openThemePicker(page);
   await page.getByTestId('theme-option-custom-cherry').click();
@@ -221,7 +215,7 @@ test('a synced theme renders from the colours the wallet wrote', async ({ page }
   await expect(page.getByTestId('theme-picker-button')).toContainText('Cherry');
 });
 
-test('losing access falls back to the tone the user was looking at', async ({ page }) => {
+test('losing access falls back to Moonlight and retains the saved selection', async ({ page }) => {
   await installThemeMocks(page, { themes: ELIGIBLE });
   await page.goto('/');
   await openThemePicker(page);
@@ -239,8 +233,8 @@ test('losing access falls back to the tone the user was looking at', async ({ pa
   }));
   await page.reload();
 
-  await expect(page.getByTestId('theme-toggle')).toBeVisible({ timeout: 30_000 });
-  await expect(shell(page)).toHaveCSS('background-color', STOCK_DARK_PAGE);
+  await expect(page.getByTestId('theme-default')).toBeVisible({ timeout: 30_000 });
+  await expect(shell(page)).toHaveCSS('background-color', 'rgb(6, 11, 24)');
 });
 
 for (const art of [{ id: 'ape-society', name: 'The Ape Society' }, { id: 'mallard-order', name: 'Mallard Order' }, { id: 'sealuminati', name: 'Sealuminati' }, { id: 'emonad', name: 'Emonad' }]) {
@@ -325,7 +319,7 @@ for (const art of [{ id: 'ape-society', name: 'The Ape Society' }, { id: 'mallar
     await page.unroute('**/api/profile/themes');
     await page.route('**/api/profile/themes', route => route.fulfill({ json: { eligible: false, walletLinked: true, socialLinked: false, entries: {} } }));
     await page.reload();
-    await expect(page.getByTestId('theme-toggle')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('theme-default')).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme');
     expect(errors).toEqual([]);
   });
@@ -769,4 +763,20 @@ test('Docs separates art and materials into default-collapsed dropdowns',async({
   await expect(sections.first().locator('.theme-row')).toHaveCount(7);await expect(sections.last().locator('.theme-row')).toHaveCount(6);
   await sections.first().locator('summary').click();await expect(sections.first().getByRole('menuitem',{name:/Sappy Seals/})).toBeDisabled();
   await expect(sections.last().getByRole('menuitem',{name:'Liquid Glass'})).toBeHidden();
+});
+
+
+for(const saved of ['light','dark'])test(`removed ${saved} selection migrates to Moonlight in main and Docs`,async({page})=>{
+  await installThemeMocks(page,{themes:ELIGIBLE});await page.addInitScript(id=>{localStorage.setItem('cl_theme',id);localStorage.removeItem('cl_texture.v1');localStorage.removeItem('cl_surfaces_two_tone.v1')},saved);
+  await page.goto('/');await expect(page.getByTestId('theme-picker-button')).toContainText('Moonlight');
+  await expect(page.locator('html')).toHaveAttribute('data-texture','fade');await expect(page.locator('html')).toHaveAttribute('data-surface-tone','layered');
+  expect(await page.evaluate(()=>localStorage.getItem('cl_theme'))).toBe('moonlight');
+  await openThemePicker(page);await expect(page.getByTestId('theme-option-light')).toHaveCount(0);await expect(page.getByTestId('theme-option-dark')).toHaveCount(0);
+  await page.goto('/docs');await expect(page.locator('#themeLabel')).toHaveText('Moonlight');await expect(page.locator('html')).toHaveAttribute('data-texture','fade');await expect(page.locator('html')).toHaveAttribute('data-surface-active','');
+  await page.locator('#themePickerButton').click();await expect(page.getByRole('menuitem',{name:/^Light$/})).toHaveCount(0);await expect(page.getByRole('menuitem',{name:/^Dark$/})).toHaveCount(0);
+});
+
+test('saved theme and surface preferences survive the new default',async({page})=>{
+  await installThemeMocks(page,{themes:ELIGIBLE});await page.addInitScript(()=>{localStorage.setItem('cl_theme','grape');localStorage.setItem('cl_texture.v1','glass');localStorage.setItem('cl_surfaces_two_tone.v1','0')});
+  await page.goto('/');await expect(page.getByTestId('theme-picker-button')).toContainText('Grape');await expect(page.locator('html')).toHaveAttribute('data-texture','glass');await expect(page.locator('html')).toHaveAttribute('data-surface-tone','matching');
 });

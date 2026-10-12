@@ -8,10 +8,10 @@
     { id: 'grain', name: 'Fine Grain' }, { id: 'fade', name: 'Soft Fade' }
   ];
   var key = 'cl_texture.v1', toneKey = 'cl_surfaces_two_tone.v1', selected = null, twoTone = null, enabled = false;
-  function clean(id) { return textures.some(function (t) { return t.id === id; }) ? id : 'glass'; }
+  function clean(id) { return textures.some(function (t) { return t.id === id; }) ? id : 'fade'; }
   function get() {
     if (selected !== null) return selected;
-    try { selected = clean(win.localStorage.getItem(key)); } catch (_) { selected = 'glass'; }
+    try { selected = clean(win.localStorage.getItem(key)); } catch (_) { selected = 'fade'; }
     return selected;
   }
   function suspended() { return win.document.documentElement.hasAttribute('data-cl-art-theme'); }

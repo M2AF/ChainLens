@@ -1190,32 +1190,22 @@
 
     // ── Themes ────────────────────────────────────────────────────────────────
     //
-    // The two base modes are always available; everything past them is the
-    // MagicMoney theme set, and reaching it needs the same thing chat needs — a
+    // Moonlight is available as the default; the rest of the MagicMoney theme
+    // set needs the same thing chat needs — a
     // ChainLens account with a verified wallet AND a Google or Discord login.
     // The colours themselves come from /theme-engine.js.
 
     const THEME_KEY = 'cl_theme';
-    const BASE_MODES = [
-      { id: 'light', name: 'Light', colors: { bg: '#f8fafc', accent: '#3b82f6', text: '#0f172a' } },
-      { id: 'dark',  name: 'Dark',  colors: { bg: '#020617', accent: '#3b82f6', text: '#f8fafc' } },
-    ];
-    const isBaseMode = (id) => id === 'light' || id === 'dark';
-
+    const DEFAULT_THEME = window.chainlensThemes.builtinById('moonlight');
     const readStoredThemeId = () => {
       try {
-        // No cl_theme means an install from before themes existed: its darkMode
-        // flag is the choice that has to be honoured, not reset to Light.
-        const saved = localStorage.getItem(THEME_KEY);
-        const migrated = window.chainlensThemes.migrateThemeId(saved);
-        if (saved !== migrated) localStorage.setItem(THEME_KEY, migrated);
-        return migrated
-          || (localStorage.getItem('darkMode') === 'true' ? 'dark' : 'light');
-      } catch { return 'light'; }
+        const saved=localStorage.getItem(THEME_KEY),id=window.chainlensThemes.migrateThemeId(saved);
+        if(saved!==id)localStorage.setItem(THEME_KEY,id);
+        return id;
+      } catch {return 'moonlight'}
     };
-
     const readStoredDark = () => {
-      try { return localStorage.getItem('darkMode') === 'true'; } catch { return false; }
+      try {return readStoredThemeId()==='moonlight' || localStorage.getItem('darkMode')==='true'}catch{return true}
     };
 
     /** The two-tone dot the picker identifies a theme by: background, then accent. */
@@ -1230,14 +1220,7 @@
       );
     };
 
-    /**
-     * The theme control in the top-right corner.
-     *
-     * Two shapes, and which one you get IS the feature: without an eligible
-     * account this stays the Light/Dark switch it has always been, down to the
-     * markup. With one, it opens the twelve themes MagicMoney ships plus
-     * whatever the wallet has synced to the account.
-     */
+    /** Eligible accounts get the full picker; everyone else wears the Moonlight default. */
     const ThemePicker = ({ activeTheme, darkMode, eligible, builtins, customs, onSelect, onEdit, sovereign, apeState, collectionVersion }) => {
       const [open, setOpen] = useState(false);
       const boxRef = useRef(null);
@@ -1248,7 +1231,7 @@
       useEffect(() => {
         const refresh = () => { setTextureState(materials.get()); setTextureSuspended(materials.suspended()); setTwoToneState(materials.getTwoTone()); };
         window.addEventListener('cl-texture-change', refresh);
-        materials.enable(eligible);
+        materials.enable(true);
         return () => window.removeEventListener('cl-texture-change', refresh);
       }, [eligible]);
 
@@ -1273,17 +1256,7 @@
         : 'bg-white/80 border-slate-200 shadow-md';
 
       if (!eligible) {
-        return (
-          <div data-testid="theme-toggle"
-               className={`fixed top-4 right-4 z-50 flex items-center space-x-3 px-4 py-2.5 rounded-2xl border backdrop-blur-md transition-all ${shell}`}>
-            <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{darkMode ? 'Dark' : 'Light'}</span>
-            <div onClick={() => onSelect(darkMode ? 'light' : 'dark')}
-                 role="switch" aria-checked={darkMode} aria-label="Dark mode"
-                 className={`switch-bg rounded-full cursor-pointer ${darkMode ? 'bg-blue-600' : 'bg-slate-300'}`}>
-              <div className={`switch-dot rounded-full bg-white shadow-lg ${darkMode ? 'translate-x-6' : 'translate-x-0'}`} />
-            </div>
-          </div>
-        );
+        return <div data-testid="theme-default" className={`fixed top-4 right-4 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border ${shell}`}><ThemeSwatch colors={DEFAULT_THEME.colors}/><span className="text-[10px] font-bold uppercase tracking-widest">Moonlight</span></div>;
       }
 
       const row = (theme) => {
@@ -1302,7 +1275,7 @@
           {(window.chainlensCollections.isGated(theme.id) || theme.id === 'sovereign' || theme.id === 'ape-society') && <button className="cl-holder-refresh" type="button" aria-label={window.chainlensCollections.isGated(theme.id) ? `Refresh ${theme.name} ownership` : theme.id === 'sovereign' ? 'Recheck ownership' : 'Refresh owned apes'} title={window.chainlensCollections.isGated(theme.id) ? `Refresh ${theme.name} ownership` : theme.id === 'sovereign' ? 'Recheck ownership' : 'Refresh owned apes'} disabled={window.chainlensCollections.isGated(theme.id) ? window.chainlensCollections.get(theme.id).checking : theme.id === 'sovereign' ? sovereign.status === 'checking' : apeState.status === 'checking'} onClick={() => window.chainlensCollections.isGated(theme.id) ? window.chainlensCollections.refresh(theme.id) : theme.id === 'sovereign' ? window.chainlensSovereign.refresh() : window.chainlensApe.refresh()}>↻</button>}
           {theme.id==='sappy-seals-art' && selected && window.chainlensCollections.allowed(theme.id) && <ChainLensSappy.SappySealAppearance/>}
           {theme.id === 'ape-society' && selected && window.chainlensApe.allowed() && <label className="cl-ape-select">Theme ape<select aria-label="Theme ape" value={`${apeState.selected.owner}:${apeState.selected.id}`} onChange={event => {const [owner,id]=event.target.value.split(':');window.chainlensApe.select(owner,id)}}>{apeState.apes.map(ape => <option key={`${ape.owner}:${ape.id}`} value={`${ape.owner}:${ape.id}`}>{ape.name} · #{ape.id}</option>)}</select></label>}
-          {!isBaseMode(theme.id) && !theme.fixedPalette && <button type="button" aria-label={`Edit ${theme.name}`} data-testid={`theme-edit-${theme.id}`}
+          {!theme.fixedPalette && <button type="button" aria-label={`Edit ${theme.name}`} data-testid={`theme-edit-${theme.id}`}
             onClick={() => { onEdit(theme); setOpen(false); }}
             className="shrink-0 px-2 py-2 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800/40">✎</button>}
           </div>
@@ -1343,8 +1316,6 @@
                 </button>
                 <p className="texture-note">{textureSuspended ? 'Saved for colour themes. This art theme uses its own surfaces.' : twoTone ? 'Slightly raised card colours. Works with Glass and every flat finish.' : 'Cards use the background colour. Works with Glass and every flat finish.'}</p>
               </div>
-              {heading('Mode')}
-              {BASE_MODES.map(row)}
               {heading('MagicMoney')}
               {builtins.filter(theme => !theme.art).map(row)}
               {heading('Your themes')}
@@ -1544,7 +1515,7 @@
       
       const [nfts, setNfts] = useState([]);
       const [loading, setLoading] = useState(false);
-      // darkMode stays the switch every utility class branches on; what changed
+      // darkMode stays the tone every utility class branches on; what changed
       // is who sets it. A theme's TONE now decides it, so a light theme cannot
       // end up rendered through the dark branch.
       const [darkMode, setDarkMode] = useState(readStoredDark);
@@ -1921,7 +1892,7 @@
           const body = await res.json().catch(() => ({}));
           if (!res.ok || !body.entries) throw new Error(body.error || 'Could not save theme');
           setThemeAccess(current => ({ ...current, entries: engine.sanitizeEntries(body.entries) }));
-          if (change.delete && !change.builtin && themeId === id) setThemeId('dark');
+          if (change.delete && !change.builtin && themeId === id) setThemeId('moonlight');
           if (!change.delete) setThemeId(change.builtin ? change.id : id);
           setThemeEditor(null);
         } catch (error) {
@@ -1933,47 +1904,25 @@
 
       const themeById = useCallback((id) => {
         const engine = window.chainlensThemes;
-        if (!engine || isBaseMode(id)) return null;
+        if (!engine) return null;
         return builtinThemes.find(theme => theme.id === id) || customThemes.find(theme => theme.id === id) || null;
       }, [builtinThemes, customThemes]);
 
       // What is actually WORN, which is not always what is stored. A theme needs
       // an eligible account behind it, so when that is missing — signed out, or
-      // a custom theme this account no longer has — the base mode stands in.
+      // a custom theme this account no longer has — Moonlight stands in.
       // The stored id is deliberately left alone: it comes back on sign-in.
       const activeTheme = useMemo(() => {
-        if (isBaseMode(themeId)) return BASE_MODES[themeId === 'dark' ? 1 : 0];
-        const theme = themeAccess.eligible && window.chainlensCollections.allowed(themeId) && (themeId !== 'sovereign' || window.chainlensSovereign.allowed()) && (themeId !== 'ape-society' || window.chainlensApe.allowed()) ? themeById(themeId) : null;
-        // Only a theme that cannot be resolved has to guess, and darkMode is
-        // what the page is actually painted in.
-        return theme || BASE_MODES[darkMode ? 1 : 0];
-      }, [themeId, themeAccess.eligible, themeById, darkMode, sovereign, apeState, collectionVersion]);
+        const allowed=(themeAccess.eligible || themeId==='moonlight') && window.chainlensCollections.allowed(themeId) && (themeId!=='sovereign' || window.chainlensSovereign.allowed()) && (themeId!=='ape-society' || window.chainlensApe.allowed());
+        return (allowed ? themeById(themeId) : null) || DEFAULT_THEME;
+      },[themeId,themeAccess.eligible,themeById,sovereign,apeState,collectionVersion]);
 
-      useEffect(() => {
-        const engine = window.chainlensThemes;
-        const theme = themeAccess.eligible && window.chainlensCollections.allowed(themeId) && (themeId !== 'sovereign' || window.chainlensSovereign.allowed()) && (themeId !== 'ape-society' || window.chainlensApe.allowed()) ? themeById(themeId) : null;
-        let tone;
-        if (!engine) {
-          // The engine failed to load. Light and Dark still render correctly:
-          // the palette's stock values live in index.html's stylesheet, not here.
-          tone = themeId === 'dark' ? 'dark' : 'light';
-        } else if (theme) {
-          tone = engine.applyTheme(theme.colors, theme.art && !theme.edited ? theme.id : null);
-        } else {
-          // Falling back to the LAST TONE, not to Light: someone signed out of a
-          // dark theme was looking at a dark app, and flipping them to white is
-          // the jarring answer.
-          tone = isBaseMode(themeId) ? themeId : (readStoredDark() ? 'dark' : 'light');
-          engine.applyMode(tone);
-        }
-        setDarkMode(tone === 'dark');
-        try {
-          localStorage.setItem(THEME_KEY, themeId);
-          // Kept in step with what is on screen, so it can serve as that fallback
-          // — and so a build without themes still opens in the right mode.
-          localStorage.setItem('darkMode', String(tone === 'dark'));
-        } catch {}
-      }, [themeId, themeAccess.eligible, themeById, sovereign, apeState, collectionVersion]);
+      useEffect(()=>{
+        const engine=window.chainlensThemes;
+        const tone=engine ? engine.applyTheme(activeTheme.colors,activeTheme.art && !activeTheme.edited ? activeTheme.id : null) : 'dark';
+        setDarkMode(tone==='dark');
+        try {localStorage.setItem(THEME_KEY,themeId);localStorage.setItem('darkMode',String(tone==='dark'))}catch{}
+      },[themeId,activeTheme]);
 
       // Merge the profile's list in on sign-in, then seed the profile with
       // anything hidden while signed out. Merged, never assigned: a decision made

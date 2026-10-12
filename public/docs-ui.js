@@ -4,17 +4,13 @@
   const engine = window.chainlensThemes;
   const root = document.documentElement;
   const $ = id => document.getElementById(id);
-  const base = [
-    { id: 'light', name: 'Light', colors: { bg: '#f8fafc', accent: '#3b82f6', text: '#0f172a' } },
-    { id: 'dark', name: 'Dark', colors: { bg: '#020617', accent: '#3b82f6', text: '#f8fafc' } },
-  ];
-  const themeVars = ['--bg', '--panel', '--panel-strong', '--line', '--text', '--muted', '--soft', '--cyan', '--blue', '--code', '--shadow'];
+  const fallback=engine.builtinById('moonlight');
   const read = key => { try { return localStorage.getItem(key); } catch { return null; } };
   const write = (key, value) => { try { localStorage.setItem(key, value); } catch { /* private browsing */ } };
   const storedTheme = read('cl_theme');
   const migratedTheme = engine.migrateThemeId(storedTheme);
   if(storedTheme !== migratedTheme)write('cl_theme',migratedTheme);
-  let themeId = migratedTheme || (read('darkMode') === 'true' ? 'dark' : 'light');
+  let themeId = migratedTheme;
   let token = read('cl_token');
   let eligible = false;
   let entries = {};
@@ -31,34 +27,29 @@
     const override = engine.sanitizeEntries(entries)[`custom-builtin-${theme.id}`];
     return !theme.fixedPalette && override && override.d !== 1 ? { ...theme, colors: override.c, edited: true } : theme;
   });
-  const findTheme = id => ['sovereign','ape-society','mallard-order','sealuminati','r3tards','emonad','sappy-seals-art'].includes(id) ? null : base.find(theme => theme.id === id)
-    || (eligible ? [...builtins(), ...customs()].find(theme => theme.id === id) : null);
+  const findTheme = id => {
+    if (['sovereign','ape-society','mallard-order','sealuminati','r3tards','emonad','sappy-seals-art'].includes(id))return null;
+    return (eligible ? [...builtins(),...customs()].find(theme=>theme.id===id) : null) || (id==='moonlight' ? fallback : null);
+  };
 
   function paint() {
     const theme = findTheme(themeId);
-    const fallback = base[read('darkMode') === 'true' ? 1 : 0];
     const active = theme || fallback;
-    let tone = active.id;
-    if (active.id === 'light' || active.id === 'dark') {
-      engine.applyMode(active.id);
-      themeVars.forEach(name => root.style.removeProperty(name));
-    } else {
-      const palette = engine.paletteFor(active.colors);
-      const rgb = name => `rgb(${palette.vars[name]})`;
-      tone = engine.applyTheme(active.colors);
-      const dark = tone === 'dark';
-      root.style.setProperty('--bg', rgb('--cl-page'));
-      root.style.setProperty('--panel', rgb(dark ? '--cl-slate-900' : '--cl-slate-100'));
-      root.style.setProperty('--panel-strong', rgb(dark ? '--cl-slate-900' : '--cl-slate-50'));
-      root.style.setProperty('--text', rgb(dark ? '--cl-slate-50' : '--cl-slate-950'));
-      root.style.setProperty('--soft', rgb(dark ? '--cl-slate-300' : '--cl-slate-700'));
-      root.style.setProperty('--muted', rgb(dark ? '--cl-slate-400' : '--cl-slate-600'));
-      root.style.setProperty('--cyan', rgb(dark ? '--cl-cyan-400' : '--cl-blue-700'));
-      root.style.setProperty('--blue', rgb('--cl-blue-500'));
-      root.style.setProperty('--line', `color-mix(in srgb, var(--text) 18%, transparent)`);
-      root.style.setProperty('--code', rgb('--cl-slate-950'));
-      root.style.setProperty('--shadow', '0 24px 70px rgba(0, 0, 0, .2)');
-    }
+    const palette = engine.paletteFor(active.colors);
+    const rgb = name => `rgb(${palette.vars[name]})`;
+    const tone = engine.applyTheme(active.colors);
+    const dark = tone === 'dark';
+    root.style.setProperty('--bg', rgb('--cl-page'));
+    root.style.setProperty('--panel', rgb(dark ? '--cl-slate-900' : '--cl-slate-100'));
+    root.style.setProperty('--panel-strong', rgb(dark ? '--cl-slate-900' : '--cl-slate-50'));
+    root.style.setProperty('--text', rgb(dark ? '--cl-slate-50' : '--cl-slate-950'));
+    root.style.setProperty('--soft', rgb(dark ? '--cl-slate-300' : '--cl-slate-700'));
+    root.style.setProperty('--muted', rgb(dark ? '--cl-slate-400' : '--cl-slate-600'));
+    root.style.setProperty('--cyan', rgb(dark ? '--cl-cyan-400' : '--cl-blue-700'));
+    root.style.setProperty('--blue', rgb('--cl-blue-500'));
+    root.style.setProperty('--line', `color-mix(in srgb, var(--text) 18%, transparent)`);
+    root.style.setProperty('--code', rgb('--cl-slate-950'));
+    root.style.setProperty('--shadow', '0 24px 70px rgba(0, 0, 0, .2)');
     root.dataset.theme = tone;
     $('sidebarLogo').src = tone === 'dark' ? '/ChainLens (dark).png' : '/ChainLens (light).png';
     $('themeLabel').textContent = active.name;
@@ -104,7 +95,6 @@
   }
   function renderMenu() {
     menu.replaceChildren();
-    addHeading('Mode'); base.forEach(theme => addRow(theme, false));
     addHeading('MagicMoney');
     if (eligible) {
       const shipped = builtins();
@@ -219,7 +209,7 @@
       const body = await response.json().catch(() => ({}));
       if (!response.ok || !body.entries) throw new Error(body.error || 'Could not save theme');
       entries = engine.sanitizeEntries(body.entries);
-      if (deleting && !builtin && themeId === editing.id) themeId = 'dark';
+      if (deleting && !builtin && themeId === editing.id) themeId = 'moonlight';
       else if (!deleting) themeId = builtin ? editing.id : id;
       write('cl_theme', themeId);
       closeEditor(); paint(); renderMenu();
@@ -272,6 +262,7 @@
     });
   });
 
+  window.chainlensTextures.enable(true);
   paint(); renderMenu();
   if (token) {
     fetch('/api/profile/themes', { headers: { Authorization: `Bearer ${token}` } })
@@ -286,7 +277,7 @@
   window.addEventListener('storage', event => {
     if (!['cl_theme', 'darkMode', 'cl_token'].includes(event.key)) return;
     if (event.key === 'cl_token') { window.location.reload(); return; }
-    themeId = engine.migrateThemeId(read('cl_theme')) || (read('darkMode') === 'true' ? 'dark' : 'light');
+    themeId = engine.migrateThemeId(read('cl_theme'));
     paint(); renderMenu();
   });
 }());

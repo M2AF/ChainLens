@@ -342,3 +342,18 @@
 ### 2026-10-12T02:39-03:00 · codex · handoff · c1b3f44 (main) dirty 12
 - Double-size seal preview approved by user; dropdown headers white pills/black labels with white rails to arrows. Final202Node/3browser/six JSX checks and screenshots pass. No deployment.
 - next: User visual review of disclosure pill/rail styling; deploy frontend only when authorized.
+
+### 2026-10-12T02:53-03:00 · codex · claim · a3e6d9a (main) dirty 1
+- task: Replace Light Dark modes with Moonlight Soft Fade default
+- lease until 2026-10-12T05:53-03:00
+
+### 2026-10-12T02:58-03:00 · codex · checkpoint · a3e6d9a (main) dirty 10
+- Removed Light/Dark picker/toggle in main and Docs; new/legacy base selections migrateMoonlight; fallback appliesMoonlight while other stored selections retained. Surface defaultSoftFade/two-tone on; explicit saved finish/tone preserved. Guest default enabled; eligibility for other themes/gates unchanged. Syntax/202Node initial pass; migration/default browser cases added.
+- next: Run final unit/default/guest/Docs/saved preferences and gate regressions; screenshots.
+
+### 2026-10-12T03:06-03:00 · codex · verify · a3e6d9a (main) dirty 18
+- verified: User HEADa3e6d9a reconciled:syntax/204Node/six JSX;10browser cases+final2 fallback/Sappy+2guest finishes/gates pass. No visible Light/Dark, legacy selection migration, Moonlight fade/two-tone guest/Docs baseline, explicit preferences retained, revoked holder/profile fallback and existing gates/animations verified. Screenshot reviewed; .moonlight-default-*.log. No deploy/wallet/DB changes.
+
+### 2026-10-12T03:06-03:00 · codex · handoff · a3e6d9a (main) dirty 18
+- Default Moonlight/SoftFade/two-toneon; Light/Dark removed from main/Docs selection and guest switch. Explicit other preferences preserved.204Node/syntax/six JSX and default/migration/fallback/gate browser checks pass. No deployment.
+- next: User review; deploy frontend only when authorized.

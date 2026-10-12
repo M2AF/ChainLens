@@ -324,3 +324,21 @@ test('Mint & Money replaces the retired Sappy Seals colour preset',()=>{
   assert.equal(themes.migrateThemeId('sappy-seals'),'mint-money');
   assert.equal(themes.migrateThemeId('custom-keep'),'custom-keep');
 });
+
+
+test('retired base selections and empty installs resolve to Moonlight without altering saved art/custom choices',()=>{
+  for(const id of [null,undefined,'','light','dark'])assert.equal(themes.migrateThemeId(id),'moonlight');
+  for(const id of ['grape','sappy-seals-art','custom-cherry'])assert.equal(themes.migrateThemeId(id),id);
+});
+
+
+test('a locked art request falls back to Moonlight and clears the art identity',()=>{
+  const priorDocument=global.document,priorWindow=global.window,attributes=new Map(),styles=new Map();
+  global.window={chainlensCollections:{allowed:()=>false}};
+  global.document={documentElement:{setAttribute:(k,v)=>attributes.set(k,v),removeAttribute:k=>attributes.delete(k),style:{setProperty:(k,v)=>styles.set(k,v),removeProperty:k=>styles.delete(k)}}};
+  try{
+    const art=themes.builtinById('sappy-seals-art');themes.applyTheme(art.colors,art.id);
+    assert.equal(styles.get('--cl-page'),themes.paletteFor(themes.builtinById('moonlight').colors).vars['--cl-page']);
+    assert.equal(attributes.has('data-cl-art-theme'),false);
+  }finally{global.document=priorDocument;global.window=priorWindow}
+});

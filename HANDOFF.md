@@ -7,13 +7,14 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: c1b3f44 · User HEADc1b3f44 reconciled:syntax/202Node tests/six JSX precompile;3final browser journeys pass. Exact doubled Sappy canvas/footer with actual13 motions, tracking, variant/reload, mobile/hidden/reduced and holder checks; main/Docs white pill black text white rail/chevron headers retain default-collapse/custom-color ordering/keyboard. Screenshots reviewed; user approved seal size. No deploy/wallet edit. · 2026-10-12T02:39-03:00
-head: c1b3f44 (main) dirty 12
-updated: 2026-10-12T02:39-03:00 · codex
+verified: a3e6d9a · User HEADa3e6d9a reconciled:syntax/204Node/six JSX;10browser cases+final2 fallback/Sappy+2guest finishes/gates pass. No visible Light/Dark, legacy selection migration, Moonlight fade/two-tone guest/Docs baseline, explicit preferences retained, revoked holder/profile fallback and existing gates/animations verified. Screenshot reviewed; .moonlight-default-*.log. No deploy/wallet/DB changes. · 2026-10-12T03:06-03:00
+head: a3e6d9a (main) dirty 18
+updated: 2026-10-12T03:06-03:00 · codex
 
 resources: -
 
 ## Now
+- ChainLens Light/Dark options/switch removed; new/legacy base IDs migrateMoonlight. Missing finish defaultsSoftFade, two-toneon; explicit other selections/finishes retained. Moonlight guest and access/holder fallback, other eligibility unchanged; Docs loads finishes too. Syntax/204Node/six JSX;10browser cases+final2fallback/Sappy+2guestfinish/gate pass; screenshot reviewed. docs/MOONLIGHT-DEFAULT.md; .moonlight-default-*.log; .local-artifacts/moonlight-default/guest.png. User HEADa3e6d9a reconciled. No wallet/DB edits/commit/deploy.
 - User-approved ChainLens seal size doubled exactly:440x320 scene/180px footer, bottom-sidebar placement; wallet unchanged. Main/Docs Art and Material disclosure labels now white rounded pills/black text with white rail to right chevron, collapsed by default. Syntax/202Node/six JSX/3browser journeys pass including full13-motion Sappy and mobile/gate/variant checks; previews reviewed. .sappy-double-*.log; .sappy-pill-*.log; .local-artifacts/sappy-seals/double-size-preview.png. No commit/deploy.
 - ChainLens main/Docs picker now groups builtin and custom colors/Create New before independent Art Designs/Material Designs dropdowns; both default collapsed on each menu opening. Seven art/six materials; native keyboard toggles and gates preserved. Syntax/202Node/six JSX and4browser journeys pass (defaults/order, custom CRUD/reload, Docs, Sappy motion/gate). Screenshot reviewed; .sections-collapsed-*.log; .local-artifacts/design-sections/chainlens-default-collapsed.png. No wallet edits/commit/deploy.
 - Sappy Seals art ported locally: sappy-seals-art, fixed Flat black/white, canonical Ethereum holder gate, correct default/alternate atlases with26px toggle beside refresh. Shared Live2D pointer/touch and13 click motions in bottom sidebar across pages; offscreen/reduced-motion/closed-drawer pause and teardown.25themes/7art/6materials; old Sappy colour->Mint migration preserved. Syntax/202Node/six JSX and4browser journeys pass; screenshots reviewed. docs/SAPPY-SEALS-THEME.md; scripts/build-sappy-seals.js; .sappy-*.log; .local-artifacts/sappy-seals/. Wallet source unchanged. No commit/deploy/install.
@@ -46,7 +47,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User visual review of disclosure pill/rail styling; deploy frontend only when authorized.
+- User review; deploy frontend only when authorized.
 
 ## Traps
 - IPFS sponsored gateways retired direct fetch; old Cloudflare host failsDNS. Native sources nowBlockfrost/Pinata/Filebase, preserving working supplied gateways. node-fetch required for DNS-pinned document agents; native fetch ignores them.

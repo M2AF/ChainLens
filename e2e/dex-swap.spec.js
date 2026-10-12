@@ -174,7 +174,7 @@ test.describe('Magic Swap wallet mode', () => {
     await expect(page.getByTestId('wallet-swap-mode')).toHaveAttribute('aria-pressed', 'true');
     await connectEvm(page);
     await page.screenshot({ path: 'test-results/magic-swap-wallet-light.png', fullPage: true });
-    await page.getByRole('switch', { name: 'Dark mode' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-cl-tone','dark');
     await expect(page.getByTestId('dex-swap-panel')).toHaveAttribute('data-tone', 'dark');
     await page.screenshot({ path: 'test-results/magic-swap-wallet-dark.png', fullPage: true });
     await page.getByTestId('exchange-swap-mode').click();
@@ -482,7 +482,7 @@ test.describe('Magic Swap DEX token picker', () => {
     await installWallets(page);
     await mockDex(page);
     await page.goto('/magic-swap');
-    await page.getByRole('switch', { name: 'Dark mode' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-cl-tone','dark');
     const colors = await page.evaluate(() => {
       window.chainlensThemes.applyTheme({ bg: '#170b28', accent: '#a497f0', text: '#e9e3f4' });
       const card = document.querySelector('.dex-swap .swap-asset-card');

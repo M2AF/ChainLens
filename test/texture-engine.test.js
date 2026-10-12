@@ -15,7 +15,7 @@ test('material eligibility, art suspension, persistence and external changes are
     MutationObserver: class { constructor(cb) { observe = cb; } observe() {} }
   };
   const materials = create(win);
-  assert.equal(materials.get(), 'glass');
+  assert.equal(materials.get(), 'fade');
   assert.equal(materials.getTwoTone(), true);
   materials.set('grain');
   assert.equal(attributes.has('data-material-active'), false);
@@ -33,8 +33,8 @@ test('material eligibility, art suspension, persistence and external changes are
   values.set('cl_texture.v1', 'fade'); listeners.get('storage')({ key: 'cl_texture.v1' });
   assert.equal(materials.get(), 'fade');
   values.set('cl_texture.v1', 'unknown'); listeners.get('storage')({ key: 'cl_texture.v1' });
-  assert.equal(materials.get(), 'glass');
-  assert.equal(attributes.has('data-material-active'), false);
+  assert.equal(materials.get(), 'fade');
+  assert.equal(attributes.has('data-material-active'), true);
   values.set('cl_surfaces_two_tone.v1', '1'); listeners.get('storage')({ key: 'cl_surfaces_two_tone.v1' });
   assert.equal(attributes.get('data-surface-tone'), 'layered');
   values.set('cl_surfaces_two_tone.v1', 'bad'); listeners.get('storage')({ key: 'cl_surfaces_two_tone.v1' });

@@ -79,7 +79,7 @@ test('live matched exchange candles render in the actual listing cards', async (
     await expect.poll(() => canvas.evaluate(el => window.Chart.getChart(el)?.data.datasets[0].data.length || 0)).toBeGreaterThan(0);
   }
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.getByRole('switch', { name: 'Dark mode' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-cl-tone','dark');
   await page.screenshot({ path: 'test-results/new-listings-charts-live-desktop.png', fullPage: true, animations: 'disabled' });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.locator('.cl-sidebar').evaluate(el => el.getBoundingClientRect().right <= 1)).toBe(true);

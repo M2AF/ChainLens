@@ -8,7 +8,7 @@
   const allowed = () => state.status === 'owned' && Date.now() - state.checkedAt < 90000;
   const publish = (status, checkedAt = 0) => {
     state = { status, checkedAt };
-    if (!allowed() && root.getAttribute('data-cl-art-theme') === 'sovereign') window.chainlensThemes.applyMode('dark');
+    if (!allowed() && root.getAttribute('data-cl-art-theme') === 'sovereign') window.chainlensThemes.applyTheme(window.chainlensThemes.builtinById('moonlight').colors);
     window.dispatchEvent(new CustomEvent('cl-sovereign-change'));
   };
   async function refresh() {

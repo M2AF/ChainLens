@@ -7,7 +7,7 @@ const owner = {chain:'evm',watch_only:false,address:'0x1111111111111111111111111
 function fixture({balance=1n,chain='0x1237',request} = {}) {
   const calls=[],timers=[],attributes=new Map();
   const root={getAttribute:key=>attributes.get(key),dataset:{},style:{removeProperty(){}}};
-  const window={dispatchEvent(){},addEventListener(){},chainlensThemes:{applyMode(){attributes.delete('data-cl-art-theme')}}};
+  const window={dispatchEvent(){},addEventListener(){},chainlensThemes:{builtinById:require('../public/theme-engine').builtinById,applyTheme(colors){assert.equal(colors.bg,'#060b18');attributes.delete('data-cl-art-theme')}}};
   const document={documentElement:root,hidden:false,addEventListener(){}};
   const fetch=request || (async (_url, options)=>{
     const call=JSON.parse(options.body); calls.push(call);
