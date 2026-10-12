@@ -1347,12 +1347,6 @@
               {BASE_MODES.map(row)}
               {heading('MagicMoney')}
               {builtins.filter(theme => !theme.art).map(row)}
-              {[{name:'Art Designs',material:false},{name:'Material Designs',material:true}].map(group => (
-                <details key={group.name} className="cl-theme-design-section" open>
-                  <summary>{group.name}<span aria-hidden="true">⌄</span></summary>
-                  {builtins.filter(theme => theme.art && !!theme.material === group.material).map(row)}
-                </details>
-              ))}
               {heading('Your themes')}
               {customs.length > 0 ? customs.map(row) : (
                 <p className={`px-3 pb-3 pt-1 text-[10px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -1366,6 +1360,12 @@
                   <span>Create New</span>
                 </button>
               )}
+              {[{name:'Art Designs',material:false},{name:'Material Designs',material:true}].map(group => (
+                <details key={group.name} className="cl-theme-design-section">
+                  <summary>{group.name}<span aria-hidden="true">⌄</span></summary>
+                  {builtins.filter(theme => theme.art && !!theme.material === group.material).map(row)}
+                </details>
+              ))}
             </div>
           )}
         </div>

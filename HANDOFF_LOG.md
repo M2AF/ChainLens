@@ -312,3 +312,18 @@
 ### 2026-10-12T02:15-03:00 · codex · handoff · b98d72d (main) dirty 10
 - Sappy Seals art complete locally in bottom-left sidebar with canonical holder gate, pointer/touch/all13 motions and26px alternate toggle. Final syntax/202tests/six JSX/4journeys/finalSappy pass; screenshots reviewed. Wallet source unchanged. docs/SAPPY-SEALS-THEME.md; generator in scripts. No deployment.
 - next: Deploy frontend assets and generated collection reader only when authorized; verify production linked-wallet gate/WebGL afterwards.
+
+### 2026-10-12T02:20-03:00 · codex · claim · c5c78b6 (main) dirty 1
+- task: Start ChainLens Art and Material dropdowns collapsed
+- lease until 2026-10-12T05:20-03:00
+
+### 2026-10-12T02:24-03:00 · codex · checkpoint · c5c78b6 (main) dirty 8
+- Art/Material sections default collapsed in main and Docs; custom colors/Create New moved alongside builtin colors before groups. Updated selection journeys to expand sections explicitly. Drift reconciled on user clean HEADc5c78b6: syntax and202Node tests pass; first main/Sappy browsers pass, Docs assertion corrected to existing menuitem role. Final order/default checks next.
+- next: Run final main/Docs/Sappy journeys and inspect collapsed screenshot.
+
+### 2026-10-12T02:25-03:00 · codex · verify · c5c78b6 (main) dirty 9
+- verified: Current user HEADc5c78b6 reverified: syntax/202Node tests/six JSX;4browser journeys pass for default-collapsed main/Docs groups, custom colours/Create New above groups, keyboard/independent opening, colour CRUD/reload and full Sappy animation/gate behavior. Screenshot reviewed; .sections-collapsed-*.log. No deploy/wallet edit.
+
+### 2026-10-12T02:25-03:00 · codex · handoff · c5c78b6 (main) dirty 9
+- Art and Material groups default collapsed; builtin/custom colors/Create New grouped above in main and Docs.202Node/4browser/six JSX checks pass; screenshot reviewed. No deployment.
+- next: User review and deploy frontend only when authorized.

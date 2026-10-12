@@ -88,6 +88,7 @@ test('natural materials have fixed palettes and retain stock responsive geometry
   });
   for(const id of ['brushed-metal','leather','velvet','walnut','royal-silk']) {
     await page.getByTestId('theme-picker-button').click();
+    await page.locator('details.cl-theme-design-section').filter({has:page.locator('summary',{hasText:'Material Designs'})}).locator('summary').click();
     await expect(page.getByTestId(`theme-edit-${id}`)).toHaveCount(0);
     await page.getByTestId(`theme-option-${id}`).click();
     await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme',id);

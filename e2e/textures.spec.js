@@ -118,6 +118,7 @@ test('texture remains independent across palettes, previews, art and reload', as
     }
   }
   await page.getByTestId('theme-picker-button').click();
+  await page.locator('details.cl-theme-design-section').filter({has:page.locator('summary',{hasText:'Material Designs'})}).locator('summary').click();
   await page.getByTestId('theme-option-liquid-glass').click();
   await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','liquid-glass');
   await expect(page.locator('html')).toHaveAttribute('data-cl-tone','dark');
@@ -137,6 +138,7 @@ test('texture remains independent across palettes, previews, art and reload', as
   await page.getByTestId('theme-picker-button').click();
   await page.getByTestId('texture-option-fade').click();
   await toneSwitch.click();
+  await page.locator('details.cl-theme-design-section').filter({has:page.locator('summary',{hasText:'Art Designs'})}).locator('summary').click();
   await page.getByTestId('theme-option-mallard-order').click();
   await expect(page.locator('html')).not.toHaveAttribute('data-material-active');
   await page.getByTestId('theme-picker-button').click();
@@ -197,6 +199,7 @@ test('Liquid Glass refraction changes backdrop pixels while keeping foreground s
   await installThemeMocks(page, {themes:ELIGIBLE});
   await page.goto('/');
   await page.getByTestId('theme-picker-button').click();
+  await page.locator('details.cl-theme-design-section').filter({has:page.locator('summary',{hasText:'Material Designs'})}).locator('summary').click();
   await page.getByTestId('theme-option-liquid-glass').click();
   const hero = page.locator('.cl-search-hero');
   await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','liquid-glass');

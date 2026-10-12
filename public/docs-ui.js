@@ -80,7 +80,7 @@
     const p = document.createElement('p');
     p.className = 'theme-heading'; p.textContent = label; menu.append(p);
   }
-  function addRow(theme, editable) {
+  function addRow(theme, editable, target = menu) {
     const row = document.createElement('div'); row.className = 'theme-row';
     if (theme.id === themeId) row.classList.add('selected');
     const choice = document.createElement('button');
@@ -100,14 +100,16 @@
       edit.setAttribute('aria-label', `Edit ${theme.name}`);
       edit.addEventListener('click', () => { closeMenu(); openEditor(theme); }); row.append(edit);
     }
-    menu.append(row);
+    target.append(row);
   }
   function renderMenu() {
     menu.replaceChildren();
     addHeading('Mode'); base.forEach(theme => addRow(theme, false));
     addHeading('MagicMoney');
-    if (eligible) builtins().forEach(theme => addRow(theme, true));
-    else {
+    if (eligible) {
+      const shipped = builtins();
+      shipped.filter(theme => !theme.art).forEach(theme => addRow(theme, true));
+    } else {
       const hint = document.createElement('p'); hint.className = 'theme-hint';
       hint.textContent = 'Sign in on ChainLens with a verified wallet and Google or Discord to use synced themes.';
       menu.append(hint);
@@ -128,6 +130,15 @@
       const hint = document.createElement('p'); hint.className = 'theme-hint';
       hint.textContent = 'Your themes sync with Magic Money Wallet through your ChainLens account.';
       menu.append(hint);
+    }
+    if (eligible) {
+      const shipped=builtins();
+      for (const group of [{name:'Art Designs',material:false},{name:'Material Designs',material:true}]) {
+        const section = document.createElement('details');section.className='theme-design-section';
+        const summary=document.createElement('summary');summary.textContent=group.name;section.append(summary);
+        shipped.filter(theme=>theme.art && !!theme.material===group.material).forEach(theme=>addRow(theme,false,section));
+        menu.append(section);
+      }
     }
   }
 

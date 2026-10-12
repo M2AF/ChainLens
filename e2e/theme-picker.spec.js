@@ -7,6 +7,14 @@ const { buildPrecompiledPage } = require('../precompile-page');
 const compiled = buildPrecompiledPage(path.resolve(__dirname, '../public'));
 if (!compiled) throw new Error('Theme journey requires a compiled homepage');
 
+// Selection journeys explicitly expand the two default-collapsed groups.
+async function openThemePicker(page){
+  await page.getByTestId('theme-picker-button').click();
+  if(await page.getByTestId('theme-menu').isVisible())for(const section of await page.locator('details.cl-theme-design-section').all()){
+    if(await section.getAttribute('open')===null)await section.locator('summary').click();
+  }
+}
+
 /**
  * The theme picker, and the gate in front of it.
  *
@@ -80,7 +88,7 @@ async function installThemeMocks(page, { themes = null, signedIn = true } = {}) 
 test('create, edit and delete a theme across reloads', async ({ page }) => {
   await installThemeMocks(page, { themes: ELIGIBLE });
   await page.goto('/');
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await page.getByTestId('theme-create').click();
   await expect(page.getByTestId('theme-editor')).toBeVisible();
   await page.getByLabel('Theme name').fill('Ocean');
@@ -93,27 +101,27 @@ test('create, edit and delete a theme across reloads', async ({ page }) => {
   await expect(shell(page)).toHaveCSS('background-color', 'rgb(16, 32, 48)');
 
   await page.reload();
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await expect(page.getByTestId('theme-option-custom-cherry')).toBeVisible();
   await page.getByRole('button', { name: 'Edit Ocean' }).click();
   await page.getByLabel('Theme name').fill('Deep Ocean');
   await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByTestId('theme-picker-button')).toContainText('Deep Ocean');
 
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await page.getByRole('button', { name: 'Edit Deep Ocean' }).click();
   await page.getByRole('button', { name: 'Delete theme' }).click();
   await page.getByRole('button', { name: 'Click again to delete' }).click();
   await expect(page.getByTestId('theme-picker-button')).toContainText('Dark');
   await page.reload();
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await expect(page.getByRole('button', { name: 'Edit Deep Ocean' })).toHaveCount(0);
 });
 
 test('a shipped theme can be recoloured and reverted through the profile', async ({ page }) => {
   await installThemeMocks(page, { themes: ELIGIBLE });
   await page.goto('/');
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await page.getByRole('button', { name: 'Edit Crimson' }).click();
   await page.getByLabel('Background hex').fill('#123456');
   await page.getByRole('button', { name: 'Save colours' }).click();
@@ -121,7 +129,7 @@ test('a shipped theme can be recoloured and reverted through the profile', async
   await expect(shell(page)).toHaveCSS('background-color', 'rgb(18, 52, 86)');
   await page.reload();
   await expect(shell(page)).toHaveCSS('background-color', 'rgb(18, 52, 86)');
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await page.getByRole('button', { name: 'Edit Crimson' }).click();
   await page.getByRole('button', { name: 'Revert to default' }).click();
   await expect(shell(page)).toHaveCSS('background-color', CRIMSON_PAGE);
@@ -165,7 +173,7 @@ test('an eligible account gets twenty-four shipped themes and its own synced one
   await installThemeMocks(page, { themes: ELIGIBLE });
   await page.goto('/');
 
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   const menu = page.getByTestId('theme-menu');
   await expect(menu).toBeVisible();
 
@@ -183,7 +191,7 @@ test('choosing a theme repaints the app and outlives a reload', async ({ page })
   await installThemeMocks(page, { themes: ELIGIBLE });
   await page.goto('/');
 
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await page.getByTestId('theme-option-crimson').click();
 
   await expect(page.getByTestId('theme-menu')).toHaveCount(0);
@@ -205,7 +213,7 @@ test('a synced theme renders from the colours the wallet wrote', async ({ page }
   const sidebar = page.locator('.cl-sidebar');
   await expect(sidebar).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await page.getByTestId('theme-option-custom-cherry').click();
 
   await expect(shell(page)).toHaveCSS('background-color', 'rgb(42, 5, 18)');
@@ -216,7 +224,7 @@ test('a synced theme renders from the colours the wallet wrote', async ({ page }
 test('losing access falls back to the tone the user was looking at', async ({ page }) => {
   await installThemeMocks(page, { themes: ELIGIBLE });
   await page.goto('/');
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await page.getByTestId('theme-option-crimson').click();
   await expect(shell(page)).toHaveCSS('background-color', CRIMSON_PAGE);
 
@@ -246,7 +254,7 @@ for (const art of [{ id: 'ape-society', name: 'The Ape Society' }, { id: 'mallar
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('/');
     const select = async id => {
-      await page.getByTestId('theme-picker-button').click();
+      await openThemePicker(page);
       await page.getByTestId(`theme-option-${id}`).click();
     };
     const settle = () => page.evaluate(async () => {
@@ -259,10 +267,10 @@ for (const art of [{ id: 'ape-society', name: 'The Ape Society' }, { id: 'mallar
     });
     const framed = new RegExp(`/themes/${art.id}/frame.*\\.(webp|png)`);
     if (art.id === 'emonad') {
-      await page.getByTestId('theme-picker-button').click();
+      await openThemePicker(page);
       const ids = await page.locator('[data-testid^=theme-option-]').evaluateAll(els => els.map(el => el.getAttribute('data-testid')));
       expect(ids[ids.indexOf('theme-option-r3tards') - 1]).toBe('theme-option-emonad');
-      await page.getByTestId('theme-picker-button').click();
+      await openThemePicker(page);
     }
     await select(art.id);
     await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme', art.id);
@@ -299,19 +307,19 @@ for (const art of [{ id: 'ape-society', name: 'The Ape Society' }, { id: 'mallar
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: `test-results/${art.id}-swap-390.png` });
     // Art palettes retain their identity and have no editor.
-    await page.getByTestId('theme-picker-button').click();
+    await openThemePicker(page);
     await expect(page.getByRole('button', { name: `Edit ${art.name}`, exact: true })).toHaveCount(0);
-    await page.getByTestId('theme-picker-button').click();
+    await openThemePicker(page);
     await select('custom-cherry');
     await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme');
     await expect(page.locator('.dex-swap .panel').first()).toHaveCSS('border-image-source', 'none');
     await select('dark');
     await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme');
     if (art.id === 'emonad') {
-      await page.getByTestId('theme-picker-button').click();
+      await openThemePicker(page);
       const ids = await page.locator('[data-testid^=theme-option-]').evaluateAll(els => els.map(el => el.getAttribute('data-testid')));
       expect(ids[ids.indexOf('theme-option-r3tards') - 1]).toBe('theme-option-emonad');
-      await page.getByTestId('theme-picker-button').click();
+      await openThemePicker(page);
     }
     await select(art.id);
     await page.unroute('**/api/profile/themes');
@@ -336,7 +344,7 @@ test('tarot and existing art skins cover Profile, App Hub and Market without fil
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
   for (const id of ['ape-society', 'mallard-order', 'sealuminati', 'emonad']) {
-    await page.getByTestId('theme-picker-button').click();
+    await openThemePicker(page);
     await page.getByTestId(`theme-option-${id}`).click();
     await page.locator('.cl-sidebar').getByRole('button', { name: 'Profile', exact: true }).click();
     await expect(page.locator('.profile-banner')).toBeVisible();
@@ -380,7 +388,7 @@ test('r3tards collab uses supplied artwork, pill controls and isolated materials
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/');
   const select = async id => {
-    await page.getByTestId('theme-picker-button').click();
+    await openThemePicker(page);
     await page.getByTestId(`theme-option-${id}`).click();
   };
   const screenshot = async name => {
@@ -446,9 +454,9 @@ test('r3tards collab uses supplied artwork, pill controls and isolated materials
   await expect(page.getByTestId('new-listings-panel').getByRole('article')).toHaveCSS('border-image-source', 'none');
   await page.setViewportSize({ width: 390, height: 900 });
   await screenshot('market-390');
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await expect(page.getByRole('button', { name: 'Edit r3tards', exact: true })).toHaveCount(0);
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme', 'r3tards');
   await select('sealuminati');
   await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme', 'sealuminati');
@@ -468,7 +476,7 @@ test('r3tards scanner and theme menu fit tall and narrow desktop viewports', asy
   await installThemeMocks(page, { themes: ELIGIBLE });
   await page.setViewportSize({ width: 1080, height: 1800 });
   await page.goto('/');
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await page.getByTestId('theme-option-r3tards').click();
   await page.locator('.cl-sidebar').getByRole('button', { name: 'Scanner', exact: true }).click();
   for (const [width, height] of [[1080, 1800], [1080, 720], [900, 900], [360, 900]]) {
@@ -485,7 +493,7 @@ test('r3tards scanner and theme menu fit tall and narrow desktop viewports', asy
     expect(geometry).toEqual([true, true, true]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: `test-results/r3tards-scaling-scanner-${width}x${height}.png` });
-    await page.getByTestId('theme-picker-button').click();
+    await openThemePicker(page);
     const menu = page.getByTestId('theme-menu');
     await expect(menu).toHaveCSS('border-radius', '20px');
     const bounds = await menu.boundingBox();
@@ -495,7 +503,7 @@ test('r3tards scanner and theme menu fit tall and narrow desktop viewports', asy
     await expect(page.getByTestId('theme-create')).toBeInViewport();
     await menu.evaluate(el => { el.scrollTop = 0; });
     await page.screenshot({ path: `test-results/r3tards-scaling-menu-${width}x${height}.png` });
-    await page.getByTestId('theme-picker-button').click();
+    await openThemePicker(page);
   }
 });
 
@@ -507,13 +515,13 @@ test('all art themes ignore legacy profile recolors and expose no editor', async
   await installThemeMocks(page, { themes:{ ...ELIGIBLE, entries } });
   await page.goto('/');
   for (const art of arts) {
-    await page.getByTestId('theme-picker-button').click();
+    await openThemePicker(page);
     await expect(page.getByTestId(`theme-edit-${art.id}`)).toHaveCount(0);
     await page.getByTestId(`theme-option-${art.id}`).click();
     await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme', art.id);
     expect(await page.locator('html').evaluate(el => el.style.getPropertyValue('--cl-page'))).toBe(require('../public/theme-engine').toRgbSpaced(require('../public/theme-engine').parseHex(art.colors.bg)));
   }
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await expect(page.getByRole('button', { name:'Edit Crimson',exact:true })).toBeVisible();
 });
 
@@ -529,7 +537,7 @@ test('Sovereign verifies holders, animates real views and revokes failed ownersh
     return route.fulfill({json:{jsonrpc:'2.0',id:call.id,result:call.method === 'eth_chainId' ? '0x1237' : call.method === 'eth_blockNumber' ? '0xabc' : '0x'+balance.toString(16).padStart(64,'0')}});
   });
   await page.goto('/');
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   const choice=page.getByTestId('theme-option-sovereign');
   await expect(choice).toBeDisabled();
   balance=1;
@@ -572,7 +580,7 @@ test('Sovereign verifies holders, animates real views and revokes failed ownersh
   await expect(page.locator('.dex-swap')).toBeVisible();
   await page.screenshot({path:'.local-artifacts/sovereign/swap.png'});
   balance=0;
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await page.getByRole('button',{name:'Recheck ownership',exact:true}).click();
   await expect(choice).toBeDisabled();
   await expect(page.locator('.sv-scene')).toHaveCount(0);
@@ -587,7 +595,7 @@ test('Sovereign verifies holders, animates real views and revokes failed ownersh
   await page.unroute('**/api/profile');
   await page.route('**/api/profile',route => route.fulfill({json:{...ME,cl_wallets:ME.cl_wallets.map(w=>({...w,watch_only:true}))}}));
   await page.reload();
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await expect(choice).toBeDisabled();
   await expect(page.locator('.sv-scene')).toHaveCount(0);
 });
@@ -598,11 +606,11 @@ test('Ape holder picker chooses verified portraits and preserves only an owner p
   await installThemeMocks(page,{themes:ELIGIBLE});
   await page.unroute('https://ethereum-rpc.publicnode.com/');await page.unroute('https://eth.blockscout.com/api/v2/tokens/**');await page.unroute('**/ipfs/bafyfixture/**');
   const control=await installApeFixture(page,{balance:2,ids:['6637','6638']});
-  await page.goto('/');await page.getByTestId('theme-picker-button').click();
+  await page.goto('/');await openThemePicker(page);
   const tile=page.getByTestId('theme-option-ape-society');
   await expect(tile).toBeEnabled();await tile.click();
   await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','ape-society');
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   const selector=page.getByRole('combobox',{name:'Theme ape',exact:true});
   await expect(selector).toBeVisible();await selector.selectOption(`${control.owner}:6638`);
   await expect(tile).toContainText('Second Ape');
@@ -612,7 +620,7 @@ test('Ape holder picker chooses verified portraits and preserves only an owner p
   await page.screenshot({path:'.local-artifacts/ape-holder/chainlens-picker.png'});
   await page.reload();await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','ape-society',{timeout:30000});
   await expect.poll(()=>page.evaluate(()=>document.documentElement.style.getPropertyValue('--ape-portrait'))).toContain('/6638.jpg');
-  await page.getByTestId('theme-picker-button').click();control.balance=0;
+  await openThemePicker(page);control.balance=0;
   await page.getByRole('button',{name:'Refresh owned apes',exact:true}).click();
   await expect(tile).toBeDisabled();await expect(selector).toHaveCount(0);
   await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme','ape-society');
@@ -621,7 +629,7 @@ test('Ape holder picker chooses verified portraits and preserves only an owner p
   await expect(tile).toBeDisabled();
   control.fail=false;await page.getByRole('button',{name:'Refresh owned apes',exact:true}).click();await expect(tile).toBeEnabled();
   await page.unroute('**/api/profile');await page.route('**/api/profile',route=>route.fulfill({json:{...ME,cl_wallets:ME.cl_wallets.map(w=>({...w,watch_only:true}))}}));
-  await page.reload();await page.getByTestId('theme-picker-button').click();await expect(tile).toBeDisabled();
+  await page.reload();await openThemePicker(page);await expect(tile).toBeDisabled();
 });
 
 for(const theme of [{id:'mallard-order',name:'Mallard Order'},{id:'sealuminati',name:'Sealuminati'},{id:'r3tards',name:'r3tards'},{id:'emonad',name:'Emonad'}]){
@@ -636,10 +644,10 @@ for(const theme of [{id:'mallard-order',name:'Mallard Order'},{id:'sealuminati',
       return route.fulfill({json:{jsonrpc:'2.0',id:call.id,result}});
     });
     await page.route('**/api/theme-holder/mallard?*',route=>control.fail?route.fulfill({status:503,body:'Offline'}):route.fulfill({json:{address:new URL(route.request().url()).searchParams.get('address'),policy:'901ba6e9831b078e131a1cc403d6139af21bda255cea6c9f770f4834',quantity:control.quantity}}));
-    await page.goto('/');await page.getByTestId('theme-picker-button').click();
+    await page.goto('/');await openThemePicker(page);
     const tile=page.getByTestId(`theme-option-${theme.id}`);await expect(tile).toBeEnabled();await tile.click();
     await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme',theme.id);
-    await page.getByTestId('theme-picker-button').click();
+    await openThemePicker(page);
     const refresh=page.getByRole('button',{name:`Refresh ${theme.name} ownership`,exact:true});await expect(refresh).toHaveCSS('width','26px');
     await tile.scrollIntoViewIfNeeded();await page.screenshot({path:`.local-artifacts/collection-gates/${theme.id}-chainlens.png`});
     control.quantity='0';control.balance=theme.id==='emonad'?10000n*10n**18n-1n:0n;
@@ -649,25 +657,24 @@ for(const theme of [{id:'mallard-order',name:'Mallard Order'},{id:'sealuminati',
     control.fail=true;await refresh.click();await expect(tile).toBeDisabled();await expect(tile).toContainText('unavailable');
     control.fail=false;await refresh.click();await expect(tile).toBeEnabled();
     await page.unroute('**/api/profile');await page.route('**/api/profile',route=>route.fulfill({json:{...ME,cl_wallets:ME.cl_wallets.map(w=>({...w,watch_only:true}))}}));
-    await page.reload();await page.getByTestId('theme-picker-button').click();await expect(tile).toBeDisabled();
+    await page.reload();await openThemePicker(page);await expect(tile).toBeDisabled();
   });
 }
 
-test('Art Designs and Material Designs collapse independently without changing theme',async({page})=>{
+test('Art Designs and Material Designs start collapsed and open independently',async({page})=>{
   await installThemeMocks(page,{themes:ELIGIBLE});await page.goto('/');await page.getByTestId('theme-picker-button').click();
   const art=page.locator('details.cl-theme-design-section').filter({has:page.locator('summary',{hasText:'Art Designs'})});
   const materials=page.locator('details.cl-theme-design-section').filter({has:page.locator('summary',{hasText:'Material Designs'})});
-  await expect(art.locator('[data-testid^="theme-option-"]')).toHaveCount(7);
-  await expect(materials.locator('[data-testid^="theme-option-"]')).toHaveCount(6);
-  await expect(art.getByTestId('theme-option-liquid-glass')).toHaveCount(0);
+  await expect(art).not.toHaveAttribute('open');await expect(materials).not.toHaveAttribute('open');
+  expect(await page.getByTestId('theme-create').evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('details.cl-theme-design-section'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  await expect(art.getByTestId('theme-option-mallard-order')).toBeHidden();await expect(materials.getByTestId('theme-option-liquid-glass')).toBeHidden();
+  await expect(art.locator('[data-testid^="theme-option-"]')).toHaveCount(7);await expect(materials.locator('[data-testid^="theme-option-"]')).toHaveCount(6);
+  await art.locator('summary').click();await expect(art.getByTestId('theme-option-mallard-order')).toBeVisible();await expect(materials.getByTestId('theme-option-liquid-glass')).toBeHidden();
+  await materials.locator('summary').focus();await page.keyboard.press('Enter');await expect(materials.getByTestId('theme-option-liquid-glass')).toBeVisible();
   await art.locator('summary').click();await expect(art.getByTestId('theme-option-mallard-order')).toBeHidden();await expect(materials.getByTestId('theme-option-liquid-glass')).toBeVisible();
-  await materials.locator('summary').click();await expect(materials.getByTestId('theme-option-liquid-glass')).toBeHidden();
-  await art.locator('summary').focus();await page.keyboard.press('Enter');await expect(art.getByTestId('theme-option-mallard-order')).toBeVisible();
-  await materials.locator('summary').click();await materials.getByTestId('theme-option-royal-silk').click();
-  await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','royal-silk');
-  await page.getByTestId('theme-picker-button').click();await art.locator('summary').click();
-  await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','royal-silk');
-  await materials.locator('summary').scrollIntoViewIfNeeded();await page.screenshot({path:'.local-artifacts/design-sections/chainlens.png'});
+  await materials.getByTestId('theme-option-royal-silk').click();await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','royal-silk');
+  await page.getByTestId('theme-picker-button').click();await expect(art).not.toHaveAttribute('open');await expect(materials).not.toHaveAttribute('open');
+  await materials.locator('summary').scrollIntoViewIfNeeded();await page.screenshot({path:'.local-artifacts/design-sections/chainlens-default-collapsed.png'});
 });
 
 test('retired Sappy Seals selection migrates to the exact shipped Mint & Money palette',async({page})=>{
@@ -677,7 +684,7 @@ test('retired Sappy Seals selection migrates to the exact shipped Mint & Money p
   await expect(page.getByTestId('theme-picker-button')).toContainText('Mint & Money');
   await expect(shell(page)).toHaveCSS('background-color','rgb(12, 30, 25)');
   expect(await page.evaluate(()=>localStorage.getItem('cl_theme'))).toBe('mint-money');
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await expect(page.getByTestId('theme-option-sappy-seals')).toHaveCount(0);
   await expect(page.getByTestId('theme-option-mint-money')).toBeVisible();
   await page.getByTestId('theme-option-mint-money').click();await page.reload();
@@ -699,7 +706,7 @@ test('Sappy Seals sidebar art tracks, cycles all motions, changes artwork and en
     const result=call.method==='eth_chainId'?'0x1':call.method==='eth_blockNumber'?'0xabc':'0x'+(data.startsWith('0x01ffc9a7')?1n:control.balance).toString(16).padStart(64,'0');
     return route.fulfill({json:{jsonrpc:'2.0',id:call.id,result}});
   });
-  await page.goto('/');await page.getByTestId('theme-picker-button').click();
+  await page.goto('/');await openThemePicker(page);
   const tile=page.getByTestId('theme-option-sappy-seals-art');await expect(tile).toBeEnabled();await tile.click();
   await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','sappy-seals-art');
   const host=page.locator('.cl-sidebar > .sappy-seal-peek'),canvas=host.locator('canvas');
@@ -718,7 +725,7 @@ test('Sappy Seals sidebar art tracks, cycles all motions, changes artwork and en
   await page.screenshot({path:'.local-artifacts/sappy-seals/desktop.png'});
   await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Scanner',exact:true}).click();await expect(host).toHaveCount(1);
   await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Search',exact:true}).click();await expect(host).toHaveCount(1);
-  await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);
   await expect(page.getByTestId('theme-edit-sappy-seals-art')).toHaveCount(0);
   const toggle=page.getByRole('button',{name:'Use alternate seal artwork',exact:true}),refresh=page.getByRole('button',{name:'Refresh Sappy Seals ownership',exact:true});
   await expect(tile).toHaveCSS('border-image-source','none');
@@ -733,13 +740,26 @@ test('Sappy Seals sidebar art tracks, cycles all motions, changes artwork and en
   await page.getByTestId('donate-trigger').scrollIntoViewIfNeeded();await expect(page.getByTestId('donate-trigger')).toBeVisible();
   await page.screenshot({path:'.local-artifacts/sappy-seals/mobile-sidebar.png'});await page.locator('.cl-sidebar').getByRole('button',{name:'Close menu',exact:true}).click();
   await page.waitForTimeout(400);const hiddenAngle=await canvas.getAttribute('data-head-angle');await page.mouse.move(350,50);await page.waitForTimeout(250);expect(await canvas.getAttribute('data-head-angle')).toBe(hiddenAngle);
-  await page.getByTestId('theme-picker-button').click();await toggle.click();await expect(host).toHaveAttribute('data-artwork','original');
-  await page.getByTestId('theme-option-midnight').click();await expect(host).toHaveCount(0);await page.getByTestId('theme-picker-button').click();await tile.click();await expect(host).toHaveCount(1);await page.getByTestId('theme-picker-button').click();
+  await openThemePicker(page);await toggle.click();await expect(host).toHaveAttribute('data-artwork','original');
+  await page.getByTestId('theme-option-midnight').click();await expect(host).toHaveCount(0);await openThemePicker(page);await tile.click();await expect(host).toHaveCount(1);await openThemePicker(page);
   control.balance=0n;await refresh.click();await expect(tile).toBeDisabled();await expect(host).toHaveCount(0);
   control.balance=1n;await refresh.click();await expect(tile).toBeEnabled();await expect(host).toHaveCount(1);
   control.fail=true;await refresh.click();await expect(tile).toBeDisabled();await expect(tile).toContainText('unavailable');
   control.fail=false;await refresh.click();await expect(tile).toBeEnabled();
   await page.unroute('**/api/profile');await page.route('**/api/profile',route=>route.fulfill({json:{...ME,cl_wallets:ME.cl_wallets.map(w=>({...w,watch_only:true}))}}));
-  await page.reload();await page.getByTestId('theme-picker-button').click();await expect(tile).toBeDisabled();await expect(host).toHaveCount(0);
+  await page.reload();await openThemePicker(page);await expect(tile).toBeDisabled();await expect(host).toHaveCount(0);
   expect(errors).toEqual([]);
+});
+
+
+test('Docs separates art and materials into default-collapsed dropdowns',async({page})=>{
+  await installThemeMocks(page,{themes:ELIGIBLE});await page.goto('/docs');
+  await expect.poll(()=>page.locator('#themeMenu details.theme-design-section').count()).toBe(2);
+  await page.locator('#themePickerButton').click();
+  expect(await page.locator('#themeMenu .theme-create').evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('#themeMenu details'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  const sections=page.locator('#themeMenu details.theme-design-section');
+  for(const section of await sections.all())await expect(section).not.toHaveAttribute('open');
+  await expect(sections.first().locator('.theme-row')).toHaveCount(7);await expect(sections.last().locator('.theme-row')).toHaveCount(6);
+  await sections.first().locator('summary').click();await expect(sections.first().getByRole('menuitem',{name:/Sappy Seals/})).toBeDisabled();
+  await expect(sections.last().getByRole('menuitem',{name:'Liquid Glass'})).toBeHidden();
 });
