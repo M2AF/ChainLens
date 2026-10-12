@@ -56,11 +56,11 @@ test('the :root block holds stock Tailwind values', () => {
 
 // ── The shipped themes ───────────────────────────────────────────────────────
 
-test('the twenty-four shipped themes are present, unique, and well formed', () => {
-  assert.equal(themes.BUILTIN_THEMES.length, 24);
+test('the twenty-five shipped themes are present, unique, and well formed', () => {
+  assert.equal(themes.BUILTIN_THEMES.length, 25);
   const ids = themes.BUILTIN_THEMES.map(theme => theme.id);
   assert.equal(ids[ids.indexOf('r3tards') - 1], 'emonad');
-  assert.equal(new Set(ids).size, 24);
+  assert.equal(new Set(ids).size, 25);
   for (const theme of themes.BUILTIN_THEMES) {
     assert.ok(theme.name, `${theme.id} has no name`);
     for (const key of ['bg', 'accent', 'text']) {
@@ -135,10 +135,10 @@ test('blue and cyan hold each stop at its stock luminance', () => {
 });
 
 test('an achromatic accent gives a grey ramp rather than diverging', () => {
-  // Midnight's accent is #ffffff and Sappy Seals' is #000000. The bisection has
-  // to land on a grey at every stop, not run to an endpoint.
-  for (const id of ['midnight', 'sappy-seals']) {
-    const { vars } = themes.paletteFor(themes.builtinById(id).colors);
+  // White and black accents both need a neutral ramp after preset replacement.
+  for (const accent of ['#ffffff', '#000000']) {
+    const id = accent;
+    const { vars } = themes.paletteFor({bg:'#050505',accent,text:'#ffffff'});
     for (const stop of themes.STOPS) {
       const { r, g, b } = rgb(vars[`--cl-cyan-${stop}`]);
       assert.ok(Math.max(r, g, b) - Math.min(r, g, b) <= 1, `${id} cyan-${stop} is not grey`);
@@ -285,6 +285,7 @@ test('swatchOf reports background then accent, and survives junk', () => {
 
 
 test('art identity stays fixed and cannot leak into custom colours or base modes', () => {
+  const priorWindow=global.window;global.window={chainlensCollections:{allowed:()=>true}};
   const previous = global.document;
   const attributes = new Map(), styles = new Map();
   global.document = { documentElement: {
@@ -311,7 +312,15 @@ test('art identity stays fixed and cannot leak into custom colours or base modes
       assert.equal(styles.size, 1);
     }
   } finally {
+    if(priorWindow===undefined)delete global.window;else global.window=priorWindow;
     if (previous === undefined) delete global.document;
     else global.document = previous;
   }
+});
+
+test('Mint & Money replaces the retired Sappy Seals colour preset',()=>{
+  assert.equal(themes.builtinById('sappy-seals'),null);
+  assert.deepEqual(themes.builtinById('mint-money').colors,{bg:'#0c1e19',accent:'#30ffae',text:'#e8f4ff'});
+  assert.equal(themes.migrateThemeId('sappy-seals'),'mint-money');
+  assert.equal(themes.migrateThemeId('custom-keep'),'custom-keep');
 });

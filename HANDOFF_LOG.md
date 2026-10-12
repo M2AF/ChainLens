@@ -239,3 +239,76 @@
 ### 2026-10-11T20:31-03:00 · codex · handoff · 56dc1ef (main) dirty 5
 - Personal owned-Ape holder theme and compact controls complete and checked locally in ChainLens.
 - next: User reviews owned portrait selector; deployment remains user-controlled. Source core must be regenerated from wallet after future edits.
+
+### 2026-10-11T20:39-03:00 · codex · claim · b98d72d (main) dirty 1
+- task: Gate Mallard Sealuminati r3tards Emonad
+- lease until 2026-10-11T23:39-03:00
+
+### 2026-10-11T20:47-03:00 · codex · checkpoint · b98d72d (main) dirty 9
+- Four gates implemented with verified linked wallets, shared generated reader, per-theme refresh; fixed-policy Cardano endpoint. Running .collection-check.log/.collection-unit.log; browser verification next.
+
+### 2026-10-11T20:57-03:00 · codex · verify · b98d72d (main) dirty 9
+- verified: Syntax checks;201Node tests;18existing picker journeys plus4new collection holder boundary/revocation/error/watch-only journeys pass. Live Cardano exact-policy proof41units; livebrowser Monad CORS confirmed. Backend/frontend local, no deploy.
+
+### 2026-10-11T20:59-03:00 · codex · handoff · b98d72d (main) dirty 9
+- Four holder gates;201tests,18existing plus4new browser journeys pass; final Emonad visual rerun reviewed. Live Monad/CORS and Cardano reads verified. Backend endpoint and frontend local, not deployed.
+- next: Deploy backend/frontend together when authorized; new fixed-policy Cardano endpoint required by wallet. Canonical reader is sibling wallet src/shared/collection-theme-access.ts.
+
+### 2026-10-11T21:00-03:00 · codex · claim · b98d72d (main) dirty 9
+- task: Separate collapsible Art Designs and Material Designs
+- lease until 2026-10-12T00:00-03:00
+
+### 2026-10-11T21:03-03:00 · codex · verify · b98d72d (main) dirty 10
+- verified: Syntax check,201Node tests and new browser disclosure journey pass; six art/six materials, independent collapse, keyboard Enter, material selection preserved. No deploy.
+
+### 2026-10-11T21:06-03:00 · codex · handoff · b98d72d (main) dirty 10
+- Separate native Art Designs and Material Designs sections; independent collapse/keyboard toggling/material selection browser test and screenshot pass;201Node tests/syntax checks pass.
+- next: User reviews grouping; deployment remains pending/user-controlled.
+
+### 2026-10-11T21:17-03:00 · codex · claim · b98d72d (main) dirty 10
+- task: Share fixed Mallard policy reader and document live endpoint gap
+- lease until 2026-10-12T00:17-03:00
+
+### 2026-10-11T21:21-03:00 · codex · verify · b98d72d (main) dirty 10
+- verified: Shared generated Mallard reader: syntax checks and201Node tests pass; live exact-policy read41units. Website endpoint remains undeployed/HTML; wallet no longer depends on it.
+
+### 2026-10-11T21:24-03:00 · codex · handoff · b98d72d (main) dirty 10
+- Canonical Mallard reader shared/generated;201tests/syntax/Mallard browser gate journey pass; live policy41units. Website endpoint still HTML until deployed; wallet now reads direct native.
+- next: Deploy ChainLens backend/frontend together when authorized; regenerate mallard-policy-core.js from sibling wallet shared source after edits.
+
+### 2026-10-11T21:29-03:00 · codex · claim · b98d72d (main) dirty 10
+- task: Share Mallard stake-account coverage fix
+- lease until 2026-10-12T00:29-03:00
+
+### 2026-10-11T21:33-03:00 · codex · verify · b98d72d (main) dirty 10
+- verified: Canonical/generate stake-aware Mallard reader;201Node tests/syntax pass; actual supplied user address quantity1 under exact policy. Live endpoint deployment still pending.
+
+### 2026-10-11T21:37-03:00 · codex · handoff · b98d72d (main) dirty 10
+- Generated stake-aware Mallard reader fixed;201Node tests/syntax/Mallard holder browser journey pass; actual user-address production proof1. Website deployment still pending.
+- next: Deploy backend/frontend together when authorized; regen mallard-policy-core.js after canonical wallet reader edits.
+
+### 2026-10-12T00:52-03:00 · codex · claim · b98d72d (main) dirty 10
+- task: Replace Sappy Seals colour preset with profile Mint and Money
+- lease until 2026-10-12T03:52-03:00
+
+### 2026-10-12T00:59-03:00 · codex · verify · b98d72d (main) dirty 10
+- verified: Syntax checks;202Node tests;3browser cases pass (new default/old-ID migration/reload/count plus existing colour recolour/revert). Exact profile palette from readonly Supabase. No deploy or DB writes.
+
+### 2026-10-12T01:05-03:00 · codex · handoff · b98d72d (main) dirty 10
+- Mint preset exact profile palette; Sappy default removed; main/docs saved selections migrate. Syntax/202tests/3browser cases and screenshot pass. No deployment or DB writes.
+- next: Deploy updated frontend only when authorized; update future Sappy art ID distinctly.
+
+### 2026-10-12T01:59-03:00 · codex · claim · b98d72d (main) dirty 10
+- task: Port holder-gated Sappy Seals animated art to ChainLens
+- lease until 2026-10-12T04:59-03:00
+
+### 2026-10-12T02:03-03:00 · codex · checkpoint · b98d72d (main) dirty 10
+- Sappy art registered25th theme with canonical Ethereum gate regenerated. Canonical wallet Live2D component compiled into website globals with local asset URLs; sidebar footer placement, correct/alternate textures and26px picker toggle beside refresh. Static docs rejects gated selection. Starting syntax/unit/browser QA.
+- next: Verify real sidebar WebGL/motions/ownership revocation and desktop/mobile screenshots.
+
+### 2026-10-12T02:15-03:00 · codex · verify · b98d72d (main) dirty 10
+- verified: Syntax/202Node tests/six JSX precompiles;four browser journeys and final Sappy rerun pass. Actual WebGL head motion/all13 click groups, bottom sidebar desktop/mobile, original/alternate reload, closed-drawer/reduced pause, no recolour, white18px tile/26px toggle, zero/error/watch-only and theme-switch teardown verified. Source texture hash matches; screenshots reviewed. No deploy/native install.
+
+### 2026-10-12T02:15-03:00 · codex · handoff · b98d72d (main) dirty 10
+- Sappy Seals art complete locally in bottom-left sidebar with canonical holder gate, pointer/touch/all13 motions and26px alternate toggle. Final syntax/202tests/six JSX/4journeys/finalSappy pass; screenshots reviewed. Wallet source unchanged. docs/SAPPY-SEALS-THEME.md; generator in scripts. No deployment.
+- next: Deploy frontend assets and generated collection reader only when authorized; verify production linked-wallet gate/WebGL afterwards.

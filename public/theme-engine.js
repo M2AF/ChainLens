@@ -383,17 +383,18 @@
     { id: 'monad',       name: 'Monad',        colors: { bg: '#140529', accent: '#6e54ff', text: '#85e6ff' } },
     { id: 'abstract',    name: 'Abstract',     colors: { bg: '#ffffff', accent: '#52f293', text: '#000000' } },
     { id: 'bitcoin',     name: 'Bitcoin',      colors: { bg: '#000000', accent: '#f2a900', text: '#ababab' } },
-    { id: 'sappy-seals', name: 'Sappy Seals',  colors: { bg: '#ffffff', accent: '#000000', text: '#000000' } },
+    { id: 'mint-money', name: 'Mint & Money', colors: { bg: '#0c1e19', accent: '#30ffae', text: '#e8f4ff' } },
     { id: 'sovereign', name: 'Sovereign', art: true, fixedPalette: true, artDescription: 'Kinetic crystal · REDACTED holders', colors: { bg: '#080c13', accent: '#dfc594', text: '#f5f1e8' } },
     { id: 'ape-society', name: 'The Ape Society', art: true, fixedPalette: true, artDescription: 'Painted emerald · Antique gilt frames', colors: { bg: '#071d16', accent: '#d3b36a', text: '#f3ecda' } },
     { id: 'mallard-order', name: 'Mallard Order', art: true, fixedPalette: true, artDescription: 'Carved runes · Stone & gold', colors: { bg: '#10100e', accent: '#c6a75e', text: '#eee8d5' } },
     { id: 'sealuminati', name: 'Sealuminati', art: true, fixedPalette: true, artDescription: 'Pixel robes · Violet fire & gold', colors: { bg: '#120b24', accent: '#ffd34d', text: '#f4e9f6' } },
-    { id: 'liquid-glass', name: 'Liquid Glass', art: true, fixedPalette: true, artDescription: 'Clear lenses · Fixed atmospheric palette', colors: { bg: '#102039', accent: '#cae8ff', text: '#f6f9ff' } },
-    { id: 'brushed-metal', name: 'Brushed Metal', art: true, fixedPalette: true, artDescription: 'Satin titanium · Fine brushed grain', colors: { bg: '#18252e', accent: '#b9d9ee', text: '#f2f7fa' } },
-    { id: 'leather', name: 'Leather', art: true, fixedPalette: true, artDescription: 'Espresso leather · Stitched edges', colors: { bg: '#28190f', accent: '#d6b67b', text: '#fff3df' } },
-    { id: 'velvet', name: 'Velvet', art: true, fixedPalette: true, artDescription: 'Aubergine pile · Antique gold', colors: { bg: '#210c28', accent: '#d5b97e', text: '#fff2fa' } },
-    { id: 'walnut', name: 'Walnut', art: true, fixedPalette: true, artDescription: 'Oiled walnut · Inset brass trim', colors: { bg: '#2c1b10', accent: '#d5b27b', text: '#fff1de' } },
-    { id: 'royal-silk', name: 'Royal Blue Silk', art: true, fixedPalette: true, artDescription: 'Royal blue silk · Soft directional sheen', colors: { bg: '#0c2058', accent: '#c5ddff', text: '#f4f8ff' } },
+    { id: 'liquid-glass', name: 'Liquid Glass', art: true, material: true, fixedPalette: true, artDescription: 'Clear lenses · Fixed atmospheric palette', colors: { bg: '#102039', accent: '#cae8ff', text: '#f6f9ff' } },
+    { id: 'brushed-metal', name: 'Brushed Metal', art: true, material: true, fixedPalette: true, artDescription: 'Satin titanium · Fine brushed grain', colors: { bg: '#18252e', accent: '#b9d9ee', text: '#f2f7fa' } },
+    { id: 'leather', name: 'Leather', art: true, material: true, fixedPalette: true, artDescription: 'Espresso leather · Stitched edges', colors: { bg: '#28190f', accent: '#d6b67b', text: '#fff3df' } },
+    { id: 'velvet', name: 'Velvet', art: true, material: true, fixedPalette: true, artDescription: 'Aubergine pile · Antique gold', colors: { bg: '#210c28', accent: '#d5b97e', text: '#fff2fa' } },
+    { id: 'walnut', name: 'Walnut', art: true, material: true, fixedPalette: true, artDescription: 'Oiled walnut · Inset brass trim', colors: { bg: '#2c1b10', accent: '#d5b27b', text: '#fff1de' } },
+    { id: 'royal-silk', name: 'Royal Blue Silk', art: true, material: true, fixedPalette: true, artDescription: 'Royal blue silk · Soft directional sheen', colors: { bg: '#0c2058', accent: '#c5ddff', text: '#f4f8ff' } },
+    { id: 'sappy-seals-art', name: 'Sappy Seals', art: true, fixedPalette: true, artDescription: 'Live seal · Flat black & white', colors: { bg: '#000000', accent: '#ffffff', text: '#ffffff' } },
     { id: 'emonad', name: 'Emonad', art: true, fixedPalette: true, artDescription: 'Tarot vines · Black roses & silver moons', colors: { bg: '#171020', accent: '#c8c6b8', text: '#f0eddf' } },
     { id: 'r3tards', name: 'r3tards', art: true, fixedPalette: true, artDescription: 'Doodle collage · Purple & pill buttons', colors: { bg: '#493259', accent: '#ffffff', text: '#ffffff' } }
   ];
@@ -486,6 +487,7 @@
    * colour belongs.
    */
   function applyTheme(colors, artId) {
+    if (['mallard-order','sealuminati','r3tards','emonad','sappy-seals-art'].includes(artId) && !(typeof window !== 'undefined' && window.chainlensCollections?.allowed(artId))) { applyMode('dark'); return 'dark'; }
     if (artId === 'ape-society' && !(typeof window !== 'undefined' && window.chainlensApe?.allowed())) { applyMode('dark'); return 'dark'; }
     if (artId === 'sovereign' && !(typeof window !== 'undefined' && window.chainlensSovereign?.allowed())) { applyMode('dark'); return 'dark'; }
     if (BUILTIN_BY_ID[artId] && BUILTIN_BY_ID[artId].fixedPalette) colors = BUILTIN_BY_ID[artId].colors;
@@ -526,6 +528,7 @@
     STOPS: STOPS,
     BUILTIN_THEMES: BUILTIN_THEMES,
     MAX_SYNCED_THEMES: MAX_SYNCED_THEMES,
+    migrateThemeId: function (id) { return id === 'sappy-seals' ? 'mint-money' : id; },
     builtinById: function (id) { return BUILTIN_BY_ID[id] || null; },
     parseHex: parseHex,
     toHex: toHex,

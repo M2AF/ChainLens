@@ -490,6 +490,8 @@ const searchRateLimitCleanup = setInterval(() => {
 }, 5 * 60 * 1000);
 searchRateLimitCleanup.unref();
 
+require('./theme-holder-cardano').mountMallardHolder(app, searchRateLimit);
+
 const API_KEYS = {
   alchemy: process.env.ALCHEMY_KEY,
   blockfrost: process.env.BLOCKFROST_KEY,

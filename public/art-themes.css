@@ -105,3 +105,9 @@ html:is([data-cl-art-theme='mallard-order'], [data-cl-art-theme='sealuminati'], 
   html:is([data-cl-art-theme='mallard-order'], [data-cl-art-theme='sealuminati'], [data-cl-art-theme='r3tards'], [data-cl-art-theme='emonad'], [data-cl-art-theme='ape-society']) .cl-nav-item { padding-left: 18px; padding-right: 12px; font-size: 11px; }
   html:is([data-cl-art-theme='mallard-order'], [data-cl-art-theme='sealuminati'], [data-cl-art-theme='r3tards'], [data-cl-art-theme='emonad'], [data-cl-art-theme='ape-society']) .dex-swap :is(.panel, .swap-asset-card) { padding: var(--cl-art-inset); }
 }
+
+.cl-theme-design-section > summary { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:36px; padding:8px 12px; color:inherit; opacity:.75; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; list-style:none; }
+.cl-theme-design-section > summary::-webkit-details-marker { display:none; }
+.cl-theme-design-section > summary:focus-visible { outline:2px solid var(--cl-accent,#00aaff); outline-offset:-2px; border-radius:8px; }
+.cl-theme-design-section > summary span { font-size:16px; line-height:1; }
+.cl-theme-design-section[open] > summary span { transform:rotate(180deg); }

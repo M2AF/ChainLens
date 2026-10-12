@@ -46,6 +46,9 @@
   <script src="/sovereign.js"></script>
   <script src="/ape-theme-core.js"></script>
   <script src="/ape-holder.js"></script>
+  <script src="/collection-theme-core.js"></script>
+  <script src="/collection-holder.js"></script>
+  <script src="/themes/sappy-seals/seal.js"></script>
   <link rel="stylesheet" href="/themes/sovereign/theme.css">
   <link rel="stylesheet" href="/art-themes.css">
   <link rel="stylesheet" href="/themes/emonad/theme.css">
@@ -53,6 +56,7 @@
   <link rel="stylesheet" href="/themes/r3tards/theme.css">
   <link rel="stylesheet" href="/themes/liquid-glass/theme.css">
   <link rel="stylesheet" href="/themes/materials/theme.css">
+  <link rel="stylesheet" href="/themes/sappy-seals/theme.css">
   <script src="/app-hub-data.js"></script>
 
   <script>
@@ -1202,7 +1206,10 @@
       try {
         // No cl_theme means an install from before themes existed: its darkMode
         // flag is the choice that has to be honoured, not reset to Light.
-        return localStorage.getItem(THEME_KEY)
+        const saved = localStorage.getItem(THEME_KEY);
+        const migrated = window.chainlensThemes.migrateThemeId(saved);
+        if (saved !== migrated) localStorage.setItem(THEME_KEY, migrated);
+        return migrated
           || (localStorage.getItem('darkMode') === 'true' ? 'dark' : 'light');
       } catch { return 'light'; }
     };
@@ -1231,7 +1238,7 @@
      * markup. With one, it opens the twelve themes MagicMoney ships plus
      * whatever the wallet has synced to the account.
      */
-    const ThemePicker = ({ activeTheme, darkMode, eligible, builtins, customs, onSelect, onEdit, sovereign, apeState }) => {
+    const ThemePicker = ({ activeTheme, darkMode, eligible, builtins, customs, onSelect, onEdit, sovereign, apeState, collectionVersion }) => {
       const [open, setOpen] = useState(false);
       const boxRef = useRef(null);
       const materials = window.chainlensTextures;
@@ -1283,16 +1290,17 @@
         const selected = theme.id === activeTheme.id;
         return (
           <div key={theme.id} className="cl-theme-entry flex flex-wrap items-center">
-          <button disabled={theme.id === 'sovereign' && !window.chainlensSovereign.allowed() || theme.id === 'ape-society' && !window.chainlensApe.allowed()} onClick={() => { onSelect(theme.id); setOpen(false); }}
+          <button disabled={!window.chainlensCollections.allowed(theme.id) || theme.id === 'sovereign' && !window.chainlensSovereign.allowed() || theme.id === 'ape-society' && !window.chainlensApe.allowed()} onClick={() => { onSelect(theme.id); setOpen(false); }}
                   data-testid={`theme-option-${theme.id}`} aria-current={selected ? 'true' : undefined}
                   className={`${theme.art ? `cl-art-choice cl-art-choice-${theme.id}` : ''} flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors ${selected
                     ? (darkMode ? 'bg-slate-800' : 'bg-slate-100')
                     : (darkMode ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50')}`}>
             {theme.art ? <span className="cl-art-choice-mark" aria-hidden="true">◇</span> : <ThemeSwatch colors={theme.colors} />}
-            <span className="flex-1 min-w-0 text-[11px] font-bold">{theme.name}{theme.art && <span className="cl-art-choice-description">{theme.id === 'ape-society' ? apeState.status === 'error' ? 'Ownership or artwork unavailable · Retry' : window.chainlensApe.allowed() ? `${apeState.selected?.name} · #${apeState.selected?.id}` : 'Ape Society holders · Ethereum' : theme.id === 'sovereign' ? sovereign.status === 'error' ? 'Ownership check unavailable · Retry' : 'REDACTED holders · Robinhood' : theme.artDescription}{theme.id === 'ape-society' ? (window.chainlensApe.allowed() ? ' · Unlocked' : ' · Locked') : ''}{theme.id === 'sovereign' ? (window.chainlensSovereign.allowed() ? ' · Unlocked' : ' · Locked') : ''}{theme.edited ? ' · Recoloured' : ''}</span>}</span>
+            <span className="flex-1 min-w-0 text-[11px] font-bold">{theme.name}{theme.art && <span className="cl-art-choice-description">{window.chainlensCollections.isGated(theme.id) ? window.chainlensCollections.get(theme.id).status === 'error' ? 'Ownership unavailable · Retry' : window.chainlensCollections.gates[theme.id].requirement + (window.chainlensCollections.allowed(theme.id) ? ' · Unlocked' : window.chainlensCollections.get(theme.id).checking ? ' · Checking' : ' · Locked') : theme.id === 'ape-society' ? apeState.status === 'error' ? 'Ownership or artwork unavailable · Retry' : window.chainlensApe.allowed() ? `${apeState.selected?.name} · #${apeState.selected?.id}` : 'Ape Society holders · Ethereum' : theme.id === 'sovereign' ? sovereign.status === 'error' ? 'Ownership check unavailable · Retry' : 'REDACTED holders · Robinhood' : theme.artDescription}{theme.id === 'ape-society' ? (window.chainlensApe.allowed() ? ' · Unlocked' : ' · Locked') : ''}{theme.id === 'sovereign' ? (window.chainlensSovereign.allowed() ? ' · Unlocked' : ' · Locked') : ''}{theme.edited ? ' · Recoloured' : ''}</span>}</span>
             {selected && <span className="text-cyan-400 text-xs leading-none">✓</span>}
           </button>
-          {(theme.id === 'sovereign' || theme.id === 'ape-society') && <button className="cl-holder-refresh" type="button" aria-label={theme.id === 'sovereign' ? 'Recheck ownership' : 'Refresh owned apes'} title={theme.id === 'sovereign' ? 'Recheck ownership' : 'Refresh owned apes'} disabled={theme.id === 'sovereign' ? sovereign.status === 'checking' : apeState.status === 'checking'} onClick={() => theme.id === 'sovereign' ? window.chainlensSovereign.refresh() : window.chainlensApe.refresh()}>↻</button>}
+          {(window.chainlensCollections.isGated(theme.id) || theme.id === 'sovereign' || theme.id === 'ape-society') && <button className="cl-holder-refresh" type="button" aria-label={window.chainlensCollections.isGated(theme.id) ? `Refresh ${theme.name} ownership` : theme.id === 'sovereign' ? 'Recheck ownership' : 'Refresh owned apes'} title={window.chainlensCollections.isGated(theme.id) ? `Refresh ${theme.name} ownership` : theme.id === 'sovereign' ? 'Recheck ownership' : 'Refresh owned apes'} disabled={window.chainlensCollections.isGated(theme.id) ? window.chainlensCollections.get(theme.id).checking : theme.id === 'sovereign' ? sovereign.status === 'checking' : apeState.status === 'checking'} onClick={() => window.chainlensCollections.isGated(theme.id) ? window.chainlensCollections.refresh(theme.id) : theme.id === 'sovereign' ? window.chainlensSovereign.refresh() : window.chainlensApe.refresh()}>↻</button>}
+          {theme.id==='sappy-seals-art' && selected && window.chainlensCollections.allowed(theme.id) && <ChainLensSappy.SappySealAppearance/>}
           {theme.id === 'ape-society' && selected && window.chainlensApe.allowed() && <label className="cl-ape-select">Theme ape<select aria-label="Theme ape" value={`${apeState.selected.owner}:${apeState.selected.id}`} onChange={event => {const [owner,id]=event.target.value.split(':');window.chainlensApe.select(owner,id)}}>{apeState.apes.map(ape => <option key={`${ape.owner}:${ape.id}`} value={`${ape.owner}:${ape.id}`}>{ape.name} · #{ape.id}</option>)}</select></label>}
           {!isBaseMode(theme.id) && !theme.fixedPalette && <button type="button" aria-label={`Edit ${theme.name}`} data-testid={`theme-edit-${theme.id}`}
             onClick={() => { onEdit(theme); setOpen(false); }}
@@ -1339,8 +1347,12 @@
               {BASE_MODES.map(row)}
               {heading('MagicMoney')}
               {builtins.filter(theme => !theme.art).map(row)}
-              {heading('Art & material themes')}
-              {builtins.filter(theme => theme.art).map(row)}
+              {[{name:'Art Designs',material:false},{name:'Material Designs',material:true}].map(group => (
+                <details key={group.name} className="cl-theme-design-section" open>
+                  <summary>{group.name}<span aria-hidden="true">⌄</span></summary>
+                  {builtins.filter(theme => theme.art && !!theme.material === group.material).map(row)}
+                </details>
+              ))}
               {heading('Your themes')}
               {customs.length > 0 ? customs.map(row) : (
                 <p className={`px-3 pb-3 pt-1 text-[10px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -1841,6 +1853,8 @@
       // likely to go looking for it.
       }, [authToken, userProfile]);
 
+      const [collectionVersion,setCollectionVersion]=useState(0);
+      useEffect(()=>{const update=()=>setCollectionVersion(v=>v+1);window.addEventListener('cl-collection-change',update);return()=>window.removeEventListener('cl-collection-change',update)},[]);
       const [apeState,setApeState]=useState(()=>window.chainlensApe.get());
       useEffect(()=>{const update=()=>setApeState({...window.chainlensApe.get()});window.addEventListener('cl-ape-change',update);return()=>window.removeEventListener('cl-ape-change',update)},[]);
       const [sovereign, setSovereign] = useState(() => window.chainlensSovereign.get());
@@ -1851,14 +1865,14 @@
       }, []);
       useEffect(() => {
         let cancelled = false;
-        window.chainlensSovereign.bind([]); window.chainlensApe.bind([]);
+        window.chainlensSovereign.bind([]); window.chainlensApe.bind([]); window.chainlensCollections.bind([]);
         if (authToken && themeAccess.eligible) {
           fetch('/api/profile', { headers: { Authorization: `Bearer ${authToken}` }, cache: 'no-store' })
             .then(response => response.ok ? response.json() : null)
-            .then(profile => { if (!cancelled) {window.chainlensSovereign.bind(profile?.cl_wallets || []);window.chainlensApe.bind(profile?.cl_wallets || [])} })
-            .catch(() => { if (!cancelled) {window.chainlensSovereign.bind([]); window.chainlensApe.bind([])} });
+            .then(profile => { if (!cancelled) {window.chainlensSovereign.bind(profile?.cl_wallets || []);window.chainlensApe.bind(profile?.cl_wallets || []);window.chainlensCollections.bind(profile?.cl_wallets || [])} })
+            .catch(() => { if (!cancelled) {window.chainlensSovereign.bind([]); window.chainlensApe.bind([]);window.chainlensCollections.bind([])} });
         }
-        return () => { cancelled = true; window.chainlensSovereign.bind([]); window.chainlensApe.bind([]); };
+        return () => { cancelled = true; window.chainlensSovereign.bind([]); window.chainlensApe.bind([]); window.chainlensCollections.bind([]); };
       }, [authToken, userProfile, themeAccess.eligible]);
 
       const customThemes = useMemo(() => {
@@ -1929,15 +1943,15 @@
       // The stored id is deliberately left alone: it comes back on sign-in.
       const activeTheme = useMemo(() => {
         if (isBaseMode(themeId)) return BASE_MODES[themeId === 'dark' ? 1 : 0];
-        const theme = themeAccess.eligible && (themeId !== 'sovereign' || window.chainlensSovereign.allowed()) && (themeId !== 'ape-society' || window.chainlensApe.allowed()) ? themeById(themeId) : null;
+        const theme = themeAccess.eligible && window.chainlensCollections.allowed(themeId) && (themeId !== 'sovereign' || window.chainlensSovereign.allowed()) && (themeId !== 'ape-society' || window.chainlensApe.allowed()) ? themeById(themeId) : null;
         // Only a theme that cannot be resolved has to guess, and darkMode is
         // what the page is actually painted in.
         return theme || BASE_MODES[darkMode ? 1 : 0];
-      }, [themeId, themeAccess.eligible, themeById, darkMode, sovereign, apeState]);
+      }, [themeId, themeAccess.eligible, themeById, darkMode, sovereign, apeState, collectionVersion]);
 
       useEffect(() => {
         const engine = window.chainlensThemes;
-        const theme = themeAccess.eligible && (themeId !== 'sovereign' || window.chainlensSovereign.allowed()) && (themeId !== 'ape-society' || window.chainlensApe.allowed()) ? themeById(themeId) : null;
+        const theme = themeAccess.eligible && window.chainlensCollections.allowed(themeId) && (themeId !== 'sovereign' || window.chainlensSovereign.allowed()) && (themeId !== 'ape-society' || window.chainlensApe.allowed()) ? themeById(themeId) : null;
         let tone;
         if (!engine) {
           // The engine failed to load. Light and Dark still render correctly:
@@ -1959,7 +1973,7 @@
           // — and so a build without themes still opens in the right mode.
           localStorage.setItem('darkMode', String(tone === 'dark'));
         } catch {}
-      }, [themeId, themeAccess.eligible, themeById, sovereign, apeState]);
+      }, [themeId, themeAccess.eligible, themeById, sovereign, apeState, collectionVersion]);
 
       // Merge the profile's list in on sign-in, then seed the profile with
       // anything hidden while signed out. Merged, never assigned: a decision made
@@ -3524,6 +3538,7 @@
                   className={`cl-nav-item ${activeTab === item ? 'active' : ''}`}><NavIcon name={item}/><span>{label}</span></button>
               ))}
             </nav>
+            <ChainLensSappy.SappySeal/>
           </aside>
           <div className="cl-main min-h-screen">
           <MarketTicker darkMode={darkMode} />
@@ -3551,6 +3566,7 @@
               onSelect={setThemeId}
               sovereign={sovereign}
               apeState={apeState}
+              collectionVersion={collectionVersion}
               onEdit={theme => { setThemeSaveError(''); setThemeEditor(theme || { kind: 'new' }); }}
             />
             {themeEditor && <ThemeEditor key={themeEditor.id || 'new'} theme={themeEditor.kind === 'new' ? null : themeEditor}

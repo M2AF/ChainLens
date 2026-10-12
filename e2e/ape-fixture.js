@@ -1,5 +1,11 @@
 const fs=require('node:fs'),path=require('node:path');
 exports.installApeFixture=async function(page,options={balance:1,ids:['6637']}){
+  await page.route('https://rpc.monad.xyz/',route=>{
+    const call=route.request().postDataJSON(),data=call.params[0]?.data || '';
+    const result=call.method==='eth_chainId'?'0x8f':call.method==='eth_blockNumber'?'0xabc':'0x'+(data.startsWith('0x313ce567')?18n:data.startsWith('0x01ffc9a7')?1n:10_000n*10n**18n).toString(16).padStart(64,'0');
+    return route.fulfill({json:{jsonrpc:'2.0',id:call.id,result}});
+  });
+  await page.route('**/api/theme-holder/mallard?*',route=>route.fulfill({json:{address:new URL(route.request().url()).searchParams.get('address'),policy:'901ba6e9831b078e131a1cc403d6139af21bda255cea6c9f770f4834',quantity:'1'}}));
   const control={...options,fail:false,owner:'0x01faf6dfc230d755141d84d7cb980dd68f5efe13'};
   const word=n=>'0x'+n.toString(16).padStart(64,'0');
   await page.route('https://ethereum-rpc.publicnode.com/',route=>{

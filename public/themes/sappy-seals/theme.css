@@ -1,0 +1,30 @@
+/* Immutable flat black/white skin; collection access controls material identity. */
+html[data-cl-art-theme='sappy-seals-art'] :is(body,.cl-art-app,.cl-sidebar) {background:#000!important;background-image:none!important;box-shadow:none!important;backdrop-filter:none!important;}
+html[data-cl-art-theme='sappy-seals-art'] :is(.cl-art-panel,.glass-card,.dex-swap .panel,.dex-swap .swap-asset-card,.cl-search-hero,.cl-search-page > .space-y-7 > section) {background:#050505!important;background-image:none!important;border:1px solid #333;border-image:none;border-radius:20px;box-shadow:none;backdrop-filter:none;}
+html[data-cl-art-theme='sappy-seals-art'] .cl-search-hero {border-style:dashed;}
+html[data-cl-art-theme='sappy-seals-art'] .cl-search-hero > [aria-hidden='true'] {display:none;}
+html[data-cl-art-theme='sappy-seals-art'] :is(.cl-search-field,.app-hub-card,.profile-tile,.profile-tabs,.profile-gallery-tools,.cl-ticker,[data-testid='theme-menu'],.dex-swap input,.dex-swap select) {background:#080808!important;background-image:none!important;border-color:#333;border-radius:14px;box-shadow:none;backdrop-filter:none;}
+html[data-cl-art-theme='sappy-seals-art'] :is(.cl-search-form button[type='submit'],.profile-scan-action,.dex-swap button.primary,.cl-art-action) {background:#fff!important;color:#000!important;border:1px solid #fff;border-radius:10px;box-shadow:none;}
+html[data-cl-art-theme='sappy-seals-art'] .cl-nav-item.active {background:#181818;color:#fff;box-shadow:inset 3px 0 #fff;}
+html[data-cl-art-theme='sappy-seals-art'] .cl-sidebar {border-color:#333;}
+html[data-cl-art-theme='sappy-seals-art'] .cl-sidebar nav {min-height:0;}
+html[data-cl-art-theme='sappy-seals-art'] .cl-sidebar img {image-rendering:auto;filter:none;}
+html[data-cl-art-theme='sappy-seals-art'] [data-testid='magic-swap-logo'] img {image-rendering:auto;filter:grayscale(1) brightness(1.7);}
+html[data-cl-art-theme='sappy-seals-art'] :is(button,input,select,a):focus-visible {outline:2px solid #fff;outline-offset:3px;}
+.cl-art-choice-sappy-seals-art {color:#fff!important;background:#000!important;border:1px dashed #777!important;border-image:none!important;border-radius:18px!important;box-shadow:none;}
+.cl-art-choice-sappy-seals-art .cl-art-choice-mark {font-size:0;width:36px;height:36px;flex-shrink:0;background:url('/themes/sappy-seals/seal-head.786c8b01.png') center/contain no-repeat;}
+.cl-art-choice-sappy-seals-art .cl-art-choice-description {color:#ccc;}
+.cl-art-choice-sappy-seals-art[aria-current='true'] {outline:1px solid #fff;outline-offset:-4px;}
+.cl-theme-entry:has(.cl-art-choice-sappy-seals-art) .cl-holder-refresh {color:#fff;border-color:#777;background:#090909;}
+.cl-theme-entry:has(.sappy-seal-appearance) .cl-art-choice {padding-right:80px!important;}
+.sappy-seal-appearance {position:absolute;right:48px;top:10px;width:26px;height:26px;display:grid;place-items:center;padding:0;color:#fff;background:#090909;border:1px solid #777;border-radius:5px;cursor:pointer;}
+.sappy-seal-appearance[aria-pressed='true'] {background:#292929;box-shadow:inset 0 0 0 1px #fff;}
+.cl-sidebar > .sappy-seal-peek {height:90px;position:relative;overflow:hidden;pointer-events:none;flex-shrink:0;border-bottom:1px solid #555;}
+.sappy-seal-canvas {position:absolute;left:50%;bottom:-12px;transform:translateX(-50%);width:220px;height:160px;max-width:100%;opacity:0;}
+.sappy-seal-fallback {position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);width:100px;height:90px;object-fit:contain;}
+.sappy-seal-peek[data-ready='true'] .sappy-seal-canvas {opacity:1;}
+.sappy-seal-peek[data-ready='true'] .sappy-seal-fallback {visibility:hidden;}
+
+:root[data-cl-art-theme='sappy-seals-art'] {--cl-art-frame:none;--cl-art-texture:none;--cl-art-gold:#fff;}
+
+:root[data-cl-art-theme='sappy-seals-art'] {--cl-slate-50:245 245 245!important;--cl-slate-100:238 238 238!important;--cl-slate-200:220 220 220!important;--cl-slate-300:200 200 200!important;--cl-slate-400:160 160 160!important;--cl-slate-500:115 115 115!important;--cl-slate-600:82 82 82!important;--cl-slate-700:55 55 55!important;--cl-slate-800:35 35 35!important;--cl-slate-900:12 12 12!important;--cl-slate-950:0 0 0!important;--cl-blue-50:245 245 245!important;--cl-blue-100:238 238 238!important;--cl-blue-200:220 220 220!important;--cl-blue-300:200 200 200!important;--cl-blue-400:160 160 160!important;--cl-blue-500:115 115 115!important;--cl-blue-600:82 82 82!important;--cl-blue-700:55 55 55!important;--cl-blue-800:35 35 35!important;--cl-blue-900:12 12 12!important;--cl-blue-950:0 0 0!important;--cl-cyan-50:245 245 245!important;--cl-cyan-100:238 238 238!important;--cl-cyan-200:220 220 220!important;--cl-cyan-300:200 200 200!important;--cl-cyan-400:160 160 160!important;--cl-cyan-500:115 115 115!important;--cl-cyan-600:82 82 82!important;--cl-cyan-700:55 55 55!important;--cl-cyan-800:35 35 35!important;--cl-cyan-900:12 12 12!important;--cl-cyan-950:0 0 0!important;}

@@ -1,5 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const path = require('node:path');
+// Headless CI uses software WebGL for the locally bundled Live2D scene.
+test.use({launchOptions:{args:['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']}});
 const {installApeFixture}=require('./ape-fixture');
 const { buildPrecompiledPage } = require('../precompile-page');
 const compiled = buildPrecompiledPage(path.resolve(__dirname, '../public'));
@@ -19,7 +21,7 @@ const ME = {
   display_name: 'criptoejesus',
   avatar_url: null,
   provider: 'google',
-  cl_wallets: [{ id: 'wallet-1', chain: 'evm', address: '0x01faf6dfc230d755141d84d7cb980dd68f5efe13', watch_only: false }],
+  cl_wallets: [{id:'cardano-1',chain:'cardano',watch_only:false,address:'addr1vyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygatvcjl'}, { id: 'wallet-1', chain: 'evm', address: '0x01faf6dfc230d755141d84d7cb980dd68f5efe13', watch_only: false }],
   cl_linked_accounts: [{ id: 'social-1', provider: 'google', display_name: 'criptoejesus' }],
 };
 
@@ -170,7 +172,7 @@ test('an eligible account gets twenty-four shipped themes and its own synced one
   // Light and Dark, twenty-four shipped themes, and Cherry.
   await expect(menu.locator('[data-testid^="theme-option-"]')).toHaveCount(27);
   await expect(page.getByTestId('theme-option-moonlight')).toBeVisible();
-  await expect(page.getByTestId('theme-option-sappy-seals')).toBeVisible();
+  await expect(page.getByTestId('theme-option-mint-money')).toBeVisible();
   await expect(page.getByTestId('theme-option-custom-cherry')).toBeVisible();
   // Deleted in the wallet: the tombstone travels, the theme does not.
   await expect(page.getByTestId('theme-option-custom-retired')).toHaveCount(0);
@@ -620,4 +622,124 @@ test('Ape holder picker chooses verified portraits and preserves only an owner p
   control.fail=false;await page.getByRole('button',{name:'Refresh owned apes',exact:true}).click();await expect(tile).toBeEnabled();
   await page.unroute('**/api/profile');await page.route('**/api/profile',route=>route.fulfill({json:{...ME,cl_wallets:ME.cl_wallets.map(w=>({...w,watch_only:true}))}}));
   await page.reload();await page.getByTestId('theme-picker-button').click();await expect(tile).toBeDisabled();
+});
+
+for(const theme of [{id:'mallard-order',name:'Mallard Order'},{id:'sealuminati',name:'Sealuminati'},{id:'r3tards',name:'r3tards'},{id:'emonad',name:'Emonad'}]){
+  test(`${theme.name} holder gate revokes, retries and rejects watch-only wallets`,async({page})=>{
+    test.setTimeout(60000);
+    await installThemeMocks(page,{themes:ELIGIBLE});
+    const control={balance:10000n*10n**18n,quantity:'1',fail:false};
+    await page.route('https://rpc.monad.xyz/',route=>{
+      if(control.fail)return route.fulfill({status:503,body:'Offline'});
+      const call=route.request().postDataJSON(),data=call.params[0]?.data||'';
+      const result=call.method==='eth_chainId'?'0x8f':call.method==='eth_blockNumber'?'0xabc':'0x'+(data.startsWith('0x313ce567')?18n:data.startsWith('0x01ffc9a7')?1n:control.balance).toString(16).padStart(64,'0');
+      return route.fulfill({json:{jsonrpc:'2.0',id:call.id,result}});
+    });
+    await page.route('**/api/theme-holder/mallard?*',route=>control.fail?route.fulfill({status:503,body:'Offline'}):route.fulfill({json:{address:new URL(route.request().url()).searchParams.get('address'),policy:'901ba6e9831b078e131a1cc403d6139af21bda255cea6c9f770f4834',quantity:control.quantity}}));
+    await page.goto('/');await page.getByTestId('theme-picker-button').click();
+    const tile=page.getByTestId(`theme-option-${theme.id}`);await expect(tile).toBeEnabled();await tile.click();
+    await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme',theme.id);
+    await page.getByTestId('theme-picker-button').click();
+    const refresh=page.getByRole('button',{name:`Refresh ${theme.name} ownership`,exact:true});await expect(refresh).toHaveCSS('width','26px');
+    await tile.scrollIntoViewIfNeeded();await page.screenshot({path:`.local-artifacts/collection-gates/${theme.id}-chainlens.png`});
+    control.quantity='0';control.balance=theme.id==='emonad'?10000n*10n**18n-1n:0n;
+    await refresh.click();await expect(tile).toBeDisabled();await expect(page.locator('html')).not.toHaveAttribute('data-cl-art-theme',theme.id);
+    control.quantity='1';control.balance=10000n*10n**18n;await refresh.click();await expect(tile).toBeEnabled();
+    await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme',theme.id);
+    control.fail=true;await refresh.click();await expect(tile).toBeDisabled();await expect(tile).toContainText('unavailable');
+    control.fail=false;await refresh.click();await expect(tile).toBeEnabled();
+    await page.unroute('**/api/profile');await page.route('**/api/profile',route=>route.fulfill({json:{...ME,cl_wallets:ME.cl_wallets.map(w=>({...w,watch_only:true}))}}));
+    await page.reload();await page.getByTestId('theme-picker-button').click();await expect(tile).toBeDisabled();
+  });
+}
+
+test('Art Designs and Material Designs collapse independently without changing theme',async({page})=>{
+  await installThemeMocks(page,{themes:ELIGIBLE});await page.goto('/');await page.getByTestId('theme-picker-button').click();
+  const art=page.locator('details.cl-theme-design-section').filter({has:page.locator('summary',{hasText:'Art Designs'})});
+  const materials=page.locator('details.cl-theme-design-section').filter({has:page.locator('summary',{hasText:'Material Designs'})});
+  await expect(art.locator('[data-testid^="theme-option-"]')).toHaveCount(7);
+  await expect(materials.locator('[data-testid^="theme-option-"]')).toHaveCount(6);
+  await expect(art.getByTestId('theme-option-liquid-glass')).toHaveCount(0);
+  await art.locator('summary').click();await expect(art.getByTestId('theme-option-mallard-order')).toBeHidden();await expect(materials.getByTestId('theme-option-liquid-glass')).toBeVisible();
+  await materials.locator('summary').click();await expect(materials.getByTestId('theme-option-liquid-glass')).toBeHidden();
+  await art.locator('summary').focus();await page.keyboard.press('Enter');await expect(art.getByTestId('theme-option-mallard-order')).toBeVisible();
+  await materials.locator('summary').click();await materials.getByTestId('theme-option-royal-silk').click();
+  await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','royal-silk');
+  await page.getByTestId('theme-picker-button').click();await art.locator('summary').click();
+  await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','royal-silk');
+  await materials.locator('summary').scrollIntoViewIfNeeded();await page.screenshot({path:'.local-artifacts/design-sections/chainlens.png'});
+});
+
+test('retired Sappy Seals selection migrates to the exact shipped Mint & Money palette',async({page})=>{
+  await installThemeMocks(page,{themes:ELIGIBLE});
+  await page.addInitScript(()=>localStorage.setItem('cl_theme','sappy-seals'));
+  await page.goto('/');
+  await expect(page.getByTestId('theme-picker-button')).toContainText('Mint & Money');
+  await expect(shell(page)).toHaveCSS('background-color','rgb(12, 30, 25)');
+  expect(await page.evaluate(()=>localStorage.getItem('cl_theme'))).toBe('mint-money');
+  await page.getByTestId('theme-picker-button').click();
+  await expect(page.getByTestId('theme-option-sappy-seals')).toHaveCount(0);
+  await expect(page.getByTestId('theme-option-mint-money')).toBeVisible();
+  await page.getByTestId('theme-option-mint-money').click();await page.reload();
+  await expect(page.getByTestId('theme-picker-button')).toContainText('Mint & Money');
+  await page.screenshot({path:'.local-artifacts/mint-money/chainlens.png'});
+});
+
+
+test('Sappy Seals sidebar art tracks, cycles all motions, changes artwork and enforces ownership',async({page})=>{
+  test.setTimeout(90000);
+  await page.setViewportSize({width:1280,height:1000});
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await installThemeMocks(page,{themes:ELIGIBLE});
+  const control={balance:1n,fail:false};
+  await page.route('https://ethereum-rpc.publicnode.com/',route=>{
+    const call=route.request().postDataJSON(),data=call.params[0]?.data||'';
+    if(call.method==='eth_call' && call.params[0]?.to?.toLowerCase()!=='0x364c828ee171616a39897688a831c2499ad972ec')return route.fallback();
+    if(control.fail)return route.fulfill({status:503,body:'Offline'});
+    const result=call.method==='eth_chainId'?'0x1':call.method==='eth_blockNumber'?'0xabc':'0x'+(data.startsWith('0x01ffc9a7')?1n:control.balance).toString(16).padStart(64,'0');
+    return route.fulfill({json:{jsonrpc:'2.0',id:call.id,result}});
+  });
+  await page.goto('/');await page.getByTestId('theme-picker-button').click();
+  const tile=page.getByTestId('theme-option-sappy-seals-art');await expect(tile).toBeEnabled();await tile.click();
+  await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','sappy-seals-art');
+  const host=page.locator('.cl-sidebar > .sappy-seal-peek'),canvas=host.locator('canvas');
+  await expect(host).toHaveAttribute('data-ready','true',{timeout:20000});
+  await expect(host).toHaveAttribute('data-artwork','original');
+  await expect(shell(page)).toHaveCSS('background-color','rgb(0, 0, 0)');
+  const sidebar=await page.locator('.cl-sidebar').boundingBox(),box=await host.boundingBox();
+  expect(box.y+box.height).toBe(sidebar.y+sidebar.height);expect(box.x).toBe(sidebar.x);
+  await page.mouse.move(10,500);await page.waitForTimeout(600);const left=Number(await canvas.getAttribute('data-head-angle'));
+  await page.mouse.move(1000,500);await page.waitForTimeout(600);expect(Math.abs(Number(await canvas.getAttribute('data-head-angle'))-left)).toBeGreaterThan(1);
+  const seen=new Set();for(let i=0;i<13;i++){
+    const before=Number(await host.getAttribute('data-click-count'));
+    await page.mouse.click(box.x+box.width/2,box.y+box.height/2);
+    await expect.poll(async()=>Number(await host.getAttribute('data-click-count'))).toBeGreaterThan(before);seen.add(await host.getAttribute('data-click-motion'));
+  }expect(seen.size).toBe(13);
+  await page.screenshot({path:'.local-artifacts/sappy-seals/desktop.png'});
+  await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Scanner',exact:true}).click();await expect(host).toHaveCount(1);
+  await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Search',exact:true}).click();await expect(host).toHaveCount(1);
+  await page.getByTestId('theme-picker-button').click();
+  await expect(page.getByTestId('theme-edit-sappy-seals-art')).toHaveCount(0);
+  const toggle=page.getByRole('button',{name:'Use alternate seal artwork',exact:true}),refresh=page.getByRole('button',{name:'Refresh Sappy Seals ownership',exact:true});
+  await expect(tile).toHaveCSS('border-image-source','none');
+  await expect(tile).toHaveCSS('outline-color','rgb(255, 255, 255)');await expect(tile).toHaveCSS('border-top-left-radius','18px');
+  await expect(toggle).toHaveCSS('width','26px');const t=await toggle.boundingBox(),r=await refresh.boundingBox();expect(t.y).toBe(r.y);expect(r.x-t.x-t.width).toBe(8);
+  await toggle.click();await expect(host).toHaveAttribute('data-artwork','alternate');
+  await toggle.scrollIntoViewIfNeeded();await page.screenshot({path:'.local-artifacts/sappy-seals/picker.png'});
+  await page.reload();await expect(page.locator('html')).toHaveAttribute('data-cl-art-theme','sappy-seals-art');await expect(host).toHaveAttribute('data-artwork','alternate');
+  await page.emulateMedia({reducedMotion:'reduce'});await page.waitForTimeout(100);const paused=await host.getAttribute('data-click-count');await page.mouse.click(box.x+box.width/2,box.y+box.height/2);await page.waitForTimeout(200);expect(await host.getAttribute('data-click-count')).toBe(paused);await page.emulateMedia({reducedMotion:'no-preference'});
+  await page.setViewportSize({width:360,height:800});await page.getByRole('button',{name:'Open menu',exact:true}).click();await expect(host).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.getByTestId('donate-trigger').scrollIntoViewIfNeeded();await expect(page.getByTestId('donate-trigger')).toBeVisible();
+  await page.screenshot({path:'.local-artifacts/sappy-seals/mobile-sidebar.png'});await page.locator('.cl-sidebar').getByRole('button',{name:'Close menu',exact:true}).click();
+  await page.waitForTimeout(400);const hiddenAngle=await canvas.getAttribute('data-head-angle');await page.mouse.move(350,50);await page.waitForTimeout(250);expect(await canvas.getAttribute('data-head-angle')).toBe(hiddenAngle);
+  await page.getByTestId('theme-picker-button').click();await toggle.click();await expect(host).toHaveAttribute('data-artwork','original');
+  await page.getByTestId('theme-option-midnight').click();await expect(host).toHaveCount(0);await page.getByTestId('theme-picker-button').click();await tile.click();await expect(host).toHaveCount(1);await page.getByTestId('theme-picker-button').click();
+  control.balance=0n;await refresh.click();await expect(tile).toBeDisabled();await expect(host).toHaveCount(0);
+  control.balance=1n;await refresh.click();await expect(tile).toBeEnabled();await expect(host).toHaveCount(1);
+  control.fail=true;await refresh.click();await expect(tile).toBeDisabled();await expect(tile).toContainText('unavailable');
+  control.fail=false;await refresh.click();await expect(tile).toBeEnabled();
+  await page.unroute('**/api/profile');await page.route('**/api/profile',route=>route.fulfill({json:{...ME,cl_wallets:ME.cl_wallets.map(w=>({...w,watch_only:true}))}}));
+  await page.reload();await page.getByTestId('theme-picker-button').click();await expect(tile).toBeDisabled();await expect(host).toHaveCount(0);
+  expect(errors).toEqual([]);
 });
