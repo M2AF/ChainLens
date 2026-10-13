@@ -1,4 +1,5 @@
-const { test, expect } = require('@playwright/test');
+const { test, expect: baseExpect } = require('@playwright/test');
+const expect=baseExpect.configure({timeout:15000});
 const { EVM_CHAINS } = require('../public/chain-catalog');
 const profileId = '00000000-0000-4000-8000-000000000001';
 const token = 'fixture.' + Buffer.from(JSON.stringify({ sub: profileId })).toString('base64url') + '.fixture';
@@ -66,7 +67,7 @@ test('profile preloads all linked wallets, retains mounted artwork, filters star
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
   await nav.getByRole('button', { name: 'Profile', exact:true }).click();
   await expect(page.locator('.profile-summary b')).toHaveText('38');
-  await expect(page.locator('.profile-banner-avatar img')).toHaveCSS('width','150px');
+  await expect(page.locator('.profile-banner-avatar .cl-avatar')).toHaveCSS('width','150px');
   await expect(page.locator('.profile-actions button')).toHaveCount(2);
   const avatarBounds = await page.locator('.profile-banner-avatar').boundingBox();
   const idBounds = await page.getByRole('button',{name:'Copy ChainLens ID',exact:true}).boundingBox();

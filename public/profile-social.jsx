@@ -90,7 +90,7 @@
       {state.loading ? <p role="status">Loading profile…</p> : state.error ? <p role="alert">{state.error}</p> : <>
         <div className="cl-public-banner" style={state.profile.banner_url ? { backgroundImage: `url(${JSON.stringify(state.profile.banner_url)})` } : undefined} />
         <div className="cl-public-identity">
-          {state.profile.avatar_url ? <img src={state.profile.avatar_url} alt="" referrerPolicy="no-referrer" /> : <div className="cl-public-avatar">{state.profile.display_name.slice(0, 2).toUpperCase()}</div>}
+          <window.ProfileAvatar profile={state.profile} size={100} />
           <small>CHAINLENS PROFILE</small><h1>{state.profile.display_name}</h1>
           <window.PublicProfileControls person={state.profile} authToken={authToken} onMessage={onMessage} />
           <PublicProfileId id={state.profile.id} />

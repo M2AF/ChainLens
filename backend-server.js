@@ -294,7 +294,7 @@ const dbDeletePasskey = async (userId, id) => {
 // Chat stays behind the existing ChainLens JWT boundary. The browser never
 // talks to these Supabase tables directly; the service-role client below is the
 // only database caller, and cl_chat.sql enables RLS with no client policies.
-const CHAT_PROFILE_COLUMNS = 'id, display_name, avatar_url';
+const CHAT_PROFILE_COLUMNS = 'id, display_name, avatar_url, avatar_nft_key';
 const CHAT_INITIAL_PAGE = 60;
 const CHAT_POLL_PAGE = 100;
 
@@ -1657,21 +1657,9 @@ app.patch('/api/profile', requireAuth, async (req, res) => {
     updates.display_name = displayName;
   }
 
-  if (req.body.avatar_url !== undefined) {
-    if (typeof req.body.avatar_url !== 'string') {
-      return res.status(400).json({ error: 'Profile picture must be an image URL' });
-    }
-    const avatarUrl = req.body.avatar_url.trim();
-    const isRemoteImage = /^https:\/\//i.test(avatarUrl);
-    const isImageData = /^data:image\/(?:jpeg|png|gif|webp);base64,/i.test(avatarUrl);
-    if (avatarUrl && !isRemoteImage && !isImageData) {
-      return res.status(400).json({ error: 'Profile picture must use HTTPS or a supported image file' });
-    }
-    if (avatarUrl.length > 2.8 * 1024 * 1024) {
-      return res.status(413).json({ error: 'Profile picture is too large' });
-    }
-    updates.avatar_url = avatarUrl || null;
-  }
+  const avatar = require('./profile-avatar').validateAvatar(req.body);
+  if (avatar.error) return res.status(avatar.status || 400).json({error:avatar.error});
+  Object.assign(updates, avatar.updates);
 
   if (req.body.banner_url !== undefined) {
     const banner = require('./profile-banner').validateBanner(req.body.banner_url);

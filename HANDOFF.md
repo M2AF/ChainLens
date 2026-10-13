@@ -2,18 +2,19 @@
 <!-- handoff v1. LIVE STATE ONLY: rewrite in place, keep under ~60 lines.
      History goes in HANDOFF_LOG.md. Machine fields above the first ## are managed by handoff.py. -->
 
-owner: none
-task: -
-lease_until: -
+owner: codex
+task: NFT avatar picker cache spam filtering and shared hexagon presentation
+lease_until: 2026-10-13T01:45-03:00
 repo: .
 verify: npm run check && npm test
-verified: b92efb4 · HEADb92efb4 plus local edits: npm check/226 Node/ten JSX pass; final three owner/public/mobile browser cases pass; URL back-forward and other-to-own navigation, settings placement/save and exact clipboard validated. Desktop/mobile screenshots reviewed. No commit/deployment/backend change. · 2026-10-12T21:15-03:00
-head: b92efb4 (main) dirty 7
-updated: 2026-10-12T21:15-03:00 · codex
+verified: 8c72c70 · HEAD8c72c70 plus edits: syntax/228 Node/11 JSX and11 unique affected browser journeys pass across final logs (3avatar/3portfolio/5public-GIF); desktop/mobile/public hexagon screenshots reviewed, actual animation measured and reduced motion stops. Shared schema applied, test writes rolled back, RLS/grants intact; no app deploy/commit. Companion wallet final gate ongoing. · 2026-10-12T22:45-03:00
+head: 8c72c70 (main) dirty 10
+updated: 2026-10-12T22:45-03:00 · codex
 
 resources: -
 
 ## Now
+- NFT PFP work on user HEAD8c72c70: cache-backed full searchable/scrollable picker excludes manual/automatic spam with restores, NFT detail action, shared avatar_nft_key source and animated hexagon vs uploaded circle across owner/public/chat. 228Node/11JSX/11unique affected browser journeys pass; screenshots reviewed; public border motion measured/reduced-motion verified. Shared Supabase column applied, test write rolled back, RLS/grants preserved. Wallet save-path fixes and full gate in progress in companion checkout; docs/NFT-PROFILE-PICTURES.md. No commit/deploy/install.
 - Profile navigation/placement/copy follow-up complete locally on user HEADb92efb4: sidebar Profile uses own /UUID with route state, owner visibility settings directly below Sign out before social accounts, public wallet addresses copy with feedback/error handling. npm check/226Node/ten JSX and final three affected browser cases pass (owner URL/back/forward/settings save, public copy and navigation to self, mobile wallets/GIF). Desktop/mobile screenshots reviewed; .local-artifacts/profile-navigation/. docs/PUBLIC-PROFILE-GALLERY.md; no commit/deploy/backend change.
 - Public profile v2/GIF modal complete locally on user HEAD7be2d33: own UUID uses Profile workspace; others show synced mainnet favorites, optional wallets, separate friend/message/more actions with share/block/report and copyable ID. Backend blocks cover requests/DMs/world/friends/presence/unread. Owner visibility controls; focused GIF modal preserves draft. npm check/226Node/ten JSX;20 unique browser journeys plus own-link rerun and actual15/15image decode pass; screenshots reviewed. docs/PUBLIC-PROFILE-GALLERY.md; .profile-v2-*.log; .local-artifacts/profile-v2/. Additive RLS schema applied/transaction-tested; app not deployed, wallet unchanged.
 - Profile ID/link search and basic public /<uuid> profiles; shared name actions, /chat two-panel/mobile page and draggable/pinned pop-out complete locally. Single component retains conversation/drafts/scroll; online/in-world presence expires75s. HEAD1faf750: npm check/211Node/seven JSX plus16 unique browser cases pass; screenshots reviewed. docs/PROFILE-SEARCH-CHAT.md; .social-*.log; .local-artifacts/profile-social/. Supabase presence table and user-approved account RLS/grant fix applied/verified; no feature deployment/commit or wallet source edits.
@@ -67,6 +68,7 @@ resources: -
 - Favorites require updated backend/Worker before clients; old sanitizers discard f/u. Live same-ID device sync needs deployment QA; no database migration needed.
 
 ## Skills
+- NFT avatar feature -> Fullstack Iteration / Visual Iteration / Playwright Testing / supabase:supabase | used: shared source identity, cache/spam journeys, desktop/mobile screenshot checks and additive protected schema | Codex: C:/Users/balla/.codex/skills/fullstack-iteration/SKILL.md; C:/Users/balla/.codex/skills/visual-Iteration/SKILL.md; C:/Users/balla/.codex/skills/playwright-testing/SKILL.md; Supabase plugin skill | Claude: unknown for this task
 - Public favorite metadata/privacy -> architecture-review, cardano-wallet-core, supabase:supabase | used: shared favorite-key source, bounded native/CIP metadata fallback, backend-only gallery/block/report records and rollback role tests | Codex: runtime catalog | Claude: unknown.
 - Profile/social/chat -> Fullstack Iteration, Visual Iteration, Playwright Testing, supabase:supabase, wallet-security-auditor | used: shared mounted chat state, responsive screenshots, API privacy tests and backend-only RLS/access review | Codex: runtime catalog skills; Supabase plugin catalog path | Claude: unknown.
 - Art theme port -> magic-money-art-themes | used: approved wallet assets, scoped material identity, smooth logos and responsive validation | Codex: C:/Users/balla/.codex/skills/magic-money-art-themes/SKILL.md | Claude: C:/Users/balla/.claude/skills/magic-money-art-themes/SKILL.md.

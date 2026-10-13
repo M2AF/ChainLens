@@ -199,7 +199,7 @@
     </section>;
   };
 
-  window.AssetViewer = function ({asset, assets, onChange, onClose, darkMode, chainStyles, resolveImg, fallback, download}) {
+  window.AssetViewer = function ({asset, assets, onChange, onClose, darkMode, chainStyles, resolveImg, fallback, download, onUseAvatar}) {
     const dialog = useRef(null);
     const index = assets.findIndex(a => window.nftFavoriteKey(a) === window.nftFavoriteKey(asset));
     const previous = index > 0, next = index >= 0 && index < assets.length-1;
@@ -237,6 +237,7 @@
           {!asset.isToken && <p className="asset-viewer-floor">{window.nftFloor.label(asset)}</p>}
           {asset.metadata?.description && <p className="asset-viewer-description">{asset.metadata.description}</p>}
           {asset.isToken && <div className="asset-viewer-values"><div><small>Quantity</small><strong>{asset.balance}</strong></div><div><small>Value USD</small><strong>${asset.totalValue}</strong></div></div>}
+          {onUseAvatar && <button className="asset-viewer-download" onClick={()=>onUseAvatar(asset,dialog.current?.querySelector('img[data-art-status="loaded"]')?.currentSrc)}>Use as profile picture</button>}
           <h3>Attributes</h3><div className="asset-viewer-traits">{traits.length?traits.map((t,i)=><div key={i}><small>{t.trait_type}</small><strong>{t.value}</strong></div>):<p>No metadata found.</p>}</div>
           {asset.media?.status==='missing-metadata' && <p className="asset-viewer-description">This token has not published an artwork URI. You can retry to check for an update.</p>}
           <div className="asset-viewer-actions">{!asset.isToken && <><button className="asset-viewer-download" onClick={()=>download(dialog.current?.querySelector('img[data-art-status="loaded"]')?.currentSrc || window.nftImage.sources(asset,false)[0],asset.name)}>↓ Download Image</button><button onClick={()=>window.dispatchEvent(new CustomEvent('nft-art-retry',{detail:window.nftFavoriteKey(asset)}))}>Retry artwork</button></>}<button onClick={onClose}>Back to Gallery</button></div>

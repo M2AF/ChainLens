@@ -40,10 +40,12 @@
   <script type="text/babel" src="/nft-favorites.jsx"></script>
   <script src="/profile-id.js"></script>
   <script type="text/babel" src="/social-modals.jsx"></script>
+  <script type="text/babel" src="/profile-avatar.jsx"></script>
   <script type="text/babel" src="/profile-controls.jsx"></script><script type="text/babel" src="/public-profile-gallery.jsx"></script><script type="text/babel" src="/profile-social.jsx"></script>
   <link rel="stylesheet" href="/profile-social.css">
   <script type="text/babel" src="/profile-portfolio.jsx"></script>
   <link rel="stylesheet" href="/profile-portfolio.css">
+  <link rel="stylesheet" href="/profile-avatar.css">
   <script src="/texture-engine.js"></script>
   <link rel="stylesheet" href="/textures.css">
   <script src="/theme-engine.js"></script>
@@ -515,9 +517,7 @@
       const initials = name.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
       const hue = [...String(profile?.id || name)].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 360;
       return profile?.avatar_url ? (
-        <img src={profile.avatar_url} alt="" referrerPolicy="no-referrer"
-          className="rounded-full object-cover flex-shrink-0"
-          style={{ width: size, height: size }} />
+        <window.ProfileAvatar profile={profile} size={size} />
       ) : (
         <span className="rounded-full flex items-center justify-center flex-shrink-0 text-white font-black"
           style={{ width: size, height: size, fontSize: Math.max(9, size * 0.32), background: `linear-gradient(135deg,hsl(${hue} 75% 55%),hsl(${(hue + 50) % 360} 70% 42%))` }}>
@@ -1764,9 +1764,28 @@
       const [showAvatarEditor, setShowAvatarEditor] = useState(false);
       const [avatarMode, setAvatarMode] = useState('nft');
       const [avatarSelection, setAvatarSelection] = useState('');
+      const [avatarNftKey, setAvatarNftKey] = useState(null);
+      const [avatarSearch, setAvatarSearch] = useState('');
       const [avatarSaving, setAvatarSaving] = useState(false);
       const [avatarError, setAvatarError] = useState('');
       const avatarFileInputRef = useRef(null);
+      useEffect(() => {
+        if (!showAvatarEditor) return;
+        const previous = document.activeElement, overflow = document.body.style.overflow;
+        document.body.style.overflow='hidden';
+        const dialog = document.querySelector('.cl-avatar-editor');
+        dialog?.querySelector('button')?.focus();
+        const key = event => {
+          if(event.key==='Escape' && !avatarSaving)setShowAvatarEditor(false);
+          if(event.key==='Tab') {
+            const items=[...dialog.querySelectorAll('button:not(:disabled),input:not([type="file"])')].filter(el=>el.offsetParent!==null);
+            if(event.shiftKey && document.activeElement===items[0]){event.preventDefault();items.at(-1)?.focus();}
+            else if(!event.shiftKey && document.activeElement===items.at(-1)){event.preventDefault();items[0]?.focus();}
+          }
+        };
+        document.addEventListener('keydown',key);
+        return ()=>{document.body.style.overflow=overflow;document.removeEventListener('keydown',key);previous?.focus();};
+      }, [showAvatarEditor,avatarSaving]);
 
       const [showDonate, setShowDonate] = useState(() => new URLSearchParams(window.location.search).get('tab') === 'donate');
       const [copiedDonate, setCopiedDonate] = useState(null);
@@ -2661,6 +2680,8 @@
       // here are picked up by the wallet on its next profile refresh.
       const openAvatarEditor = () => {
         setAvatarSelection(userProfile?.avatar_url || '');
+        setAvatarNftKey(userProfile?.avatar_nft_key || null);
+        setAvatarSearch('');
         setAvatarMode('nft');
         setAvatarError('');
         setShowAvatarEditor(true);
@@ -2683,6 +2704,7 @@
         reader.onload = () => {
           if (typeof reader.result === 'string') {
             setAvatarSelection(reader.result);
+            setAvatarNftKey(null);
             setAvatarError('');
           }
         };
@@ -2696,17 +2718,26 @@
         setAvatarError('');
         try {
           const res = await authFetch('/api/profile', {
-            method: 'PATCH', body: JSON.stringify({ avatar_url: avatarUrl })
+            method: 'PATCH', body: JSON.stringify({ avatar_url: avatarUrl, avatar_nft_key: avatarNftKey })
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Failed to save profile picture');
-          setUserProfile(current => current ? { ...current, avatar_url: data.avatar_url ?? avatarUrl } : current);
+          setUserProfile(current => current?.id === userProfile.id ? { ...current, avatar_url: data.avatar_url ?? (avatarUrl || null), avatar_nft_key: data.avatar_nft_key ?? avatarNftKey } : current);
           setShowAvatarEditor(false);
         } catch (e) {
           setAvatarError(e.message || 'Failed to save profile picture');
         } finally {
           setAvatarSaving(false);
         }
+      };
+
+      const avatarNfts = useMemo(() => (profilePortfolio.assets || []).filter(asset => !asset.isToken && window.nftImage.sources(asset,false).length && !window.nftSpam.isSpam(asset, filterEntries[assetKeyFor(asset)])), [profilePortfolio.assets, filterEntries]);
+      const chooseNftAvatar = (asset, imageUrl) => {
+        setAvatarSelection(imageUrl || window.nftImage.sources(asset,false)[0]);
+        setAvatarNftKey(window.nftFavoriteKey(asset));setAvatarError('');
+      };
+      const useNftAsAvatar = (asset,imageUrl) => {
+        setSelectedAsset(null);navigateTo('profile');openAvatarEditor();chooseNftAvatar(asset,imageUrl);
       };
 
       // ── Delete wallet ──────────────────────────────────────────────────────
@@ -4354,7 +4385,7 @@
                         <div
                           className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4"
                           onClick={e => { if (e.target === e.currentTarget && !avatarSaving) setShowAvatarEditor(false); }}>
-                          <div className={`w-full max-w-md max-h-[88vh] overflow-hidden rounded-[2rem] border shadow-2xl ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                          <div role="dialog" aria-modal="true" aria-label="Change Profile Picture" className={`cl-avatar-editor w-full max-w-md max-h-[88vh] overflow-hidden rounded-[2rem] border shadow-2xl ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
                             <div className={`flex items-center justify-between px-6 py-5 border-b ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
                               <div>
                                 <h3 className="font-heading font-extrabold text-lg">Change Profile Picture</h3>
@@ -4370,7 +4401,7 @@
                               </button>
                             </div>
 
-                            <div className={`grid grid-cols-2 border-b ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                            <div className={`cl-avatar-editor-tabs grid grid-cols-2 border-b ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
                               <button
                                 type="button"
                                 onClick={() => { setAvatarMode('nft'); setAvatarError(''); }}
@@ -4385,10 +4416,10 @@
                               </button>
                             </div>
 
-                            <div className="p-6 overflow-y-auto max-h-[52vh]">
+                            <div className="cl-avatar-editor-body p-6 overflow-y-auto max-h-[52vh]">
                               <div className="flex justify-center mb-6">
                                 {avatarSelection ? (
-                                  <img src={avatarSelection} alt="Selected profile picture" className="w-24 h-24 rounded-full object-cover ring-4 ring-amber-400/40" referrerPolicy="no-referrer" />
+                                  <window.ProfileAvatar profile={{avatar_url:avatarSelection,avatar_nft_key:avatarNftKey}} alt="Selected profile picture" />
                                 ) : (
                                   <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-4xl font-heading font-black text-slate-900 ring-4 ring-amber-400/40">
                                     {(userProfile.display_name || '?').charAt(0).toUpperCase()}
@@ -4398,30 +4429,32 @@
 
                               {avatarMode === 'nft' ? (
                                 (() => {
-                                  const avatarNfts = (profilePortfolio.assets || []).filter(asset => !asset.isToken && asset.image).slice(0, 24);
+                                  const matches = avatarNfts.filter(asset => `${asset.name || ''} ${asset.collectionName || ''} ${asset.chain}`.toLowerCase().includes(avatarSearch.toLowerCase()));
                                   return avatarNfts.length > 0 ? (
-                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                                      {avatarNfts.map(asset => {
-                                        const imageUrl = resolveImg(asset.image || '', asset.symbol);
-                                        const selected = avatarSelection === imageUrl;
+                                    <><input className="cl-avatar-editor-search" aria-label="Search NFTs for profile picture" placeholder="Search your NFTs…" value={avatarSearch} onChange={event=>setAvatarSearch(event.target.value)} />
+                                    <div className="cl-avatar-editor-grid">
+                                      {matches.map(asset => {
+                                        const selected = avatarNftKey === window.nftFavoriteKey(asset);
                                         return (
                                           <button
                                             type="button"
-                                            key={`${asset.chain}-${asset.address || asset.id || asset.name}`}
-                                            onClick={() => { setAvatarSelection(imageUrl); setAvatarError(''); }}
+                                            key={window.nftFavoriteKey(asset)}
+                                            aria-label={`Use ${asset.name || 'NFT'} as profile picture`}
+                                            aria-pressed={selected}
+                                            onClick={event => chooseNftAvatar(asset,event.currentTarget.querySelector('img[data-art-status="loaded"]')?.currentSrc)}
                                             className={`relative aspect-square overflow-hidden rounded-2xl border-2 transition-all ${selected ? 'border-amber-400 ring-2 ring-amber-400/30' : darkMode ? 'border-slate-800 hover:border-slate-600' : 'border-slate-100 hover:border-slate-300'}`}
                                             title={asset.name || 'NFT'}>
-                                            <img src={imageUrl} alt={asset.name || 'NFT'} className="w-full h-full object-cover" />
+                                            <window.NftArtwork asset={asset} />
                                             {selected && <span className="absolute inset-0 flex items-center justify-center bg-amber-400/25 text-white text-2xl font-black">✓</span>}
                                           </button>
                                         );
                                       })}
-                                    </div>
+                                    </div>{!matches.length && <p>No matching NFTs.</p>}</>
                                   ) : (
                                     <div className={`rounded-2xl border border-dashed p-6 text-center ${darkMode ? 'border-slate-700 text-slate-500' : 'border-slate-200 text-slate-400'}`}>
                                       <div className="text-3xl mb-2">🖼️</div>
-                                      <p className="text-xs font-bold">No scanned NFTs available</p>
-                                      <p className="text-[10px] mt-1">Scan your wallets first, or upload a photo.</p>
+                                      <p className="text-xs font-bold">{profilePortfolio.loading ? 'Loading your NFTs…' : 'No eligible NFTs available'}</p>
+                                      <p className="text-[10px] mt-1">Spam NFTs are excluded. You can also upload a photo.</p>
                                     </div>
                                   );
                                 })()
@@ -4454,7 +4487,7 @@
                             <div className={`flex items-center justify-between gap-3 px-6 py-4 border-t ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
                               <button
                                 type="button"
-                                onClick={() => { setAvatarSelection(''); setAvatarError(''); }}
+                                onClick={() => { setAvatarSelection(''); setAvatarNftKey(null); setAvatarError(''); }}
                                 disabled={!userProfile.avatar_url || avatarSaving}
                                 className={`text-[10px] font-black uppercase tracking-widest disabled:opacity-30 ${darkMode ? 'text-slate-500 hover:text-red-400' : 'text-slate-400 hover:text-red-500'}`}>
                                 Remove Photo
@@ -4470,7 +4503,7 @@
                                 <button
                                   type="button"
                                   onClick={saveAvatar}
-                                  disabled={avatarSaving || (avatarSelection || '') === (userProfile.avatar_url || '')}
+                                  disabled={avatarSaving || ((avatarSelection || '') === (userProfile.avatar_url || '') && avatarNftKey === (userProfile.avatar_nft_key || null))}
                                   className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                                   {avatarSaving ? 'Saving…' : 'Save Photo'}
                                 </button>
@@ -4740,7 +4773,7 @@
                                 title="Change profile picture"
                                 className="relative block rounded-full group focus:outline-none focus:ring-4 focus:ring-amber-400/40">
                                 {userProfile.avatar_url
-                                  ? <img src={userProfile.avatar_url} alt={`${userProfile.display_name || 'User'} profile`} className="w-20 h-20 rounded-full object-cover ring-4 ring-amber-400/40" referrerPolicy="no-referrer" />
+                                  ? <window.ProfileAvatar profile={userProfile} alt={`${userProfile.display_name || 'User'} profile`} />
                                   : <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-3xl font-heading font-black text-slate-900 ring-4 ring-amber-400/40">
                                       {(userProfile.display_name || '?').charAt(0).toUpperCase()}
                                     </div>
@@ -5087,7 +5120,7 @@
               );
             })()}
 
-            {selectedAsset && <window.AssetViewer asset={selectedAsset} assets={viewerAssets} onChange={setSelectedAsset} onClose={() => setSelectedAsset(null)} darkMode={darkMode} chainStyles={chainStyles} resolveImg={resolveImg} fallback={imgFallbackSvg} download={downloadAsset} />}
+            {selectedAsset && <window.AssetViewer asset={selectedAsset} assets={viewerAssets} onChange={setSelectedAsset} onClose={() => setSelectedAsset(null)} darkMode={darkMode} chainStyles={chainStyles} resolveImg={resolveImg} fallback={imgFallbackSvg} download={downloadAsset} onUseAvatar={avatarNfts.some(asset=>window.nftFavoriteKey(asset)===window.nftFavoriteKey(selectedAsset)) ? useNftAsAvatar : null} />}
 
           {/* Utility popups */}
           {(showDonate || showWallet || (showChat && !chatPinned)) && (

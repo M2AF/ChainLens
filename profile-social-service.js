@@ -1,7 +1,7 @@
 const { isUuid } = require('./chat-service');
-const PUBLIC_PROFILE_COLUMNS = 'id, display_name, avatar_url, banner_url, public_wallets, public_favorites';
+const PUBLIC_PROFILE_COLUMNS = 'id, display_name, avatar_url, avatar_nft_key, banner_url, public_wallets, public_favorites';
 const PRESENCE_TTL = 75_000;
-const publicProfile = row => ({ id: row.id, display_name: row.display_name || 'ChainLens user', avatar_url: row.avatar_url || null, banner_url: row.banner_url || null });
+const publicProfile = row => ({ id: row.id, display_name: row.display_name || 'ChainLens user', avatar_url: row.avatar_url || null, avatar_nft_key: row.avatar_nft_key || null, banner_url: row.banner_url || null });
 
 function mountProfileSocial(app, { db, rateLimit, requireAuth, requireChatAccess }) {
   app.get('/api/profiles/:id', rateLimit, async (req, res) => {
@@ -55,13 +55,13 @@ function mountProfileSocial(app, { db, rateLimit, requireAuth, requireChatAccess
       const ids = [...users.keys()];
       let profiles = [];
       if (ids.length) {
-        const result = await db.from('cl_users').select('id,display_name,avatar_url').in('id', ids);
+        const result = await db.from('cl_users').select('id,display_name,avatar_url,avatar_nft_key').in('id', ids);
         if (result.error) throw result.error;
         profiles = result.data || [];
       }
       res.set('Cache-Control', 'no-store');
       const blocked = await require('./profile-community-service').blockedIds(db,req.user.sub);
-      res.json({ people: profiles.filter(profile => !blocked.has(profile.id)).map(profile => ({ id: profile.id, display_name: profile.display_name, avatar_url: profile.avatar_url, online: true, in_world: users.get(profile.id) })) });
+      res.json({ people: profiles.filter(profile => !blocked.has(profile.id)).map(profile => ({ id: profile.id, display_name: profile.display_name, avatar_url: profile.avatar_url, avatar_nft_key: profile.avatar_nft_key || null, online: true, in_world: users.get(profile.id) })) });
     } catch { res.status(503).json({ error: 'Presence is temporarily unavailable' }); }
   });
 }
