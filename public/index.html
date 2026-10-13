@@ -1833,6 +1833,7 @@
         chatUnread?.unread_direct ? `${chatUnread.unread_direct} unread message${chatUnread.unread_direct === 1 ? '' : 's'}` : '',
       ].filter(Boolean).join(', ')}`;
       const [copiedProfileId, setCopiedProfileId] = useState(false);
+      const [copiedWalletId, setCopiedWalletId] = useState(null);
 
       const chainStyles = Object.fromEntries(DEFAULT_CHAINS.map(chain => [chain.id, chain]));
       // Static App Hub records used this alias before the scanner standardized it.
@@ -4667,25 +4668,38 @@
                             No wallets linked yet. Connect one below.
                           </p>
                         ) : (
-                          <div className="space-y-3 mb-6">
+                          <div className="profile-wallet-list mb-6">
                             {PROFILE_WALLET_TYPES.map(type => {
                               const chain = type.id;
                               const chainWallets = (userProfile.cl_wallets || []).filter(w => w.chain === chain);
                               if (chainWallets.length === 0) return null;
                               return (
-                                <div key={chain} className="space-y-2">
-                                  <p className={`text-[10px] font-bold uppercase tracking-widest px-1 flex items-center gap-1.5 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                                    <img src={type.logoUrl} alt="" aria-hidden="true" className="w-3.5 h-3.5 object-contain flex-shrink-0" referrerPolicy="no-referrer" />
-                                    {type.label}
-                                  </p>
+                                <div key={chain} className="profile-wallet-group">
                                   {chainWallets.map(wallet => (
-                                    <div key={wallet.id} className={`wallet-card group p-4 rounded-2xl border flex items-center gap-4 ${darkMode ? 'bg-slate-800/50 border-slate-700 hover:border-slate-600' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
-                                      <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
-                                        <img src={type.logoUrl} alt={`${type.label} logo`} className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
+                                    <div key={wallet.id} data-testid={`linked-wallet-${wallet.id}`} className="profile-wallet-row">
+                                      <div className="profile-wallet-heading">
+                                        <img src={type.logoUrl} alt="" aria-hidden="true" referrerPolicy="no-referrer" />
+                                        <div>
+                                          <strong>{wallet.label || type.label}</strong>
+                                          <div className="profile-wallet-badges">
+                                            {wallet.label && <span>{type.label}</span>}
+                                            {wallet.is_primary && <span className="profile-wallet-primary">Primary</span>}
+                                            {wallet.watch_only && <span>Watch only</span>}
+                                            {!wallet.is_primary && <button type="button" onClick={() => setPrimary(wallet.id)} title="Set as primary" aria-label={`Set ${wallet.label || type.label} as primary`}>☆</button>}
+                                          </div>
+                                        </div>
                                       </div>
-                                      <div className="flex-1 min-w-0">
+                                      <div className="profile-wallet-actions">
+                                        <button type="button" onClick={() => { setEditingWallet(wallet.id); setWalletLabelInput(wallet.label || ''); }} title="Rename" aria-label={`Rename ${wallet.label || type.label}`}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="m16 3 5 5-12 12-6 1 1-6Z M14 5l5 5"/></svg></button>
+                                        <button type="button" onClick={() => unlinkWallet(wallet.id)} title="Remove" aria-label={`Remove ${wallet.label || type.label}`} className="profile-wallet-remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 7h16 M9 7V4h6v3 M6 7l1 14h10l1-14 M10 11v6 M14 11v6"/></svg></button>
+                                      </div>
+                                      <button type="button" className="profile-wallet-address" aria-label={`Copy ${wallet.label || type.label} address`} onClick={async () => {
+                                        try { await navigator.clipboard.writeText(wallet.address); setCopiedWalletId(wallet.id); setTimeout(() => setCopiedWalletId(current => current === wallet.id ? null : current), 2000); }
+                                        catch { setProfileError('Could not copy address. Select the address to copy it manually.'); }
+                                      }}><code>{wallet.address}</code><span aria-live="polite">{copiedWalletId === wallet.id ? 'Copied ✓' : 'Copy'}</span></button>
+                                      <div className="profile-wallet-editor">
                                         {editingWallet === wallet.id ? (
-                                          <div className="flex items-center gap-2">
+                                          <div className="profile-wallet-edit-form">
                                             <input
                                               type="text" value={walletLabelInput}
                                               onChange={e => setWalletLabelInput(e.target.value)}
@@ -4697,29 +4711,8 @@
                                             <button onClick={() => saveWalletLabel(wallet.id)} className="text-[10px] text-emerald-400 font-bold">Save</button>
                                             <button onClick={() => setEditingWallet(null)} className="text-[10px] text-slate-500 font-bold">Cancel</button>
                                           </div>
-                                        ) : (
-                                          <>
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                              <p className={`text-sm font-bold font-mono ${darkMode ? 'text-white' : 'text-slate-800'}`}>{truncAddr(wallet.address)}</p>
-                                              {wallet.is_primary && <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-400">Primary</span>}
-                                              {wallet.watch_only && <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-cyan-400/10 text-cyan-400">Watch only</span>}
-                                            </div>
-                                            {wallet.label && <p className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{wallet.label}</p>}
-                                          </>
-                                        )}
+                                        ) : null}
                                       </div>
-                                      {editingWallet !== wallet.id && (
-                                        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                          {!wallet.is_primary && (
-                                            <button onClick={() => setPrimary(wallet.id)} title="Set as primary"
-                                              className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] transition-all ${darkMode ? 'hover:bg-amber-400/20 text-slate-500 hover:text-amber-400' : 'hover:bg-amber-100 text-slate-400 hover:text-amber-600'}`}>★</button>
-                                          )}
-                                          <button onClick={() => { setEditingWallet(wallet.id); setWalletLabelInput(wallet.label || ''); }} title="Rename"
-                                            className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] transition-all ${darkMode ? 'hover:bg-slate-700 text-slate-500 hover:text-white' : 'hover:bg-slate-200 text-slate-400'}`}>✏️</button>
-                                          <button onClick={() => unlinkWallet(wallet.id)} title="Remove"
-                                            className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] transition-all ${darkMode ? 'hover:bg-red-900/30 text-slate-600 hover:text-red-400' : 'hover:bg-red-100 text-slate-400 hover:text-red-500'}`}>✕</button>
-                                        </div>
-                                      )}
                                     </div>
                                   ))}
                                 </div>

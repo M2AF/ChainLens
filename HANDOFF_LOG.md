@@ -153,3 +153,17 @@
 ### 2026-10-13T00:02-03:00 · codex · handoff · 4dd857d (main) dirty 4
 - User commit4dd857d contains chat fix. Final docs/evidence/handoff complete; both project leases released; no application deployment by agent.
 - next: User review remaining notes and companion wallet changes; verify matching wallet GitHub CI after any commit/push, release when authorized and perform production/native sync QA separately.
+
+### 2026-10-13T01:12-03:00 · codex · claim · 5cbf5e8 (main) dirty 1
+- task: Modernize linked wallet profile cards
+- lease until 2026-10-13T04:12-03:00
+
+### 2026-10-13T01:15-03:00 · codex · checkpoint · 5cbf5e8 (main) dirty 4
+- Compact wallet-style rows implemented in index HTML and scoped portfolio CSS. Full wrapped addresses with clipboard feedback; persistent vertical rename/remove actions and existing primary/edit/remove handlers. Baseline syntax and228Node pass. Responsive clipboard/edit/primary/remove browser journey running session68171 .local-artifacts/linked-wallet-e2e.log; no backend or wallet app edits.
+
+### 2026-10-13T01:19-03:00 · codex · verify · 5cbf5e8 (main) dirty 4
+- verified: Base5cbf5e8 plus linked-wallet UI: syntax,11precompiled JSX assets,228Node and9 affected browser cases pass. Focused final journey exact clipboard8chains/stacked RenameRemove/editSaveCancel/primary/remove and1920/1024/768/390 no overflow. Final desktop/mobile screenshots reviewed .local-artifacts/linked-wallets; logs linked-wallet-final-unit/final-e2e/regression. No backend/schema/MagicMoney edit/commit/deploy.
+
+### 2026-10-13T01:19-03:00 · codex · handoff · 5cbf5e8 (main) dirty 4
+- Compact wallet-style owner rows complete with full addresses, Copy and stacked persistent Rename/Remove. Checks/screenshots/docs complete; source and notes uncommitted. No deployment.
+- next: User review/commit/deploy linked-wallet UI when desired. See docs/LINKED-WALLET-LAYOUT.md and .local-artifacts/linked-wallets/.
