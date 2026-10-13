@@ -44,7 +44,15 @@ async function fixture(page,{signedIn=true}={}){
 test('own UUID uses the existing Profile page and owner can hide public wallets and favorites',async({page})=>{
   const f=await fixture(page);await page.goto('/'+ME);await expect(page.getByText("'s gallery",{exact:true})).toBeVisible();await expect(page.getByRole('region',{name:'Public profile',exact:true})).toHaveCount(0);
   await expect(page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Profile',exact:true})).toHaveAttribute('aria-current','page');
-  const settings=page.getByRole('region',{name:'Public profile visibility'});await settings.getByLabel('Display linked wallets').uncheck();await expect(settings.getByLabel('Display linked wallets')).not.toBeChecked();
+  const nav=page.getByRole('navigation',{name:'Main navigation'});
+  await nav.getByRole('button',{name:'Search',exact:true}).click();await expect(page).toHaveURL(/\/$/);
+  await nav.getByRole('button',{name:'Profile',exact:true}).click();await expect(page).toHaveURL('/'+ME);
+  await page.goBack();await expect(page).toHaveURL(/\/$/);await expect(page.getByPlaceholder('Search an app, wallet, or ChainLens ID...')).toBeVisible();
+  await page.goForward();await expect(page).toHaveURL('/'+ME);await expect(page.getByText("'s gallery",{exact:true})).toBeVisible();
+  const settings=page.locator('.profile-account').getByRole('region',{name:'Public profile visibility'});
+  await expect(settings).toBeVisible();
+  expect(await settings.evaluate(el=>!!el.previousElementSibling?.querySelector('.profile-signout-action') && el.nextElementSibling?.tagName==='DETAILS')).toBe(true);
+  await settings.getByLabel('Display linked wallets').uncheck();await expect(settings.getByLabel('Display linked wallets')).not.toBeChecked();
   await settings.getByLabel(/Display favorited NFTs/).uncheck();await expect(settings.getByLabel(/Display favorited NFTs/)).not.toBeChecked();expect(f.patches).toEqual([{public_wallets:false},{public_favorites:false}]);
   await page.screenshot({path:'test-results/profile-v2-owner.png',fullPage:true});
 });
@@ -53,10 +61,12 @@ test('public profile has separate friend/message/more controls, copyable ID, wal
   await expect(page.getByRole('button',{name:'Add Friend',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Message Chain Friend',exact:true})).toBeDisabled();
   await expect(page.getByRole('button',{name:'View Profile',exact:true})).toHaveCount(0);await page.getByRole('button',{name:'Copy ChainLens ID',exact:true}).click();await expect.poll(()=>page.evaluate(()=>navigator.clipboard.readText())).toBe(OTHER);
   await page.getByText('Linked wallets · 1',{exact:true}).click();await expect(page.getByText('0x1111111111111111111111111111111111111111',{exact:true})).toBeVisible();
+  const address=page.getByRole('button',{name:'Copy Main Wallet address',exact:true});await address.click();await expect(address).toContainText('Copied');await expect.poll(()=>page.evaluate(()=>navigator.clipboard.readText())).toBe('0x1111111111111111111111111111111111111111');
   const gallery=page.getByRole('region',{name:'Favorited NFTs'});await expect(gallery.getByRole('button',{name:'View Favorite Seal'})).toBeVisible();await expect.poll(()=>gallery.locator('img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
   await page.screenshot({path:'test-results/profile-v2-public-desktop.png',fullPage:true});await gallery.getByRole('button',{name:'View Favorite Seal'}).click();await expect(page.getByRole('dialog',{name:'Favorite Seal'})).toBeVisible();await page.keyboard.press('Escape');
   f.unfavorite();await gallery.getByRole('button',{name:'Refresh'}).click();await expect(gallery.getByText('No favorited NFTs yet.')).toBeVisible();
   await page.getByRole('button',{name:'Add Friend',exact:true}).click();await expect(page.getByRole('button',{name:'Cancel Request',exact:true})).toHaveText('Request Sent');
+  await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Profile',exact:true}).click();await expect(page).toHaveURL('/'+ME);await expect(page.getByText("'s gallery",{exact:true})).toBeVisible();
 });
 test('more menu shares, blocks/unblocks and submits a reasoned report',async({page,context})=>{
   const f=await fixture(page);f.accept();await context.grantPermissions(['clipboard-read','clipboard-write']);await page.goto('/'+OTHER);
@@ -74,7 +84,9 @@ test('GIF picker is a focused modal with reactions, sends selection and restores
   await page.getByLabel('Open GIPHY picker').click();await dialog.getByRole('button',{name:'Send Reaction 0',exact:true}).click();await expect(dialog).toBeHidden();await expect(page.getByTestId('world-chat-feed').locator('img[alt^="GIF from"]')).toBeVisible();await expect(page.getByPlaceholder('Message World Chat · no links')).toHaveValue('Keep this draft');expect(errors).toEqual([]);
 });
 test('public profile and GIF modal fit mobile viewport',async({page})=>{
-  await fixture(page);await page.setViewportSize({width:390,height:844});await page.goto('/'+OTHER);await expect(page.getByRole('button',{name:'View Favorite Seal'})).toBeVisible();await page.screenshot({path:'test-results/profile-v2-public-mobile.png',fullPage:true});
+  await fixture(page);await page.setViewportSize({width:390,height:844});await page.goto('/'+OTHER);await expect(page.getByRole('button',{name:'View Favorite Seal'})).toBeVisible();
+  await page.getByText('Linked wallets · 1',{exact:true}).click();const walletBox=await page.getByRole('button',{name:'Copy Main Wallet address'}).boundingBox();expect(walletBox.x+walletBox.width).toBeLessThanOrEqual(390);
+  await page.screenshot({path:'test-results/profile-v2-public-mobile.png',fullPage:true});
   await page.getByRole('button',{name:'More profile options'}).click();const menu=page.getByRole('menu',{name:'More profile options'});await expect(menu).toBeVisible();const menuBox=await menu.boundingBox();expect(menuBox.x).toBeGreaterThanOrEqual(0);expect(menuBox.x+menuBox.width).toBeLessThanOrEqual(390);await page.keyboard.press('Escape');
   await page.goto('/chat');await page.getByLabel('Open GIPHY picker').click();const dialog=page.getByRole('dialog',{name:'Choose a GIF'});await expect(dialog).toBeVisible();const box=await dialog.boundingBox();expect(box.x+box.width).toBeLessThanOrEqual(390);expect(box.y+box.height).toBeLessThanOrEqual(844);await page.screenshot({path:'test-results/profile-v2-gif-mobile.png',fullPage:true});
 });

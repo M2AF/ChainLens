@@ -3502,8 +3502,9 @@
       };
 
       const navigateTo = (tab) => {
-        const path = tab === 'magic-swap' ? '/magic-swap' : tab === 'chat' ? '/chat' : '/';
+        const path = tab === 'magic-swap' ? '/magic-swap' : tab === 'chat' ? '/chat' : tab === 'profile' && userProfile?.id ? `/${userProfile.id}` : '/';
         if (window.location.pathname !== path) window.history.pushState({}, '', path);
+        setPublicProfileId(window.ChainLensProfiles.pathId(path));
         setActiveTab(tab);
         setMobileMenuOpen(false);
         setShowDonate(false);
@@ -4489,6 +4490,8 @@
                         <button onClick={logout} className="profile-signout-action">Sign out</button>
                       </div>
 
+                      <window.PublicProfileSettings profile={userProfile} authToken={authToken} onSave={(updates,owner) => setUserProfile(current => current?.id===owner ? {...current,...updates} : current)} />
+
                       {/* Add more wallets — always visible even when wallets exist */}
                       {profileError && (
                         <div className="px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold text-center">
@@ -4787,7 +4790,6 @@
                                 <span className="flex-shrink-0 font-sans text-[8px] font-black uppercase tracking-widest">{copiedProfileId ? 'Copied ✓' : 'Copy'}</span>
                               </button>
 } authFetch={authFetch} onSave={(id, url) => setUserProfile(p => p?.id === id ? { ...p, banner_url: url || null } : p)} />
-                      <window.PublicProfileSettings profile={userProfile} authToken={authToken} onSave={(updates,owner) => setUserProfile(current => current?.id===owner ? {...current,...updates} : current)} />
                       <window.ProfilePortfolio portfolio={profilePortfolio} favorites={nftFavorites} toggleFavorite={toggleNftFavorite} onSelect={openAsset} resolveImg={resolveImg} darkMode={darkMode} filterEntries={filterEntries} toggleSpam={toggleSpam} />
                     </div>
                     </div>

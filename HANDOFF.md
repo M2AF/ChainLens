@@ -7,13 +7,14 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 7be2d33 · HEAD7be2d33: npm check/226Node/ten JSX pass; final13 profile/contact/chat cases plus prior seven chat/favorite sync cases pass (20 unique); own-link final rerun passes; real favorites metadata15/15 and real image decode15/15 with mocked profile transport. Desktop/mobile GIF/profile/owner screenshots reviewed. Additive backend-only schema applied, role write/read/rollback checks pass; advisor no errors. No app deployment or wallet edits; local Supabase key remains unregistered. · 2026-10-12T19:02-03:00
-head: 7be2d33 (main) dirty 11
-updated: 2026-10-12T19:03-03:00 · codex
+verified: b92efb4 · HEADb92efb4 plus local edits: npm check/226 Node/ten JSX pass; final three owner/public/mobile browser cases pass; URL back-forward and other-to-own navigation, settings placement/save and exact clipboard validated. Desktop/mobile screenshots reviewed. No commit/deployment/backend change. · 2026-10-12T21:15-03:00
+head: b92efb4 (main) dirty 7
+updated: 2026-10-12T21:15-03:00 · codex
 
 resources: -
 
 ## Now
+- Profile navigation/placement/copy follow-up complete locally on user HEADb92efb4: sidebar Profile uses own /UUID with route state, owner visibility settings directly below Sign out before social accounts, public wallet addresses copy with feedback/error handling. npm check/226Node/ten JSX and final three affected browser cases pass (owner URL/back/forward/settings save, public copy and navigation to self, mobile wallets/GIF). Desktop/mobile screenshots reviewed; .local-artifacts/profile-navigation/. docs/PUBLIC-PROFILE-GALLERY.md; no commit/deploy/backend change.
 - Public profile v2/GIF modal complete locally on user HEAD7be2d33: own UUID uses Profile workspace; others show synced mainnet favorites, optional wallets, separate friend/message/more actions with share/block/report and copyable ID. Backend blocks cover requests/DMs/world/friends/presence/unread. Owner visibility controls; focused GIF modal preserves draft. npm check/226Node/ten JSX;20 unique browser journeys plus own-link rerun and actual15/15image decode pass; screenshots reviewed. docs/PUBLIC-PROFILE-GALLERY.md; .profile-v2-*.log; .local-artifacts/profile-v2/. Additive RLS schema applied/transaction-tested; app not deployed, wallet unchanged.
 - Profile ID/link search and basic public /<uuid> profiles; shared name actions, /chat two-panel/mobile page and draggable/pinned pop-out complete locally. Single component retains conversation/drafts/scroll; online/in-world presence expires75s. HEAD1faf750: npm check/211Node/seven JSX plus16 unique browser cases pass; screenshots reviewed. docs/PROFILE-SEARCH-CHAT.md; .social-*.log; .local-artifacts/profile-social/. Supabase presence table and user-approved account RLS/grant fix applied/verified; no feature deployment/commit or wallet source edits.
 - Sidebar seal layering/scrollbars complete locally on user HEADb93c583: opaque navigation/header above unchanged seal, isolated stacking; shared rounded palette/art-accent thumbs with transparent tracks/no arrows on main and Docs. Syntax/204Node/six JSX plus Sappy actual WebGL13motions/mobile/gate, palette switch/reload and Docs checks pass. .sidebar-scroll-*.log; .local-artifacts/sappy-seals/sidebar-scrollbars.png reviewed. No wallet edits/commit/deploy.
@@ -50,7 +51,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User review/deploy ChainLens frontend/backend when authorized; verify real authenticated favorites/visibility/block/report flows with deployment credentials
+- User review and deploy frontend changes when authorized; current URL/visibility placement/public address copy fixes verified locally
 
 ## Traps
 - Local Supabase key is unregistered; fixture-backed API/profile transport plus connector DB/live media checks do not prove authenticated HTTP integration. Production keys were not read/changed. Express/Magic Money Worker use service_role. Public profile allowlist now includes visibility flags and optional sanitized wallet list per explicit user request; emails/social/provider identity stay private. Favorite galleries derive only current mainnet f entries, never tombstones or filter payloads.

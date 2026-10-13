@@ -408,3 +408,16 @@
 ### 2026-10-12T19:03-03:00 · codex · handoff · 7be2d33 (main) dirty 11
 - Public profile gallery/controls and focused GIF modal complete locally:226Node/ten JSX/20browser, final own-link rerun, real15/15 favorite artwork decode; screenshots reviewed. Own links use Profile; other profiles have optional wallets/favorites and share/block/report. Additive SQL live/RLS verified; reports pending operator queue. No app deploy/commit/wallet edits. docs/PUBLIC-PROFILE-GALLERY.md has files and evidence.
 - next: User review/deploy ChainLens frontend/backend when authorized; verify real authenticated favorites/visibility/block/report flows with deployment credentials
+
+### 2026-10-12T21:13-03:00 · codex · claim · b92efb4 (main) dirty 1
+- task: Profile navigation URL settings placement and address copying
+- lease until 2026-10-13T00:13-03:00
+
+### 2026-10-12T21:14-03:00 · codex · checkpoint · b92efb4 (main) dirty 6
+- Profile sidebar navigation now uses own UUID and updates profile route state; visibility card moved below Sign out; public address copy buttons with feedback added. npm check/226 Node/ten JSX pass; initial three affected desktop/mobile browser cases pass. Final route-from-other-profile/mobile-wallet cases running.
+
+### 2026-10-12T21:15-03:00 · codex · verify · b92efb4 (main) dirty 7
+- verified: HEADb92efb4 plus local edits: npm check/226 Node/ten JSX pass; final three owner/public/mobile browser cases pass; URL back-forward and other-to-own navigation, settings placement/save and exact clipboard validated. Desktop/mobile screenshots reviewed. No commit/deployment/backend change.
+
+### 2026-10-12T21:15-03:00 · codex · handoff · b92efb4 (main) dirty 7
+- next: User review and deploy frontend changes when authorized; current URL/visibility placement/public address copy fixes verified locally

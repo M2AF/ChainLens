@@ -94,12 +94,28 @@
           <small>CHAINLENS PROFILE</small><h1>{state.profile.display_name}</h1>
           <window.PublicProfileControls person={state.profile} authToken={authToken} onMessage={onMessage} />
           <PublicProfileId id={state.profile.id} />
-          {state.profile.public_wallets !== false && <details className="cl-public-wallets"><summary>Linked wallets · {(state.profile.wallets || []).length}</summary>{(state.profile.wallets || []).map(wallet=><div key={`${wallet.chain}:${wallet.address}`}><strong>{wallet.label || wallet.chain}{wallet.watch_only?' · Watch-only':''}</strong><code>{wallet.address}</code></div>)}{!(state.profile.wallets || []).length && <p>No linked wallets.</p>}</details>}
+          {state.profile.public_wallets !== false && <details className="cl-public-wallets"><summary>Linked wallets · {(state.profile.wallets || []).length}</summary>{(state.profile.wallets || []).map((wallet,index)=><PublicWalletAddress key={`${wallet.chain}:${wallet.address}:${index}`} wallet={wallet} />)}{!(state.profile.wallets || []).length && <p>No linked wallets.</p>}</details>}
         </div>
         <window.PublicFavoriteGallery key={id} id={id} visible={state.profile.public_favorites !== false} />
       </>}
     </section>;
   };
+  function PublicWalletAddress({wallet}) {
+    const [copied,setCopied]=useState(false),[error,setError]=useState('');
+    const timer=useRef(null);
+    useEffect(()=>()=>clearTimeout(timer.current),[]);
+    const copy=async()=>{
+      setError('');
+      try {
+        await navigator.clipboard.writeText(wallet.address);
+        setCopied(true);clearTimeout(timer.current);timer.current=setTimeout(()=>setCopied(false),1800);
+      } catch {setCopied(false);setError('Could not copy address. Try your browser’s copy command.');}
+    };
+    return <div><strong>{wallet.label || wallet.chain}{wallet.watch_only?' · Watch-only':''}</strong>
+      <button type="button" className="cl-wallet-copy" aria-label={`Copy ${wallet.label || wallet.chain} address`} onClick={copy}><code>{wallet.address}</code><span aria-live="polite">{copied?'Copied ✓':'Copy'}</span></button>
+      {error && <p role="status">{error}</p>}
+    </div>;
+  }
   function PublicProfileId({id}) {
     const [copied,setCopied]=useState(false),[error,setError]=useState('');
     return <><button type="button" className="profile-banner-id cl-public-id" aria-label="Copy ChainLens ID" onClick={async()=>{try{await navigator.clipboard.writeText(id);setCopied(true);setTimeout(()=>setCopied(false),1800);}catch{setError('Could not copy ID');}}}><span className="profile-id-label">ChainLens ID</span><span>{id}</span><b>{copied?'Copied ✓':'Copy'}</b></button>{error && <p role="status">{error}</p>}</>;

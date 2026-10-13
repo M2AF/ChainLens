@@ -99,6 +99,19 @@ Changed files:
 
 ## Verification
 
+October 12 follow-up: the sidebar Profile button now navigates to the signed-in
+account's UUID URL while opening the existing owner workspace. Public visibility
+settings sit in the account column immediately below Sign out and above Social
+accounts & passkeys. Public wallet addresses are full-width copy buttons with
+confirmed success feedback and a clipboard-error message. Changes are in
+`public/index.html`, `public/profile-social.jsx`, `public/profile-social.css`, and
+`e2e/profile-public-v2.spec.js`. Syntax checks, 226 Node tests and all ten JSX
+scripts pass. Affected browser checks cover owner URL/back/forward, settings
+placement and saving, public clipboard copying, navigation from another user's
+profile to your own, and mobile wallet layout. No commit or app deployment.
+All three affected browser cases pass; reviewed screenshots are retained in
+`.local-artifacts/profile-navigation/`.
+
 Syntax check and all 226 Node tests pass. All ten JSX scripts compile. Final
 profile/GIF/contact journeys pass in `.profile-v2-final-browser.log`, with prior
 chat/unread/favorite synchronization regressions in `.profile-v2-regression.log`.
