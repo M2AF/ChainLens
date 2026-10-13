@@ -29,7 +29,7 @@ const FRIEND_B = {
 // what it counts (requests and unread DMs) at the same time.
 const REQUESTER = '9b1f0c22-5d8e-41a7-8f3b-6c2d4e5a7b19';
 
-async function installChatMocks(page, { worldMessageCount = 1, delayedWorldGif = false, unreadFixture = false } = {}) {
+async function installChatMocks(page, { worldMessageCount = 1, delayedWorldGif = false, unreadFixture = false, nftAvatars = false } = {}) {
   // The unread fixture starts with both friendships already accepted — unread
   // only exists on an accepted friendship, so that is the state worth testing.
   let accepted = unreadFixture;
@@ -39,7 +39,7 @@ async function installChatMocks(page, { worldMessageCount = 1, delayedWorldGif =
     message_type: 'text',
     content: index === 0 ? 'Welcome to World Chat!' : `World message ${index + 1}`,
     created_at: new Date(Date.parse('2026-08-15T12:00:00.000Z') + index * 60_000).toISOString(),
-    author: index % 2 ? ME : FRIEND,
+    author: nftAvatars ? { ...(index % 2 ? ME : FRIEND), avatar_url: '/favicon/favicon.svg', avatar_nft_key: 'evm:test:1' } : (index % 2 ? ME : FRIEND),
   }));
   if (delayedWorldGif) {
     worldMessages[worldMessages.length - 1] = {
@@ -253,6 +253,36 @@ async function installChatMocks(page, { worldMessageCount = 1, delayedWorldGif =
   };
 }
 
+test('chat fits the viewport with animated NFT avatars, wide GIFs and unbroken text', async ({ page }) => {
+  test.setTimeout(90_000);
+  await installChatMocks(page, { worldMessageCount: 4, delayedWorldGif: true, nftAvatars: true });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/');
+  await page.getByTestId('chat-trigger').click({ timeout: 20_000 });
+  const feed = page.getByTestId('world-chat-feed');
+  await expect(feed.locator('.cl-avatar--nft')).toHaveCount(4, { timeout: 15_000 });
+  expect((await feed.locator('.cl-avatar--nft').first().boundingBox()).width).toBe(40);
+  await expect(feed.getByRole('img', { name: /GIF from/ })).toBeVisible();
+  const fits = async () => {
+    await expect.poll(() => feed.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+  };
+  await fits();
+  await page.screenshot({ path: 'test-results/chat-page-desktop.png' });
+  for (const width of [1280, 1024, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await fits();
+  }
+  await page.getByPlaceholder('Message World Chat · no links').fill('W'.repeat(500));
+  await page.getByRole('button', { name: 'Send message', exact: true }).click();
+  await expect(feed.getByText('W'.repeat(500), { exact: true })).toBeVisible();
+  await fits();
+  await page.screenshot({ path: 'test-results/chat-page-responsive.png' });
+  await page.getByRole('button', { name: 'Pop out chat' }).click();
+  await fits();
+  await page.screenshot({ path: 'test-results/chat-popout-responsive.png' });
+});
+
 test('signed-out chat button opens the account prompt', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
@@ -431,7 +461,7 @@ test('unread badge is server state, shared with the wallet', async ({ page }) =>
   // request — 4 before anything is opened, and the count is the SERVER's.
   const trigger = page.getByTestId('chat-trigger');
   const badge = page.getByTestId('chat-trigger-badge');
-  await expect(badge).toHaveText('4');
+  await expect(badge).toHaveText('4', { timeout: 15_000 });
   await expect(trigger).toHaveAttribute('aria-label', /1 friend request, 3 unread messages/);
 
   await trigger.click();

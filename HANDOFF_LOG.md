@@ -116,3 +116,27 @@
 
 ### 2026-10-12T22:45-03:00 · codex · verify · 8c72c70 (main) dirty 10
 - verified: HEAD8c72c70 plus edits: syntax/228 Node/11 JSX and11 unique affected browser journeys pass across final logs (3avatar/3portfolio/5public-GIF); desktop/mobile/public hexagon screenshots reviewed, actual animation measured and reduced motion stops. Shared schema applied, test writes rolled back, RLS/grants intact; no app deploy/commit. Companion wallet final gate ongoing.
+
+### 2026-10-12T23:25-03:00 · codex · verify · bb4ca03 (main) dirty 3
+- verified: HEAD8c72c70 plus NFT-avatar edits: syntax/228 Node/11 JSX,11unique affected browser cases pass; desktop/mobile/public hexagon screenshots reviewed and motion measured/reduced-motion verified. Shared avatar_nft_key migration20261013012323 applied; test writes rolled back, RLS/browser grants intact. Companion wallet final verify:ci exits0 (fiveTS/2517unit/builds/92browser+1skip/critical audit). No application commit/deploy/install; production sync/native QA separate.
+
+### 2026-10-12T23:25-03:00 · codex · handoff · bb4ca03 (main) dirty 4
+- next: User review NFT avatar feature/docs and deploy ChainLens frontend/backend plus updated Magic Money Worker and wallet build when authorized. Shared schema already applied; existing NFT avatars need reselection. Verify production authenticated sync/native runtime after release.
+
+### 2026-10-12T23:26-03:00 · codex · claim · bb4ca03 (main) dirty 4
+- task: Reconcile user ChainLens NFT-avatar commit with final checks
+- lease until 2026-10-13T02:26-03:00
+
+### 2026-10-12T23:27-03:00 · codex · correction · bb4ca03 (main) dirty 4
+- verified: HEADbb4ca03 current check/228Node/11JSX pass; same feature application source as11 passing browser journeys. Shared schema remote20261013012323 applied; wallet final CI gate exits0 as recorded. No agent deployment/install.
+- User committed ChainLens feature as bb4ca03 while wallet full gate ran. Reverified current npm check/228tests/11JSX (same328153 script bytes); no app source drift. Remaining local changes final docs/handoff and migration filename aligned to actual remote20261013012323. Prior no-commit statements mean no agent commit; deployment state not asserted.
+
+### 2026-10-12T23:27-03:00 · codex · handoff · bb4ca03 (main) dirty 4
+- next: Review final notes and migration rename aligning remote20261013012323; ChainLens feature is in user commitbb4ca03. Release updated wallet Worker/build when authorized, verify matching wallet main CI after commit/push, and perform production sync/native runtime QA. Existing NFT pictures need reselection once.
+
+### 2026-10-12T23:31-03:00 · codex · claim · bb4ca03 (main) dirty 4
+- task: Larger chat avatars and responsive chat width
+- lease until 2026-10-13T02:31-03:00
+
+### 2026-10-12T23:38-03:00 · codex · checkpoint · bb4ca03 (main) dirty 8
+- Chat sizing implemented:40px message/friend/header avatars,36px presence; NFT rotation overflow now contained by avatar. New before-fix regression reproduced9px world-feed overflow; after-fix desktop/mobile/page/popout wideGIF/500char passes. Syntax and228Node pass. Running17 focused browser journeys session26703, chat-sizing-e2e.log; wallet full CI session50062.

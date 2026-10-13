@@ -512,7 +512,7 @@
       });
     };
 
-    const ChatAvatar = ({ profile, size = 34 }) => {
+    const ChatAvatar = ({ profile, size = 40 }) => {
       const name = profile?.display_name || 'ChainLens user';
       const initials = name.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
       const hue = [...String(profile?.id || name)].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 360;
@@ -527,10 +527,10 @@
     };
 
     const ChatMessage = ({ message, own, darkMode, allowLinks, deleting, onDelete, onMediaLoad, personActions }) => (
-      <div className={`flex gap-2.5 ${own ? 'flex-row-reverse' : ''}`} data-message-id={message.id}>
-        <ChatAvatar profile={message.author} size={30} />
+      <div className={`flex min-w-0 gap-2.5 ${own ? 'flex-row-reverse' : ''}`} data-message-id={message.id}>
+        <ChatAvatar profile={message.author} size={40} />
         <div className={`min-w-0 max-w-[78%] ${own ? 'text-right' : ''}`}>
-          <div className={`flex items-baseline gap-2 mb-1 ${own ? 'justify-end' : ''}`}>
+          <div className={`flex min-w-0 flex-wrap items-baseline gap-2 mb-1 ${own ? 'justify-end' : ''}`}>
             {message.author?.id ? <window.ProfileActions person={message.author} {...personActions} /> : <span>ChainLens user</span>}
             <span className={`text-[8px] flex-shrink-0 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>{formatChatTime(message.created_at)}</span>
             {own && (
@@ -542,12 +542,12 @@
             )}
           </div>
           {message.message_type === 'gif' ? (
-            <div className={`overflow-hidden rounded-2xl border ${own ? 'rounded-tr-sm' : 'rounded-tl-sm'} ${darkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-slate-100'}`}>
+            <div className={`max-w-full overflow-hidden rounded-2xl border ${own ? 'rounded-tr-sm' : 'rounded-tl-sm'} ${darkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-slate-100'}`}>
               <img src={message.content} alt={`GIF from ${message.author?.display_name || 'ChainLens user'}`}
                 className="block max-h-52 w-full object-contain" loading="lazy" onLoad={onMediaLoad} />
             </div>
           ) : (
-            <div className={`inline-block px-3 py-2 rounded-2xl text-left text-xs leading-relaxed whitespace-pre-wrap break-words ${own
+            <div style={{overflowWrap:'anywhere'}} className={`inline-block max-w-full px-3 py-2 rounded-2xl text-left text-xs leading-relaxed whitespace-pre-wrap break-words ${own
               ? 'rounded-tr-sm bg-cyan-500 text-slate-950'
               : darkMode ? 'rounded-tl-sm bg-slate-800 text-slate-100' : 'rounded-tl-sm bg-slate-100 text-slate-800'}`}>
               {renderChatText(message.content, allowLinks)}
@@ -1056,7 +1056,7 @@
               <button type="button" onClick={() => selectConversation(null)} className="w-full rounded-xl px-3 py-3 text-left font-bold text-cyan-400">World Chat</button>
               <div className="space-y-3"><h3 className="text-xs font-bold">In World Chat · {presence.people.filter(p => p.in_world).length}</h3>
                 {!presence.available && <p className="text-xs opacity-60">Presence unavailable</p>}
-                {presence.people.filter(p => p.in_world).map(person => <div key={person.id} className="flex items-center gap-2"><ChatAvatar profile={person} size={26} /><window.ProfileActions person={person} {...personActions} /></div>)}
+                {presence.people.filter(p => p.in_world).map(person => <div key={person.id} className="flex min-w-0 items-center gap-2"><ChatAvatar profile={person} size={36} /><window.ProfileActions person={person} {...personActions} /></div>)}
               </div>
               <div className={`rounded-2xl border p-3 ${darkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`text-[8px] font-black uppercase tracking-widest mb-1 ${muted}`}>Your ChainLens ID</div>
@@ -1129,12 +1129,12 @@
               {selectedFriend && (
                 <div className={`px-3 py-2 flex items-center gap-2 border-b ${darkMode ? 'border-slate-800 bg-slate-950/50' : 'border-slate-100 bg-slate-50'}`}>
                   <button onClick={() => { setSelectedFriend(null); setDirectMessages([]); setShowGifs(false); }} aria-label="Back to friends" className={`w-8 h-8 rounded-full ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-200'}`}>‹</button>
-                  <ChatAvatar profile={selectedFriend} size={30} />
+                  <ChatAvatar profile={selectedFriend} size={40} />
                   <div className="min-w-0 flex-1"><window.ProfileActions person={selectedFriend} {...personActions} /><div className={`font-mono text-[7px] truncate ${muted}`}>{selectedFriend.id}</div></div>
                   <button onClick={() => changeFriendship(selectedFriend, 'remove')} className={`text-[8px] font-black uppercase tracking-widest ${muted}`}>Unfriend</button>
                 </div>
               )}
-              <div className="relative flex-1 min-h-0">
+              <div className="relative flex-1 min-w-0 min-h-0">
                 <div ref={feedRef} data-testid={selectedFriend ? 'direct-message-feed' : 'world-chat-feed'} onScroll={syncFeedScrollState}
                   className={`h-full overflow-y-auto p-3 space-y-4 ${darkMode ? 'bg-slate-950/35' : 'bg-slate-50/70'}`}>
                   {currentLoading ? (

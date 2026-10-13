@@ -41,7 +41,7 @@ ChainLens: `backend-server.js`, `profile-social-service.js`, `profile-avatar.js`
 `public/profile-portfolio.jsx`, `public/profile-social.jsx`,
 `test/profile-avatar.test.js`, `test/profile-social.test.js`,
 `e2e/nft-avatar.spec.js`, `e2e/profile-portfolio.spec.js`,
-`supabase/migrations/20261013011836_nft_profile_avatar.sql`, this document and
+`supabase/migrations/20261013012323_nft_profile_avatar.sql`, this document and
 handoff board/journal/archive.
 
 Magic Money: `cloudflare-worker/db.js`, `cloudflare-worker/profile-avatar.js`,
@@ -53,7 +53,8 @@ Magic Money: `cloudflare-worker/db.js`, `cloudflare-worker/profile-avatar.js`,
 `src/renderer/components/ProfileAvatar.tsx`,
 `src/renderer/components/ProfileAvatar.css`,
 `src/renderer/lib/profile-collectibles.ts`,
-`src/renderer/lib/profile-collectibles.test.ts`, `e2e/nft-avatar.spec.ts`, companion
+`src/renderer/lib/profile-collectibles.test.ts`, `e2e/nft-avatar.spec.ts`,
+`e2e/nft-gallery.spec.ts`, companion
 documentation and handoff board/journal/archive.
 
 ## Validation and release state
@@ -68,18 +69,33 @@ Logs: `.nft-avatar-node.log`, `.nft-avatar-browser-final.log`,
 
 Magic Money: five TypeScript targets, 174 test files/2,517 unit tests, and fresh
 Electron/extension/injection builds pass. Focused cache/session, signed Worker
-update and chat tests pass (24 checks); full `CI=1 npm run verify:ci` browser and
-critical-audit stages are in progress in
-`.nft-avatar-verify-ci-complete.log`. GitHub CI for base `b11a019` is
+update and chat tests pass (24 checks). Final `CI=1 npm run verify:ci` exits zero:
+92 browser cases pass, one existing case is skipped, and the required critical
+production dependency audit passes. Log: `.nft-avatar-verify-ci-reviewed.log`.
+The audit still reports four moderate and four high findings in existing
+dependencies; no dependency changes were made in this feature.
+Five fresh NFT avatar/gallery browser cases pass without retries
+(`.nft-avatar-wallet-fresh.log`), with wallet screenshots reviewed in the wallet's
+`.local-artifacts/nft-avatar/`. Earlier full-run fixture issues were corrected:
+the avatar fixture now selects the collection mosaic explicitly, and gallery
+tests use the accessible Close NFT details label.
+Test-generated changes to ten tracked PNG artifacts were archived under the
+wallet's `.local-artifacts/nft-avatar/generated-suite-artifacts/` and the
+original committed images restored. Feature previews are retained separately.
+GitHub CI for base `b11a019` is
 [green](https://github.com/M2AF/Magic-Money-Wallet/actions/runs/38290711616);
 these uncommitted changes have **GitHub CI pending**.
 
 The additive database column/constraint is applied to the shared Supabase project.
+A CLI-created migration file is aligned with the recorded remote migration version
+`20261013012323` (`nft_profile_avatar`).
 A test update was rolled back; existing user pictures were preserved. `cl_users`
 RLS remains enabled and browser-role reads/writes remain revoked. The actual
 ChainLens/Worker avatar validators agree on accepted/rejected payloads.
 
-No commit, push, application/Worker deployment or device install occurred.
+The user committed the ChainLens feature as `bb4ca03` while validation was running;
+its current syntax checks, 228 tests and eleven-script precompile were reverified.
+No agent commit, push, application/Worker deployment or device install occurred.
 Release requires the updated ChainLens frontend/backend, wallet Worker, and wallet
 build together. Native Android/iOS runtime and production authenticated sync are
 separate release QA; local browser fixtures do not establish those.

@@ -3,18 +3,18 @@
      History goes in HANDOFF_LOG.md. Machine fields above the first ## are managed by handoff.py. -->
 
 owner: codex
-task: NFT avatar picker cache spam filtering and shared hexagon presentation
-lease_until: 2026-10-13T01:45-03:00
+task: Larger chat avatars and responsive chat width
+lease_until: 2026-10-13T02:38-03:00
 repo: .
 verify: npm run check && npm test
-verified: 8c72c70 · HEAD8c72c70 plus edits: syntax/228 Node/11 JSX and11 unique affected browser journeys pass across final logs (3avatar/3portfolio/5public-GIF); desktop/mobile/public hexagon screenshots reviewed, actual animation measured and reduced motion stops. Shared schema applied, test writes rolled back, RLS/grants intact; no app deploy/commit. Companion wallet final gate ongoing. · 2026-10-12T22:45-03:00
-head: 8c72c70 (main) dirty 10
-updated: 2026-10-12T22:45-03:00 · codex
+verified: bb4ca03 · HEADbb4ca03 current check/228Node/11JSX pass; same feature application source as11 passing browser journeys. Shared schema remote20261013012323 applied; wallet final CI gate exits0 as recorded. No agent deployment/install. · 2026-10-12T23:27-03:00
+head: bb4ca03 (main) dirty 8
+updated: 2026-10-12T23:38-03:00 · codex
 
 resources: -
 
 ## Now
-- NFT PFP work on user HEAD8c72c70: cache-backed full searchable/scrollable picker excludes manual/automatic spam with restores, NFT detail action, shared avatar_nft_key source and animated hexagon vs uploaded circle across owner/public/chat. 228Node/11JSX/11unique affected browser journeys pass; screenshots reviewed; public border motion measured/reduced-motion verified. Shared Supabase column applied, test write rolled back, RLS/grants preserved. Wallet save-path fixes and full gate in progress in companion checkout; docs/NFT-PROFILE-PICTURES.md. No commit/deploy/install.
+- NFT PFP committed by user as HEADbb4ca03 during validation; current syntax/228Node/11JSX reverified (same328153-byte compiled scripts). Cached full searchable/scrollable picker respects spam/restores; NFT detail action; shared source/animated hexagon vs uploaded circle across owner/public/chat. Eleven affected browser journeys pass; screenshots/motion/reduced-motion reviewed. Shared column/constraint applied (remote migration20261013012323), test writes rolled back, RLS/grants intact; local migration filename aligned to remote version and final docs/board pending commit. Wallet final gate exits0: fiveTS/2517unit/fresh builds/92browser+1skip/critical audit pass. docs/NFT-PROFILE-PICTURES.md; .local-artifacts/nft-avatar/. No agent commit/deploy/install; wallet GitHub CI pending dirty edits.
 - Profile navigation/placement/copy follow-up complete locally on user HEADb92efb4: sidebar Profile uses own /UUID with route state, owner visibility settings directly below Sign out before social accounts, public wallet addresses copy with feedback/error handling. npm check/226Node/ten JSX and final three affected browser cases pass (owner URL/back/forward/settings save, public copy and navigation to self, mobile wallets/GIF). Desktop/mobile screenshots reviewed; .local-artifacts/profile-navigation/. docs/PUBLIC-PROFILE-GALLERY.md; no commit/deploy/backend change.
 - Public profile v2/GIF modal complete locally on user HEAD7be2d33: own UUID uses Profile workspace; others show synced mainnet favorites, optional wallets, separate friend/message/more actions with share/block/report and copyable ID. Backend blocks cover requests/DMs/world/friends/presence/unread. Owner visibility controls; focused GIF modal preserves draft. npm check/226Node/ten JSX;20 unique browser journeys plus own-link rerun and actual15/15image decode pass; screenshots reviewed. docs/PUBLIC-PROFILE-GALLERY.md; .profile-v2-*.log; .local-artifacts/profile-v2/. Additive RLS schema applied/transaction-tested; app not deployed, wallet unchanged.
 - Profile ID/link search and basic public /<uuid> profiles; shared name actions, /chat two-panel/mobile page and draggable/pinned pop-out complete locally. Single component retains conversation/drafts/scroll; online/in-world presence expires75s. HEAD1faf750: npm check/211Node/seven JSX plus16 unique browser cases pass; screenshots reviewed. docs/PROFILE-SEARCH-CHAT.md; .social-*.log; .local-artifacts/profile-social/. Supabase presence table and user-approved account RLS/grant fix applied/verified; no feature deployment/commit or wallet source edits.
@@ -52,7 +52,7 @@ resources: -
 - New Listings collector remains deployed to chainlens-search Worker; local Render proxy/browser tests passed. Public Render endpoint may still use old memory collector; previous feed release decision remains separate.
 
 ## Next
-- User review and deploy frontend changes when authorized; current URL/visibility placement/public address copy fixes verified locally
+- Review final notes and migration rename aligning remote20261013012323; ChainLens feature is in user commitbb4ca03. Release updated wallet Worker/build when authorized, verify matching wallet main CI after commit/push, and perform production sync/native runtime QA. Existing NFT pictures need reselection once.
 
 ## Traps
 - Local Supabase key is unregistered; fixture-backed API/profile transport plus connector DB/live media checks do not prove authenticated HTTP integration. Production keys were not read/changed. Express/Magic Money Worker use service_role. Public profile allowlist now includes visibility flags and optional sanitized wallet list per explicit user request; emails/social/provider identity stay private. Favorite galleries derive only current mainnet f entries, never tombstones or filter payloads.
