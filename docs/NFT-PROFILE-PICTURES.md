@@ -99,3 +99,20 @@ No agent commit, push, application/Worker deployment or device install occurred.
 Release requires the updated ChainLens frontend/backend, wallet Worker, and wallet
 build together. Native Android/iOS runtime and production authenticated sync are
 separate release QA; local browser fixtures do not establish those.
+
+## Chat sizing follow-up (2026-10-12)
+
+Message, friend-list and conversation-header avatars are now 40px; the compact
+presence list uses 36px. The oversized rotating NFT-border layer is contained
+inside the avatar with `overflow:hidden`: `clip-path` alone painted the hexagon
+but still contributed horizontal scroll overflow, particularly on own messages
+against the right edge. The regression reproduced 9px overflow before this fix.
+GIFs, unbroken text and message headers fit the available conversation width.
+The main page retains two panels on desktop and the People toggle on mobile.
+
+Syntax checks, 228 Node tests and all 17 affected browser journeys are covered.
+The unread-badge initialization assertion needed a 15-second startup allowance;
+its final rerun and the width regression pass. Width checks cover
+1920/1280/1024/768/390px, wide GIFs, 500-character text and the pop-out.
+Screenshots: `.local-artifacts/chat-sizing/`; logs: `chat-sizing-e2e.log` and
+`chat-sizing-final-e2e.log`. Application deployment remains separate.

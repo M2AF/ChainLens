@@ -140,3 +140,16 @@
 
 ### 2026-10-12T23:38-03:00 · codex · checkpoint · bb4ca03 (main) dirty 8
 - Chat sizing implemented:40px message/friend/header avatars,36px presence; NFT rotation overflow now contained by avatar. New before-fix regression reproduced9px world-feed overflow; after-fix desktop/mobile/page/popout wideGIF/500char passes. Syntax and228Node pass. Running17 focused browser journeys session26703, chat-sizing-e2e.log; wallet full CI session50062.
+
+### 2026-10-12T23:45-03:00 · codex · verify · 4dd857d (main) dirty 2
+- verified: HEADbb4ca03 plus chat sizing edits:syntax/228Node/11JSX pass;17 affected browser cases covered (16 initial passes; badge startup allowance fixed and final width+unread2 pass). Animated NFT overflow reproduced9px before;zero afterward1920/1280/1024/768/390,page/popout,wideGIF/500char. Desktop/mobile screenshots reviewed;wallet fresh final gate running after stale-header follow-up.
+
+### 2026-10-12T23:46-03:00 · codex · verify · 4dd857d (main) dirty 3
+- verified: User HEAD4dd857d contains chat sizing/overflow fix (same328249-byte compiledJS);current syntax/228Node/11JSX pass.17 affected browser cases covered;final width+unread rerun2pass. Screenshots reviewed1920desktop/390mobile/popout. Wallet stale-header follow-up2520unit/full gate in progress.
+
+### 2026-10-13T00:02-03:00 · codex · verify · 4dd857d (main) dirty 4
+- verified: User HEAD4dd857d chat sizing/overflow:same328249-byte11JSX;current syntax/228Node pass;17 affected browser cases covered with final width+unread2pass. 1920/1280/1024/768/390,page/popout,NFT-animation/GIF/500char fit;screenshots reviewed. Companion wallet final CI gate exits0,2520unit/91browser+1history retry+1skip. No agent commit/deploy/install.
+
+### 2026-10-13T00:02-03:00 · codex · handoff · 4dd857d (main) dirty 4
+- User commit4dd857d contains chat fix. Final docs/evidence/handoff complete; both project leases released; no application deployment by agent.
+- next: User review remaining notes and companion wallet changes; verify matching wallet GitHub CI after any commit/push, release when authorized and perform production/native sync QA separately.
