@@ -165,3 +165,13 @@
 ### 2026-10-13T22:50-03:00 · codex · handoff · d3237b1 (main) dirty 8
 - UUID-avatar parity fixed locally; user-approved empty legacy account cleanup live and verified. OldDiscord/Google logins retained oncurrentaccount. No source deployment/commit.
 - next: User review/commit local AppHub search and UUID avatar fixes and deploy frontend when authorized.
+
+### 2026-10-13T23:00-03:00 · codex · claim · 7ec849d (main) dirty 1
+- task: NFT-first search and three-token preview
+- lease until 2026-10-14T02:00-03:00
+
+### 2026-10-13T23:02-03:00 · codex · checkpoint · 7ec849d (main) dirty 4
+- User HEAD7ec849d now contains priorsearch/avatar fixes. NFT section moved before tokens; tokenpreview3 with local Showmore/Showless and reset onnetwork/query/retry. All13JSX compile.6affected assetbrowser cases running session62906 token-preview-e2e.log; visualreview pending.
+
+### 2026-10-13T23:08-03:00 · codex · checkpoint · 7ec849d (main) dirty 6
+- Added frontend-only safe marketplace URL helpers: Wayup policycollection,OpenSea supportedEVM networkcontract (live Sappy route307 tocollection verified),MagicEden NFTmint and cachedcollection samplemint. Cardano policy56-bytehex label/exactCopy;assetunit retainedseparately.13entity unit13JSX pass;7browser finalrerun50546 nft-marketplace-e2e.log inprogress; earlier6previewbrowser pass. Wayup livefetch429 butindexedofficialcollectionrouteconfirmed; no new runtimeproviderAPIcalls.

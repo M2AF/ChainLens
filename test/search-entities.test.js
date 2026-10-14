@@ -79,3 +79,16 @@ test('collection index does not invent metadata; provider errors remain errors',
   const unknown=await service.search({kind:'collection',q:'not a known collection'}); assert.equal(unknown.assets.length,0);
   await assert.rejects(service.search({kind:'collection',q:POLICY,chain:'cardano'}),e=>e.statusCode===503 && !e.message.includes('secret'));
 });
+
+test('NFT marketplace URLs use validated network identities and Cardano policies stay copyable',()=>{
+  const {nftMarketplace,assetIdentity}=require('../public/search-entities');
+  assert.equal(nftMarketplace({chain:'cardano',kind:'policy',address:POLICY}).url,'https://www.wayup.io/collection/'+POLICY);
+  assert.deepEqual(assetIdentity({chain:'cardano',address:POLICY+'abcd'}),{label:'Policy ID',value:POLICY,unit:POLICY+'abcd'});
+  assert.equal(nftMarketplace({chain:'apechain',kind:'collection',address:ADDRESS}).url,'https://opensea.io/contract/ape_chain/'+ADDRESS);
+  const mint='So11111111111111111111111111111111111111112';
+  assert.equal(nftMarketplace({chain:'solana',kind:'nft',address:mint}).url,'https://magiceden.io/item-details/'+mint);
+  assert.equal(nftMarketplace({chain:'solana',kind:'collection',address:mint}),null);
+  assert.equal(nftMarketplace({chain:'gnosis',address:ADDRESS}),null);
+  assert.equal(nftMarketplace({chain:'ethereum',address:'javascript:alert(1)'}),null);
+  assert.equal(assetIdentity({chain:'cardano',isNative:true,address:null}),null);
+});

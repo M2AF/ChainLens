@@ -48,5 +48,22 @@
     const needsChain = !chain && (kind === 'transaction' || kind === 'address' || /^0x[a-f0-9]{40}$/i.test(query));
     return { kind, query, chain, needsChain };
   };
-  return { parseEntityIntent, chainId, isHash, isIdentity, explorerUrl, explorers };
+  // OpenSea chain slugs checked against its public /api/v2/chains endpoint.
+  const openSeaChains = {ethereum:'ethereum',polygon:'polygon',base:'base',blast:'blast',arbitrum:'arbitrum',avalanche:'avalanche',optimism:'optimism',zora:'zora',apechain:'ape_chain',ronin:'ronin',abstract:'abstract',hyperevm:'hyperevm',monad:'monad',soneium:'soneium',robinhood:'robinhood',arc:'arc'};
+  const assetIdentity = asset => {
+    if (asset.isNative || typeof asset.address !== 'string') return null;
+    if (asset.chain === 'cardano' && isIdentity('cardano',asset.address)) return {label:'Policy ID',value:asset.address.slice(0,56),unit:asset.address.length>56?asset.address:null};
+    return {label:asset.chain==='solana'?'Mint address':'Contract address',value:asset.address};
+  };
+  const nftMarketplace = asset => {
+    if (asset.isNative || !isIdentity(asset.chain,asset.address || '')) return null;
+    if (asset.chain === 'cardano') return {name:'Wayup',url:`https://www.wayup.io/collection/${asset.address.slice(0,56).toLowerCase()}`};
+    if (asset.chain === 'solana') {
+      const mint = asset.kind==='nft'?asset.address:asset.sampleMint;
+      return isIdentity('solana',mint || '')?{name:'Magic Eden',url:`https://magiceden.io/item-details/${encodeURIComponent(mint)}`,sample:asset.kind!=='nft'}:null;
+    }
+    if (Object.hasOwn(openSeaChains,asset.chain)) return {name:'OpenSea',url:`https://opensea.io/contract/${openSeaChains[asset.chain]}/${asset.address}`};
+    return null;
+  };
+  return { nftMarketplace, assetIdentity, parseEntityIntent, chainId, isHash, isIdentity, explorerUrl, explorers };
 }));

@@ -79,3 +79,48 @@ test('plain asset searches automatically show separate token and collection sect
   }
   expect(f.errors).toEqual([]);
 });
+
+test('NFT results precede tokens and token previews expand loaded results without another request',async({page})=>{
+  test.setTimeout(90000);const f=await fixture(page),assetCalls=[];
+  await page.route('**/api/search/assets**',r=>{
+    const u=new URL(r.request().url()),kind=u.searchParams.get('kind'),chain=u.searchParams.get('chain')||'monad';assetCalls.push(u);
+    const count=kind==='collection'?5:chain==='cardano'?2:7;
+    return r.fulfill({json:{assets:Array.from({length:count},(_,i)=>({key:`${kind}:${chain}:${i}`,kind,chain,name:`${kind} result ${i+1}`,address:ADDRESS,source:'Fixture provider'}))}});
+  });
+  for(const width of [1440,390]) {
+    await page.setViewportSize({width,height:1000});await page.goto('/search?q=Preview');
+    const nfts=page.locator('[data-result-kind=collection]'),tokens=page.locator('[data-result-kind=token]');
+    await expect(nfts.locator('article')).toHaveCount(5);await expect(tokens.locator('article')).toHaveCount(3);
+    expect((await nfts.boundingBox()).y).toBeLessThan((await tokens.boundingBox()).y);
+    const calls=assetCalls.length;
+    await tokens.getByRole('button',{name:'Show more',exact:true}).click();
+    await expect(tokens.locator('article')).toHaveCount(7);await expect(tokens.getByRole('button',{name:'Show less',exact:true})).toHaveAttribute('aria-expanded','true');
+    expect(assetCalls.length).toBe(calls);
+    await tokens.getByRole('button',{name:'Show less',exact:true}).click();await expect(tokens.locator('article')).toHaveCount(3);
+    await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:`test-results/search-token-preview-${width}.png`,fullPage:true});
+    await tokens.getByRole('button',{name:'Show more',exact:true}).click();
+    await tokens.getByLabel('Search network').selectOption('base');
+    await expect(tokens.locator('article')).toHaveCount(3);await expect(tokens.getByRole('button',{name:'Show more',exact:true})).toHaveAttribute('aria-expanded','false');
+    await tokens.getByLabel('Search network').selectOption('cardano');
+    await expect(tokens.locator('article')).toHaveCount(2);await expect(tokens.getByRole('button',{name:'Show more',exact:true})).toHaveCount(0);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  }
+  expect(f.errors).toEqual([]);
+});
+
+test('NFT search links to network marketplaces and copies the complete Cardano policy',async({page,context})=>{
+  const f=await fixture(page);await context.grantPermissions(['clipboard-read','clipboard-write']);
+  const mint='So11111111111111111111111111111111111111112';
+  await page.route('**/api/search/assets**',r=>{const u=new URL(r.request().url());return r.fulfill({json:{assets:u.searchParams.get('kind')==='collection'?[
+    {key:'cardano:nft',chain:'cardano',kind:'policy',address:POLICY,name:'Cardano collection'},
+    {key:'ethereum:nft',chain:'ethereum',kind:'collection',address:ADDRESS,name:'EVM collection'},
+    {key:'solana:nft',chain:'solana',kind:'nft',address:mint,name:'Solana NFT'}]:[]}});});
+  await page.goto('/search?q=Marketplace');const nfts=page.locator('[data-result-kind=collection]');
+  await expect(nfts.getByRole('link',{name:'View on Wayup ↗'})).toHaveAttribute('href','https://www.wayup.io/collection/'+POLICY);
+  await expect(nfts.getByRole('link',{name:'View on OpenSea ↗'})).toHaveAttribute('href','https://opensea.io/contract/ethereum/'+ADDRESS);
+  await expect(nfts.getByRole('link',{name:'View on Magic Eden ↗'})).toHaveAttribute('href','https://magiceden.io/item-details/'+mint);
+  await expect(nfts.getByText('Policy ID: '+POLICY,{exact:true})).toBeVisible();
+  await nfts.getByRole('button',{name:'Copy Cardano collection policy ID'}).click();await expect.poll(()=>page.evaluate(()=>navigator.clipboard.readText())).toBe(POLICY);
+  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await nfts.screenshot({path:`test-results/search-nft-marketplaces-${width}.png`});}
+  expect(f.errors).toEqual([]);
+});

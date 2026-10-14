@@ -2,14 +2,14 @@
 <!-- handoff v1. LIVE STATE ONLY: rewrite in place, keep under ~60 lines.
      History goes in HANDOFF_LOG.md. Machine fields above the first ## are managed by handoff.py. -->
 
-owner: none
-task: -
-lease_until: -
+owner: codex
+task: NFT-first search and three-token preview
+lease_until: 2026-10-14T02:08-03:00
 repo: .
 verify: npm run check && npm test
 verified: d3237b1 · UUIDavatar13JSX/1browserflow name-ID-link-NFThex/uploadcircle passes;desktopmobile reviewed. User explicitly approved deletion2emptyoldaccounts; guardedSQL applied production andreadonlyverification0oldrows,current9wallets2logins5passkeys15favorites,live schwaname onlycurrent. Source remainslocal noagentcommitdeploy. · 2026-10-13T22:50-03:00
-head: d3237b1 (main) dirty 8
-updated: 2026-10-13T22:50-03:00 · codex
+head: 7ec849d (main) dirty 6
+updated: 2026-10-13T23:08-03:00 · codex
 
 resources: ["search/ui"]
 
