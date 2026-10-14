@@ -2,18 +2,19 @@
 <!-- handoff v1. LIVE STATE ONLY: rewrite in place, keep under ~60 lines.
      History goes in HANDOFF_LOG.md. Machine fields above the first ## are managed by handoff.py. -->
 
-owner: codex
-task: NFT-first search and three-token preview
-lease_until: 2026-10-14T02:08-03:00
+owner: none
+task: -
+lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: d3237b1 · UUIDavatar13JSX/1browserflow name-ID-link-NFThex/uploadcircle passes;desktopmobile reviewed. User explicitly approved deletion2emptyoldaccounts; guardedSQL applied production andreadonlyverification0oldrows,current9wallets2logins5passkeys15favorites,live schwaname onlycurrent. Source remainslocal noagentcommitdeploy. · 2026-10-13T22:50-03:00
-head: 7ec849d (main) dirty 6
-updated: 2026-10-13T23:08-03:00 · codex
+verified: 5e4b223 · HEAD7ec849d plus NFTfirst/tokenpreview/marketplace links:13relevantNode,13compiledJSX,7affectedbrowser pass. Desktop/mobile screenshots reviewed. Policy exactcopy,validatedWayup/OpenSea/MagicEden URLs, localexpansion/noextraAPI andnetworkreset verified. Local/uncommitted noagentdeploy/DBchange. · 2026-10-13T23:11-03:00
+head: 5e4b223 (main) dirty 3
+updated: 2026-10-13T23:11-03:00 · codex
 
 resources: ["search/ui"]
 
 ## Now
+- On current user HEAD5e4b223 (search source/tests committed during verification), NFT-first results and3token preview Showmore/Showless are complete. Expands alreadyloadedtokens without request; resets newquery/network/retry. Safe marketplace links Wayup policy/OpenSea supportedEVM contract/MagicEden mint orcachedsample; Cardano fullPolicyID Copy and separateassetunit Copy.13entityNode/13JSX/7affectedbrowser pass; desktop/mobile screenshots reviewed. nft-marketplace-{unit,e2e}.log; search-{token-preview,nft-marketplaces}-{1440,390}.png. Source/testdiff is empty; docs remain dirty. No agentcommit/deploy/DBwrite; deployment unverified.
 - UUID/profile-link search avatar uses shared ProfileAvatar56px; NFThex and uploadcircle parity verified by1browser flow and13JSX compile, desktop/mobile screenshots reviewed. Local uncommitted. User-approved live cleanup removed only empty legacyDiscord a32b355b andGoogle f8c86cbe after loginmapping/FK guards; currentec18dcf5 remains9wallets2logins5passkeys15favorite rows. Live schwa-name search returns onlycurrent; plain-e spelling returnsnone (noUnicodefolding). sql/cl_cleanup_legacy_criptoejesus_accounts.sql historical APPLIED script; refuses repeat. No source deploy/agentcommit.
 - AppHub search fix on user HEAD d3237b1 is local/uncommitted: entity classification no longer hides catalog apps; category/tag phrases match before word aliases, exact app names override category/chain/action words, AppHub navigation uses same rule. Catalog audit all17categories/short labels/19chains/allappnames/323category-chain pairs and optionaltag fixtures passes.275Node/syntax/13JSX and9affectedbrowser cases pass across runs; final marketplace button/fullcategory/name/Cardano AppHub navigation and mobile heading-wrap case passes32sec. Screenshots reviewed. apphub-{unit,check,e2e,marketplaces-verified-e2e}.log; no agent commit/deploy.
 - Search expansion is in user commit e652796. Follow-up locally separates automatic Tokens and NFTs/collections results, retaining independent network selectors and transaction section. Natural suffix such as emonad on monad blockchain selects Monad in both.271Node/13compiledJSX/syntax and11affected browser checks pass; desktop/mobile screenshots reviewed. Source uncommitted; no agent commit/deploy/MM/DB change. Evidence .local-artifacts/search-expansion/separate-{unit,verified-e2e}.log; test-results/search-separate-{1440,390}.png.
@@ -23,7 +24,7 @@ resources: ["search/ui"]
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- User review/commit local AppHub search and UUID avatar fixes and deploy frontend when authorized.
+- User review commit5e4b223; deploy if authorized. Documentation updates remain local.
 
 ## Traps
 - Collection-name coverage is bounded indexed/loaded NFT data, not a global catalog. Exact identities use chain/provider reads. Hidden wallets must not influence match reasons/count hints; signed-in search filters blocks. Raw quantities are not token-decimal guesses. Action discovery does not prove route availability.

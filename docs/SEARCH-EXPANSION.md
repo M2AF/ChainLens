@@ -11,7 +11,10 @@ transaction broadcast, new dependency or database/schema change occurred.
 ## Behavior and examples
 
 Token and NFT/collection results search automatically in separate sections, each
-with its own network selector. There is no result-type dropdown. Network phrases
+with its own network selector. NFTs/collections appear above tokens. Tokens show
+three results initially; Show more reveals all already-loaded results, and Show
+less restores the preview. A new search, network change or retry collapses it.
+There is no result-type dropdown. Network phrases
 such as `emonad on monad blockchain` search for `emonad` on Monad in both sections.
 Transaction searches retain their dedicated section and network selector.
 
@@ -174,3 +177,30 @@ absent and current account still has 9 wallets, 2 linked logins, 5 passkeys and
 15 favorite rows. Live search for `criptoejəsus` returns only current ID; plain
 `criptoejesus` no longer finds the removed Google record. Name search currently
 requires matching spelling; Unicode lookalike folding is not implemented.
+
+## NFT marketplace links and token preview
+
+On user HEAD 7ec849d, the NFT/collection section precedes tokens. Marketplace
+links use validated identities and fixed destinations: Cardano policy collections
+on Wayup, supported EVM contracts on OpenSea, and Solana NFT mints on Magic Eden.
+Loaded Solana collection matches link to a sample NFT when its mint is available;
+no invented collection slug is used. OpenSea's current public chain list excludes
+Gnosis and WorldChain, so those keep explorer links without a false marketplace
+link. Native ADA has no policy; non-native Cardano results show the complete
+56-character Policy ID with Copy. Complete asset units retain a separate Copy.
+
+Primary sources checked October 13:
+- Wayup collection route: https://www.wayup.io/collection/da286f15e0de865e3d50fec6fa0484d7e2309671dc4ba8ce6bdd122b/analytics
+- OpenSea supported chains: https://docs.opensea.io/reference/get_chains and its public `/api/v2/chains` response.
+- OpenSea contract route live probe returns307 to `/en-US/collection/sappy-seals` for the known Ethereum Sappy contract.
+- Magic Eden item details: https://help.magiceden.io/en/articles/6531562-how-to-view-nft-details-and-metadata-on-magic-eden
+
+All 13 JSX scripts compile; 13 relevant Node tests and 7 affected browser cases
+pass. Desktop/mobile screenshots reviewed for preview, marketplace links and
+full-policy Copy. Show more makes no additional request; new networks reset to
+three, and lists with fewer results have no expansion button. Evidence:
+`.local-artifacts/search-expansion/nft-marketplace-{unit,e2e}.log` and
+`test-results/search-{token-preview,nft-marketplaces}-{1440,390}.png`.
+The user committed this exact tested frontend source as 5e4b223 while verification
+was finishing. Source/tests have no remaining diff; documentation updates remain
+local. Deployment was not verified; no agent deployment or database change.

@@ -175,3 +175,21 @@
 
 ### 2026-10-13T23:08-03:00 · codex · checkpoint · 7ec849d (main) dirty 6
 - Added frontend-only safe marketplace URL helpers: Wayup policycollection,OpenSea supportedEVM networkcontract (live Sappy route307 tocollection verified),MagicEden NFTmint and cachedcollection samplemint. Cardano policy56-bytehex label/exactCopy;assetunit retainedseparately.13entity unit13JSX pass;7browser finalrerun50546 nft-marketplace-e2e.log inprogress; earlier6previewbrowser pass. Wayup livefetch429 butindexedofficialcollectionrouteconfirmed; no new runtimeproviderAPIcalls.
+
+### 2026-10-13T23:11-03:00 · codex · verify · 5e4b223 (main) dirty 2
+- verified: HEAD7ec849d plus NFTfirst/tokenpreview/marketplace links:13relevantNode,13compiledJSX,7affectedbrowser pass. Desktop/mobile screenshots reviewed. Policy exactcopy,validatedWayup/OpenSea/MagicEden URLs, localexpansion/noextraAPI andnetworkreset verified. Local/uncommitted noagentdeploy/DBchange.
+
+### 2026-10-13T23:11-03:00 · codex · handoff · 5e4b223 (main) dirty 3
+- NFT-first results,3token preview with Showmore and chainmarketplace links complete locally. CardanoPolicyID/fullunit Copy retained.13unit7browser13JSX pass and screenshots reviewed.
+- next: User review/commit frontend search improvements and deploy when authorized.
+
+### 2026-10-13T23:11-03:00 · codex · claim · 5e4b223 (main) dirty 3
+- task: Record user search commit during verification
+- lease until 2026-10-14T02:11-03:00
+
+### 2026-10-13T23:11-03:00 · codex · correction · 5e4b223 (main) dirty 3
+- User created5e4b223 search engine during finalverification; it includes exact testedsource andtests and source/testdiff is empty. Previous localuncommitted source wording is superseded. Documentation/handoff remain dirty; deployment notverified.
+
+### 2026-10-13T23:11-03:00 · codex · handoff · 5e4b223 (main) dirty 3
+- Allrequested search UI improvements in usercommit5e4b223; testedsource unchanged,13Node/13JSX/7browser pass, desktop/mobile reviewed. Docs dirty, deployment unverified.
+- next: User review commit5e4b223; deploy if authorized. Documentation updates remain local.
