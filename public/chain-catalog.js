@@ -135,6 +135,7 @@
     if (!value) return null;
 
     let chain = detectAddressChain(value);
+    if (lower.endsWith('.nad') && lower.length > 4 && !/\s|\/|:/.test(lower)) return { chain: 'evm', value, label: 'Monad .nad domain' };
     if (lower.endsWith('.eth') || UNSTOPPABLE_SUFFIXES.some(suffix => lower.endsWith(suffix))) chain = 'evm';
     else if (lower.endsWith('.sol')) chain = 'solana';
     else if (/^\$[a-z0-9._-]{1,64}$/i.test(value)) chain = 'cardano';

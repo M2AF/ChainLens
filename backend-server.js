@@ -19,6 +19,7 @@ const {
   normalizeProfileWalletAddress,
 } = require('./public/chain-catalog');
 const { createNonEvmScanner } = require('./non-evm-scanner');
+const { registerNadRoutes } = require('./nad-resolver');
 const {
   isUuid, orderedFriendPair, normalizeChatContent,
   summarizeChatUnread, chatConversationKey, WORLD_CONVERSATION,
@@ -2271,6 +2272,7 @@ app.post('/api/chat/read', requireAuth, requireChatAccess, async (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 // --- DOMAIN RESOLUTION ---
+registerNadRoutes(app);
 
 // 1. Unstoppable Domains
 app.get('/api/resolve/unstoppable/:domain', async (req, res) => {
@@ -2404,11 +2406,23 @@ app.get('/api/search/web', searchRateLimit, async (req, res) => {
 
 // DEX search, quotes and status for Magic Swap, through Magic Money's swap
 // service. The Worker client token stays in this process's environment.
-registerSwapRoutes(app, createSwapService({
+const searchTokenService = createSwapService({
   workerUrl: process.env.MM_SWAP_WORKER_URL,
   clientToken: process.env.MM_SWAP_CLIENT_TOKEN,
   jupiterFee: process.env.CHAINLENS_JUPITER_FEE !== 'off',
-}));
+});
+registerSwapRoutes(app, searchTokenService);
+require('./search-entity-routes').mountEntitySearch(app, {
+  assets: require('./search-asset-service').createAssetSearch({ fetchImpl: fetch, tokenSearch: searchTokenService.tokens, alchemyKey: API_KEYS.alchemy, heliusKey: API_KEYS.helius }),
+  transactions: require('./search-transaction-service').createTransactionSearch({ fetchImpl: fetch }),
+  rateLimit: searchRateLimit,
+});
+require('./search-people-routes').mountPeopleSearch(app, {
+  service: require('./people-search-service').createPeopleSearch({ db: supabase }),
+  rateLimit: searchRateLimit,
+  optionalAuth: (req, res, next) => req.headers.authorization ? requireAuth(req, res, next) : next(),
+  blockedIds: id => require('./profile-community-service').blockedIds(supabase, id),
+});
 // Deposit-address exchange, separate from wallet-signed DEX routes. Provider
 // keys remain in the Magic Money Worker; the browser only calls this API.
 registerExchangeRoutes(app, createExchangeService({

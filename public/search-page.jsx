@@ -32,7 +32,7 @@
     } catch { /* history unavailable */ }
   };
 
-  const SearchPage = ({ darkMode, apps = [], onOpenScanner, onOpenAppHub, onOpenProfile }) => {
+  const SearchPage = ({ darkMode, apps = [], onOpenScanner, onOpenAppHub, onOpenProfile, collectionAssets = [], authToken }) => {
     const [query, setQuery] = useState('');
     const [submittedQuery, setSubmittedQuery] = useState('');
     const [webResults, setWebResults] = useState([]);
@@ -40,16 +40,21 @@
     const [error, setError] = useState('');
     const [profileResult, setProfileResult] = useState(null);
     const [profileError, setProfileError] = useState('');
+    const [nadResult, setNadResult] = useState(null);
+    const [nadError, setNadError] = useState('');
+    const [nadLoading, setNadLoading] = useState(false);
+    const [nadCopied, setNadCopied] = useState(false);
     const requestRef = useRef(null);
 
     useEffect(() => () => requestRef.current?.abort(), []);
 
     const scannerIntent = useMemo(() => detectScannerIntent(submittedQuery), [submittedQuery]);
+    const actionIntent = useMemo(() => window.ChainLensSearchActions.parseActionIntent(submittedQuery), [submittedQuery]);
+    const entityIntent = useMemo(() => window.ChainLensEntities.parseEntityIntent(submittedQuery), [submittedQuery]);
     const appResults = useMemo(
-      () => submittedQuery ? rankApps(apps, submittedQuery) : getSearchFeaturedApps(apps),
-      [apps, submittedQuery]
+      () => actionIntent ? window.ChainLensSearchActions.matchActionApps(apps, actionIntent).slice(0, 6) : entityIntent && entityIntent.kind !== 'address' ? [] : submittedQuery ? rankApps(apps, submittedQuery) : getSearchFeaturedApps(apps),
+      [apps, submittedQuery, actionIntent, entityIntent]
     );
-    const isEmpty = submittedQuery && !loading && !error && !scannerIntent && appResults.length === 0 && webResults.length === 0;
 
     const submitSearch = async (event, nextQuery) => {
       event?.preventDefault();
@@ -62,6 +67,9 @@
       setError('');
       setProfileResult(null);
       setProfileError('');
+      setNadResult(null); setNadError(''); setNadCopied(false);
+      const isNad = detectScannerIntent(value)?.label === 'Monad .nad domain';
+      setNadLoading(isNad);
       requestRef.current?.abort();
       const controller = new AbortController();
       requestRef.current = controller;
@@ -76,12 +84,24 @@
           } else if (requestRef.current === controller) setProfileResult(payload);
           return;
         }
+        if (isNad) {
+          try {
+            const response = await fetch(`/api/resolve/nad/${encodeURIComponent(value)}`, { signal: controller.signal });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(payload.error || 'Could not resolve this .nad name.');
+            if (!/^0x[0-9a-f]{40}$/i.test(payload.address) || /^0x0{40}$/i.test(payload.address)) throw new Error('This .nad name has no resolved wallet address.');
+            if (requestRef.current === controller) setNadResult(payload);
+          } catch (err) {
+            if (err.name === 'AbortError') throw err;
+            if (requestRef.current === controller) setNadError(err.message);
+          } finally { if (requestRef.current === controller) setNadLoading(false); }
+        }
         const response = await fetch(`${WEB_SEARCH_API}?q=${encodeURIComponent(value)}`, { signal: controller.signal });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Web search is temporarily unavailable.');
-        setWebResults(Array.isArray(payload.results) ? payload.results : []);
+        if (requestRef.current === controller) setWebResults(Array.isArray(payload.results) ? payload.results : []);
       } catch (requestError) {
-        if (requestError.name !== 'AbortError') setError(requestError.message || 'Web search is temporarily unavailable.');
+        if (requestError.name !== 'AbortError' && requestRef.current === controller) setError(requestError.message || 'Web search is temporarily unavailable.');
       } finally {
         if (requestRef.current === controller) setLoading(false);
       }
@@ -171,21 +191,41 @@
           )}
 
           {submittedQuery && scannerIntent && (
-            <section className="rounded-[2rem] border border-cyan-400/25 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 p-5 md:p-7">
+            <section data-testid="scanner-search-result" className="rounded-[2rem] border border-cyan-400/25 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 p-5 md:p-7">
               <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-500 mb-2">ChainLens recognized this</p>
                   <h2 className="font-heading text-xl md:text-2xl font-extrabold uppercase">{scannerIntent.label}</h2>
                   <p className={`mt-2 truncate text-sm ${muted}`}>{scannerIntent.value}</p>
+                  {scannerIntent.label === 'Monad .nad domain' && <div className="mt-3 text-sm">
+                    {nadLoading ? <p>Resolving on Monad…</p> : nadError && !nadResult ? <p role="status">{nadError}</p> : nadResult && <>
+                      <p className={`text-xs mb-2 ${muted}`}>Nad Name Service · Monad mainnet · EVM address</p>
+                      <div className="flex items-start gap-3"><code className="min-w-0 break-all text-xs">{nadResult.address}</code><button type="button" aria-label="Copy resolved wallet address" className="shrink-0 text-xs font-bold text-cyan-500" onClick={async () => {
+                        try { await navigator.clipboard.writeText(nadResult.address); setNadCopied(true); }
+                        catch { setNadError('Could not copy address. Select it to copy manually.'); }
+                      }}>{nadCopied ? 'Copied ✓' : 'Copy'}</button></div>
+                      {nadError && <p role="status">{nadError}</p>}
+                    </>}
+                  </div>}
                 </div>
-                <button onClick={() => onOpenScanner(scannerIntent)} className="shrink-0 rounded-2xl bg-cyan-400 px-6 py-4 text-xs font-extrabold uppercase tracking-widest text-slate-950 transition hover:bg-cyan-300">
+                <button disabled={scannerIntent.label === 'Monad .nad domain' && !nadResult} onClick={() => onOpenScanner(nadResult ? { ...scannerIntent, value: nadResult.address } : scannerIntent)} className="shrink-0 rounded-2xl bg-cyan-400 px-6 py-4 text-xs font-extrabold uppercase tracking-widest text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50">
                   Scan in ChainLens →
                 </button>
               </div>
             </section>
           )}
 
-          {submittedQuery && !window.ChainLensProfiles.parseId(submittedQuery) && appResults.length > 0 && (
+          {submittedQuery && !window.ChainLensProfiles.parseId(submittedQuery) && !actionIntent && (!entityIntent || entityIntent.kind === 'address') && (scannerIntent || submittedQuery.length <= 64) && <window.SearchPeopleResults key={`people:${submittedQuery}`} query={submittedQuery} domainAddress={nadResult?.address} authToken={authToken} darkMode={darkMode} onOpenProfile={onOpenProfile} />}
+
+          {actionIntent && <section data-testid="action-search-results" className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
+            <h2 className="font-heading text-xl font-extrabold mb-3">{({ bridge: 'Bridge', swap: 'Swap', stake: 'Staking', lend: 'Lending' })[actionIntent.action]} tools</h2>
+            <p className={`text-sm mb-3 ${muted}`}>{actionIntent.fromChain || actionIntent.toChain ? `${actionIntent.fromChain || 'Source network unspecified'} → ${actionIntent.toChain || 'Destination network unspecified'}` : actionIntent.chain ? `On ${actionIntent.chain}` : 'Across supported networks'}{actionIntent.asset ? ` · ${actionIntent.asset}` : ''}</p>
+            <p className={`text-xs mb-4 ${muted}`}>Matching tools from App Hub. Open a tool to check its current assets and routes.</p>
+            {appResults.length ? <AppGrid apps={appResults} darkMode={darkMode} query={submittedQuery} allApps={apps} /> : <p className="text-sm">No indexed tools match these networks. Try fewer constraints.</p>}
+            <button type="button" onClick={() => onOpenAppHub(submittedQuery)} className="text-xs font-bold text-cyan-500 mt-4">Explore in App Hub →</button>
+          </section>}
+
+          {submittedQuery && !actionIntent && !window.ChainLensProfiles.parseId(submittedQuery) && appResults.length > 0 && (
             <section className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-6">
                 <div>
@@ -197,6 +237,8 @@
               <AppGrid apps={appResults} darkMode={darkMode} query={submittedQuery} allApps={apps} />
             </section>
           )}
+
+          {submittedQuery && !actionIntent && !window.ChainLensProfiles.parseId(submittedQuery) && !/\.(nad|eth|sol)$/i.test(submittedQuery) && <window.SearchEntityResults key={`entities:${submittedQuery}`} query={submittedQuery} darkMode={darkMode} collectionAssets={collectionAssets} />}
 
           {submittedQuery && !window.ChainLensProfiles.parseId(submittedQuery) && (
             <section className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
@@ -240,7 +282,6 @@
             </section>
           )}
 
-          {isEmpty && <p className={`text-center text-sm ${muted}`}>No matches found. Try a broader search.</p>}
         </div>
       </main>
     );

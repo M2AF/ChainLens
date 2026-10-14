@@ -293,12 +293,20 @@
   </script>
 
   <script src="/search-intent.js"></script>
+  <script src="/search-actions.js"></script>
+  <script src="/search-entities.js"></script>
+  <script type="text/babel" src="/search-people-results.jsx"></script>
+  <script type="text/babel" src="/search-entity-results.jsx"></script>
   <script src="/search-activity.js"></script>
   <script src="/market-candles.js"></script>
   <script type="text/babel" src="/search-page.jsx"></script>
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef, useCallback } = React;
-    const { matchApps: matchAppHubSearch } = window.ChainLensSearchIntent;
+    const { matchApps: originalMatchAppHubSearch } = window.ChainLensSearchIntent;
+    const matchAppHubSearch = (apps, query) => {
+      const intent = window.ChainLensSearchActions.parseActionIntent(query);
+      return intent ? window.ChainLensSearchActions.matchActionApps(apps, intent) : originalMatchAppHubSearch(apps, query);
+    };
     const ChainLensSearchPage = window.ChainLensSearchPage;
     const {
       DEFAULT_CHAINS, EVM_CHAINS, ACCOUNT_CHAINS, UTXO_CHAINS,
@@ -3395,7 +3403,7 @@
           if (!entry.chainId) { issues.push(`Skipped unrecognized EVM input ${truncAddr(entry.input)}`); continue; }
           let target = entry.input;
           if (entry.resolution === 'evm-domain') {
-            const endpoint = target.toLowerCase().endsWith('.eth') ? 'ens' : 'unstoppable';
+            const endpoint = target.toLowerCase().endsWith('.nad') ? 'nad' : target.toLowerCase().endsWith('.eth') ? 'ens' : 'unstoppable';
             target = await resolveAddress(`/api/resolve/${endpoint}/${encodeURIComponent(target)}`);
             if (target) setResolvedEvm(target);
           }
@@ -3902,6 +3910,8 @@
                   onOpenScanner={openScannerFromSearch}
                   onOpenAppHub={openAppHubFromSearch}
                   onOpenProfile={viewPerson}
+                  authToken={authToken}
+                  collectionAssets={[...profilePortfolio.assets, ...nfts].filter(asset => !asset.isToken && !window.nftSpam.isSpam(asset, filterEntries[window.nftFavoriteKey(asset)]))}
                 />
             ) : activeTab === 'portfolio' ? (
                 <>
