@@ -122,3 +122,14 @@
 ### 2026-10-14T00:28-03:00 · codex · handoff · 4c03d08 (main) dirty 5
 - Publicfavorites collectiblecards aligned; squarecontainedart/topalignedrows/two-linetitles.6browser cases pass and3screenshots reviewed. Source CSS/test/docs uncommitted; noDB/backend/deploy.
 - next: User review/commit favorites cardalignment CSS and deploy frontend when authorized.
+
+### 2026-10-14T01:08-03:00 · codex · claim · ed2b07a (main) dirty 1
+- task: Compact username chip matching ChainLens ID
+- lease until 2026-10-14T04:08-03:00
+
+### 2026-10-14T01:10-03:00 · codex · verify · ed2b07a (main) dirty 6
+- verified: HEADed2b07a plus compactusername UI:3username browser workflows pass; compactwidth/height/button-distance,copy/edit/reload/publicsearch/mobileoverflow verified.14JSX compile; desktop/mobile screenshots reviewed. No schema/backend/commit/deploy.
+
+### 2026-10-14T01:10-03:00 · codex · handoff · ed2b07a (main) dirty 6
+- Compact username chip matches ID with adjacent Copy/Edit and inlinecopyfeedback.3browser14JSX pass, screenshots reviewed; localUI changes only.
+- next: User review/commit compact username UI and deploy frontend when authorized.

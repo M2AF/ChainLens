@@ -529,7 +529,7 @@
 
 .cl-profile-username { margin-top:16px; padding:12px 14px; border:1px solid rgba(128,145,165,.25); border-radius:14px; background:rgba(128,145,165,.06); min-width:0; }
 .cl-username-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12px; }
-.cl-username-row strong { overflow-wrap:anywhere; flex:1; }
+.cl-username-row strong { overflow-wrap:anywhere; flex:none; }
 .cl-username-row button,.cl-username-form-row button { padding:7px 10px; border:1px solid rgba(128,145,165,.3); border-radius:8px; font-size:11px; font-weight:700; }
 .cl-profile-username form { margin-top:10px; }
 .cl-profile-username label { display:block; font-size:11px; margin-bottom:5px; }
@@ -540,3 +540,10 @@
 .cl-profile-username [role=alert] { color:#ef8080; }
 .cl-profile-username button:disabled { opacity:.5; }
 .cl-profile-username button:focus-visible,.cl-profile-username input:focus-visible { outline:2px solid #50d5e4; outline-offset:2px; }
+
+.cl-profile-username--compact { width:fit-content; max-width:100%; padding:8px 12px; border-radius:10px; border-color:#ffffff26; background:#02081780; font:11px ui-monospace,monospace; }
+.cl-profile-username--compact .cl-username-row { gap:10px; font:inherit; }
+.cl-profile-username--compact .cl-username-row strong { flex:none; font-weight:400; }
+.cl-profile-username--compact .cl-username-row button { padding:2px 0; border:0; border-radius:3px; font:900 8px ui-sans-serif,sans-serif; text-transform:uppercase; letter-spacing:.08em; }
+.cl-profile-username--compact .cl-username-row button:hover { color:var(--cl-accent,#50d5e4); }
+@media(max-width:700px){.cl-profile-username--compact{padding:7px 9px;font-size:9px}.cl-profile-username--compact .cl-username-row{gap:6px}}

@@ -7,13 +7,14 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 4c03d08 · HEAD4c03d08 pluspublic favoritesalignment:6affected browser cases pass;1440/1080/390 artwork top/square/title alignment andnooverflow/details verified. All3screenshots reviewed. CSSonlyproductchange, no backend/data/commit/deploy. · 2026-10-14T00:28-03:00
-head: 4c03d08 (main) dirty 5
-updated: 2026-10-14T00:28-03:00 · codex
+verified: ed2b07a · HEADed2b07a plus compactusername UI:3username browser workflows pass; compactwidth/height/button-distance,copy/edit/reload/publicsearch/mobileoverflow verified.14JSX compile; desktop/mobile screenshots reviewed. No schema/backend/commit/deploy. · 2026-10-14T01:10-03:00
+head: ed2b07a (main) dirty 6
+updated: 2026-10-14T01:10-03:00 · codex
 
 resources: ["profile/ui"]
 
 ## Now
+- On user HEADed2b07a (favorites alignment committed), username display nowcompact like ChainLensID: fit-content11pxmono chip, adjacent smallCopy/Edit, mobile9px, inlineCopiedfeedback; editableform remains roomy.3username browser workflows pass inclwidth/height/gap/copy/edit/reload/public/search/mobileoverflow;14JSX compile; desktop/mobile screenshots reviewed. username-compact-e2e.log; docs/PROFILE-USERNAMES.md. LocalUI uncommitted, noDB/backend/deploy.
 - On user HEAD4c03d08 (username source committed), publicfavorites cardalignment fixed locally: top-aligned flex, square containart, two-line title reserve/clamp andconsistentcaption offsets.6public-profile browser cases pass incl1440/1080/390 geometry/mixedratio/captions/detailclick; all3screenshots reviewed. favorites-alignment-e2e.log; favorites-aligned-{1440,1080,390}.png; docs/PUBLIC-PROFILE-GALLERY.md. CSS/test/docs uncommitted; no data/backend/deployment change.
 - Unique ChainLens username feature on user HEAD1fc7cb3 complete locally: authenticatedatomic claim/edit route, one canonical3–24ASCII handle perUUID, globalunique lower index; ownerpanel aboveID withCopy, publicidentity andusername/displayname search incl@actionwords. Migration20261014022747 applied to vxrhosrktbknogyeyewy; nullablefield andformat/uniqueness verified via tempclone+rollback, no realusername claimed.279Node/check/14JSX/20distinct affectedbrowser cases acrossruns pass; final3username visualrerun pass andscreenshots reviewed. Source/untrackedmodules/docs uncommitted; frontend+backend deployment pending. docs/PROFILE-USERNAMES.md.
 - On current user HEAD5e4b223 (search source/tests committed during verification), NFT-first results and3token preview Showmore/Showless are complete. Expands alreadyloadedtokens without request; resets newquery/network/retry. Safe marketplace links Wayup policy/OpenSea supportedEVM contract/MagicEden mint orcachedsample; Cardano fullPolicyID Copy and separateassetunit Copy.13entityNode/13JSX/7affectedbrowser pass; desktop/mobile screenshots reviewed. nft-marketplace-{unit,e2e}.log; search-{token-preview,nft-marketplaces}-{1440,390}.png. Source/testdiff is empty; docs remain dirty. No agentcommit/deploy/DBwrite; deployment unverified.
@@ -26,7 +27,7 @@ resources: ["profile/ui"]
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- User review/commit favorites cardalignment CSS and deploy frontend when authorized.
+- User review/commit compact username UI and deploy frontend when authorized.
 
 ## Traps
 - Collection-name coverage is bounded indexed/loaded NFT data, not a global catalog. Exact identities use chain/provider reads. Hidden wallets must not influence match reasons/count hints; signed-in search filters blocks. Raw quantities are not token-decimal guesses. Action discovery does not prove route availability.

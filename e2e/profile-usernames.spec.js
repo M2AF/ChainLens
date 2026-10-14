@@ -33,6 +33,9 @@ test('owner claims username above ID, conflict preserves identity, copy and chan
   await panel.getByLabel('Username',{exact:true}).fill('Collector_12');await panel.getByRole('button',{name:'Claim username'}).click();await expect(panel.getByText('@collector_12',{exact:true})).toBeVisible();
   await expect(page.getByText('Stylized Display Name',{exact:true})).toBeVisible();
   await panel.getByRole('button',{name:'Copy username'}).click();await expect.poll(()=>page.evaluate(()=>navigator.clipboard.readText())).toBe('@collector_12');
+  expect((await panel.boundingBox()).width).toBeLessThan(400);
+  expect((await panel.boundingBox()).height).toBeLessThan(45);
+  const nameBox=await panel.getByText('@collector_12',{exact:true}).boundingBox(),copyBox=await panel.getByRole('button',{name:'Copy username'}).boundingBox();expect(copyBox.x-(nameBox.x+nameBox.width)).toBeLessThan(16);
   await page.screenshot({path:'test-results/profile-username-desktop.png',fullPage:true});
   await panel.getByRole('button',{name:'Edit',exact:true}).click();await panel.getByLabel('Username',{exact:true}).fill('collector_new');await panel.getByRole('button',{name:'Save username'}).click();await expect(panel.getByText('@collector_new',{exact:true})).toBeVisible();
   await page.reload();await expect(panel.getByText('@collector_new',{exact:true})).toBeVisible();

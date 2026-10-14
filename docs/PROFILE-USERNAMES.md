@@ -80,3 +80,16 @@ Architecture: a nullable field and unique index preserve the existing account
 model and avoid a separate handle registry or identity rewrite. If username
 history/redirects become a requirement, introduce explicit alias records then.
 PostgreSQL uniqueness reference: https://www.postgresql.org/docs/current/indexes-unique.html
+
+## Compact identity chip (October14)
+
+Claimed usernames now match the compact ChainLens ID styling: content-sized
+width, 11px monospace text, 10px rounded border, and adjacent small Copy/Edit
+controls. Mobile uses the ID's9px size. Copy success stays inline instead of
+adding a status row. Claim/edit forms still have room for input and feedback.
+
+On user HEADed2b07a, all3 username browser workflows pass, including chip width,
+height and button-distance assertions, copy/edit/reload, public identity/search
+and mobile overflow.14JSX scripts compile. Desktop/mobile screenshots reviewed.
+Evidence: `username-compact-e2e.log` in `.local-artifacts/search-expansion/`.
+Local UI change; no account/backend/schema/commit/deployment change.
