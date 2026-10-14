@@ -128,3 +128,49 @@ collection searches, independent network changes and desktop/mobile overflow
 checks. Both split-result screenshots were reviewed. Logs:
 `.local-artifacts/search-expansion/separate-unit.log` and
 `.local-artifacts/search-expansion/separate-verified-e2e.log`.
+
+## App Hub search regression follow-up
+
+App results remain independent of asset classification: `NFT marketplaces` can
+show NFT Marketplace apps even though `NFT` also introduces an NFT lookup.
+Catalog category phrases and tags are matched before individual aliases, and
+exact app names take precedence over category/chain words and action parsing.
+The same rules apply when opening App Hub with the search query.
+
+Catalog-driven tests cover all 17 categories and their short labels, all 19
+chain labels, every app name, and all 323 category/chain combinations. Optional
+tags are tested with fixtures (the current App Hub records have no explicit
+`tags` arrays), including tags containing category words. Chain restrictions
+remain enforced. Evidence: `.local-artifacts/search-expansion/apphub-*.log`.
+
+Validation on user HEAD d3237b1 plus this fix: 275 Node tests, syntax checks and
+13 compiled JSX scripts pass. Nine affected browser cases pass across runs;
+the final extended marketplace/category/name/Cardano navigation test passes
+in `apphub-marketplaces-verified-e2e.log`. Desktop/mobile screenshots reviewed;
+long mobile headings now wrap. The first extended test hit its total timeout;
+subsequent fixture assumptions (preview limit and exact app label) were corrected.
+No agent commit or deployment.
+
+## UUID avatar and legacy account audit
+
+UUID/profile-link results now use the shared ProfileAvatar component at 56px,
+matching display-name results. NFT-backed photos retain the animated hexagon;
+custom uploads remain circular. All 13 JSX scripts compile. A targeted browser
+flow verifies name/UUID/profile-link NFT avatars and uploaded-photo fallback;
+desktop/mobile screenshots reviewed. `id-avatar-e2e.log` records the pass.
+
+Read-only production audit on October 13 confirmed two empty legacy accounts:
+`a32b355b-3ca2-497a-9f3d-6657cd7faedf` (Discord) and
+`f8c86cbe-4199-44ab-bb07-2e2fee2341e5` (Google). Both primary logins already exist
+in linked accounts for current ID `ec18dcf5-3271-46fd-8029-41e5b2f39eed`.
+All dependent rows are zero, including wallets, passkeys, favorites, filters,
+chat, friendships, blocks, reports and themes. Google/Discord login callbacks
+check linked accounts first, so they select current ID.
+
+`sql/cl_cleanup_legacy_criptoejesus_accounts.sql` was applied October 13 after explicit user approval.
+It locks the exact account rows, verifies login links and every referencing FK
+has zero data, and removes only the two legacy IDs. Read-only audit preceded approval. Cleanup verification confirms both old IDs are
+absent and current account still has 9 wallets, 2 linked logins, 5 passkeys and
+15 favorite rows. Live search for `criptoejəsus` returns only current ID; plain
+`criptoejesus` no longer finds the removed Google record. Name search currently
+requires matching spelling; Unicode lookalike folding is not implemented.

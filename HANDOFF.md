@@ -7,13 +7,15 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: e652796 · e652796 plus local split-results changes:271Node,syntax,13compiledJSX and11affected browser pass;desktop/mobile screenshots reviewed;no agent commit/deploy. · 2026-10-13T22:18-03:00
-head: e652796 (main) dirty 8
-updated: 2026-10-13T22:18-03:00 · codex
+verified: d3237b1 · UUIDavatar13JSX/1browserflow name-ID-link-NFThex/uploadcircle passes;desktopmobile reviewed. User explicitly approved deletion2emptyoldaccounts; guardedSQL applied production andreadonlyverification0oldrows,current9wallets2logins5passkeys15favorites,live schwaname onlycurrent. Source remainslocal noagentcommitdeploy. · 2026-10-13T22:50-03:00
+head: d3237b1 (main) dirty 8
+updated: 2026-10-13T22:50-03:00 · codex
 
 resources: ["search/ui"]
 
 ## Now
+- UUID/profile-link search avatar uses shared ProfileAvatar56px; NFThex and uploadcircle parity verified by1browser flow and13JSX compile, desktop/mobile screenshots reviewed. Local uncommitted. User-approved live cleanup removed only empty legacyDiscord a32b355b andGoogle f8c86cbe after loginmapping/FK guards; currentec18dcf5 remains9wallets2logins5passkeys15favorite rows. Live schwa-name search returns onlycurrent; plain-e spelling returnsnone (noUnicodefolding). sql/cl_cleanup_legacy_criptoejesus_accounts.sql historical APPLIED script; refuses repeat. No source deploy/agentcommit.
+- AppHub search fix on user HEAD d3237b1 is local/uncommitted: entity classification no longer hides catalog apps; category/tag phrases match before word aliases, exact app names override category/chain/action words, AppHub navigation uses same rule. Catalog audit all17categories/short labels/19chains/allappnames/323category-chain pairs and optionaltag fixtures passes.275Node/syntax/13JSX and9affectedbrowser cases pass across runs; final marketplace button/fullcategory/name/Cardano AppHub navigation and mobile heading-wrap case passes32sec. Screenshots reviewed. apphub-{unit,check,e2e,marketplaces-verified-e2e}.log; no agent commit/deploy.
 - Search expansion is in user commit e652796. Follow-up locally separates automatic Tokens and NFTs/collections results, retaining independent network selectors and transaction section. Natural suffix such as emonad on monad blockchain selects Monad in both.271Node/13compiledJSX/syntax and11affected browser checks pass; desktop/mobile screenshots reviewed. Source uncommitted; no agent commit/deploy/MM/DB change. Evidence .local-artifacts/search-expansion/separate-{unit,verified-e2e}.log; test-results/search-separate-{1440,390}.png.
 - .nad search complete locally on user HEAD4cc9f0e: mainnet NNS resolver via existing ethers, normalized namehash, fixed public RPCs with timeout/fallback/60sec bounded cache. Search shows resolved address/Copy/Scan and reuses address; direct Scanner .nad dispatch uses nad route. Live criptoejesus.nad resolves01faf6df...5efe13; RPC chain143. Syntax/11JSX/234Node/10browser pass; desktop/mobile screenshots reviewed. Source/tests/docs uncommitted; no agent deploy/new SDK/key/backend DB changes.
 - Linked-wallet owner UI is in user commit4cc9f0e: compact wallet-style rows, full wrapping addresses/exact Copy feedback, stacked Rename/Remove and inline primary action. Prior228Node/9browser checks and desktop/mobile screenshots pass; source preserved in this task.
@@ -21,7 +23,7 @@ resources: ["search/ui"]
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- User review/commit split-results follow-up and deploy frontend when authorized.
+- User review/commit local AppHub search and UUID avatar fixes and deploy frontend when authorized.
 
 ## Traps
 - Collection-name coverage is bounded indexed/loaded NFT data, not a global catalog. Exact identities use chain/provider reads. Hidden wallets must not influence match reasons/count hints; signed-in search filters blocks. Raw quantities are not token-decimal guesses. Action discovery does not prove route availability.

@@ -137,3 +137,31 @@
 ### 2026-10-13T22:18-03:00 · codex · handoff · e652796 (main) dirty 8
 - Separate automatic Tokens and NFTs/collections result sections complete; network selectors retained. Monad blockchain suffix normalized.271unit11browser pass and screenshots reviewed.
 - next: User review/commit split-results follow-up and deploy frontend when authorized.
+
+### 2026-10-13T22:28-03:00 · codex · claim · d3237b1 (main) dirty 1
+- task: App Hub search categories and tags regression fix
+- lease until 2026-10-14T01:28-03:00
+
+### 2026-10-13T22:32-03:00 · codex · checkpoint · d3237b1 (main) dirty 7
+- NFT marketplace regression reproduced: entity classifier hid valid AppHub records. Restored independent AppHub matching and catalog phrase/name/tag precedence; audit all17categories,short labels,19chains,allappnames and323category-chain combinations now passes.275Node/syntax/13JSX pass;9browser cases running session76481 apphub-e2e.log.
+
+### 2026-10-13T22:42-03:00 · codex · verify · d3237b1 (main) dirty 8
+- verified: d3237b1 plus AppHub search fix:275Node,syntax,13JSX pass; all17categories/shortlabels/19chains/allappnames/323category-chain combinations andtagfixtures pass.9browser cases pass across runs, finalmarketplacetest32sec;desktop/mobile reviewed including headingwrap. No commit/deploy.
+
+### 2026-10-13T22:42-03:00 · codex · handoff · d3237b1 (main) dirty 8
+- AppHub marketplace/category/name/tag regression fixed and catalog coverage verified; local/uncommitted.275Node and9affected browser checks pass across runs; screenshots reviewed.
+- next: User review/commit AppHub search fix and deploy frontend when authorized.
+
+### 2026-10-13T22:43-03:00 · codex · claim · d3237b1 (main) dirty 8
+- task: UUID search NFT avatar parity
+- lease until 2026-10-14T01:43-03:00
+
+### 2026-10-13T22:45-03:00 · codex · checkpoint · d3237b1 (main) dirty 8
+- UUID avatar plainimg replaced with shared ProfileAvatar56px.13JSX compilation and1browser flow pass name/UUID/deeplink NFT hex + uploadcircle; desktop/mobile reviewed. User reports stale duplicateaccounts; read-only public searches find currentec18dcf5, olderf8c86cbe plainename and a32b355b decoratedschwa name. Investigating only, no DB mutation.
+
+### 2026-10-13T22:50-03:00 · codex · verify · d3237b1 (main) dirty 8
+- verified: UUIDavatar13JSX/1browserflow name-ID-link-NFThex/uploadcircle passes;desktopmobile reviewed. User explicitly approved deletion2emptyoldaccounts; guardedSQL applied production andreadonlyverification0oldrows,current9wallets2logins5passkeys15favorites,live schwaname onlycurrent. Source remainslocal noagentcommitdeploy.
+
+### 2026-10-13T22:50-03:00 · codex · handoff · d3237b1 (main) dirty 8
+- UUID-avatar parity fixed locally; user-approved empty legacy account cleanup live and verified. OldDiscord/Google logins retained oncurrentaccount. No source deployment/commit.
+- next: User review/commit local AppHub search and UUID avatar fixes and deploy frontend when authorized.

@@ -60,3 +60,43 @@ test('returns the curated Search page featured apps in their display order', () 
     'pump-fun',
   ]);
 });
+
+const vm = require('node:vm'), fs = require('node:fs');
+const catalogContext = { window: {} };
+vm.runInNewContext(fs.readFileSync(require.resolve('../app-hub-data.js'), 'utf8'), catalogContext);
+const catalog = Object.values(catalogContext.window)[0];
+test('every App Hub category and chain is searchable from the actual catalog', () => {
+  for (const category of catalog.categories) {
+    for (const query of [category.name, category.short]) {
+      const found = matchApps(catalog.apps, query);
+      for (const app of catalog.apps.filter(a => a.category === category.name)) assert.ok(found.includes(app), `${query}: missing ${app.name}`);
+    }
+  }
+  for (const chain of catalog.chains) {
+    const found = matchApps(catalog.apps, chain.label);
+    for (const app of catalog.apps) assert.equal(found.includes(app), app.chains.includes(chain.id), `${chain.label}: ${app.name}`);
+  }
+});
+test('every App Hub app name finds its original record despite category and chain words', () => {
+  for (const app of catalog.apps) assert.ok(rankApps(catalog.apps, app.name).includes(app), app.name);
+  for (const q of ['constructor', '__proto__', 'toString']) assert.doesNotThrow(() => matchApps(catalog.apps, q));
+});
+test('full category phrases combine with chain constraints and plurals', () => {
+  for (const category of catalog.categories) for (const chain of catalog.chains) {
+    const found = matchApps(catalog.apps, category.name + ' on ' + chain.label);
+    const expected = catalog.apps.filter(a => a.category === category.name && a.chains.includes(chain.id));
+    assert.deepEqual(found.map(a=>a.id).sort(), expected.map(a=>a.id).sort(), category.name+' '+chain.label);
+  }
+  assert.ok(matchApps(catalog.apps, 'NFT marketplaces').every(a=>a.category==='NFT Marketplace'));
+});
+test('optional tags containing category words remain searchable with chain constraints', () => {
+  const tagged = [
+    {id:'tagged',name:'Tagged app',category:'Social',chains:['cardano'],tags:['NFT gaming','cross chain tools','hardware wallet']},
+    {id:'other',name:'Other app',category:'Gaming',chains:['solana'],tags:[]}
+  ];
+  for(const tag of tagged[0].tags) {
+    assert.deepEqual(matchApps(tagged,tag).map(a=>a.id),['tagged']);
+    assert.deepEqual(matchApps(tagged,tag+' on Cardano').map(a=>a.id),['tagged']);
+    assert.deepEqual(matchApps(tagged,tag+' on Solana'),[]);
+  }
+});

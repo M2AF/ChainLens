@@ -39,29 +39,48 @@
 
   var parseSearchIntent = function (rawQuery, apps) {
     var normalized = normalize(rawQuery);
-    var tokens = normalized ? normalized.split(' ') : [];
+    var remaining = normalized;
+    var categories = [];
+    var tags = [];
+    // Match catalog phrases before individual aliases (World, NFT, portfolio).
+    var phrases = Array.from(new Set((apps || []).map(function (app) { return normalize(app.category); }).filter(Boolean))).sort(function (a, b) { return b.length - a.length; });
+    var tagPhrases = Array.from(new Set((apps || []).flatMap(function (app) { return (app.tags || []).map(normalize); }).filter(Boolean))).sort(function (a, b) { return b.length - a.length; });
+    tagPhrases.forEach(function (tag) {
+      if ((' ' + remaining + ' ').includes(' ' + tag + ' ')) {
+        tags.push(tag);
+        remaining = (' ' + remaining + ' ').replace(' ' + tag + ' ', ' ').trim();
+      }
+    });
+    phrases.forEach(function (category) {
+      var pattern = new RegExp('(^| )' + category.split(' ').map(function (word) { return word.endsWith('s') ? word : word + 's?'; }).join(' ') + '(?= |$)', 'g');
+      if (pattern.test(remaining)) {
+        categories.push(category);
+        remaining = remaining.replace(pattern, ' ');
+      }
+    });
+    var tokens = remaining ? remaining.trim().split(' ').filter(Boolean) : [];
     var knownChains = new Set();
     (apps || []).forEach(function (app) {
       (Array.isArray(app.chains) ? app.chains : []).forEach(function (chain) { knownChains.add(normalize(chain)); });
     });
     var chains = [];
-    var categories = [];
     var terms = [];
     tokens.forEach(function (token) {
-      var chain = CHAIN_ALIASES[token] || token;
+      var chain = Object.hasOwn(CHAIN_ALIASES, token) ? CHAIN_ALIASES[token] : token;
       if (knownChains.has(chain)) {
         if (chains.indexOf(chain) === -1) chains.push(chain);
         return;
       }
-      if (CATEGORY_ALIASES[token]) {
+      if (Object.hasOwn(CATEGORY_ALIASES, token)) {
         CATEGORY_ALIASES[token].forEach(function (category) {
+          category = normalize(category);
           if (categories.indexOf(category) === -1) categories.push(category);
         });
         return;
       }
       if (!STOP_WORDS.has(token)) terms.push(token);
     });
-    return { normalized: normalized, chains: chains, categories: categories, terms: terms };
+    return { normalized: normalized, chains: chains, categories: categories, tags: tags, terms: terms };
   };
 
   var appSearchRecord = function (app) {
@@ -76,6 +95,9 @@
 
   var scoreApp = function (app, intent) {
     var record = appSearchRecord(app);
+    // A complete app name is authoritative even if it contains category/chain words.
+    if (record.name === intent.normalized) return 200;
+    if (intent.tags?.length && !intent.tags.every(function (tag) { return record.tags.includes(tag); })) return 0;
     if (intent.chains.length && !intent.chains.every(function (chain) { return record.chains.indexOf(chain) !== -1; })) return 0;
     if (intent.categories.length && !intent.categories.some(function (category) {
       return record.category === category || record.tags.some(function (tag) { return tag.indexOf(category) !== -1; });
@@ -86,6 +108,7 @@
     if (record.name === intent.normalized) score += 200;
     else if (record.name.startsWith(intent.normalized)) score += 120;
     else if (record.name.indexOf(intent.normalized) !== -1) score += 90;
+    score += (intent.tags || []).length * 60;
     score += intent.chains.length * 55;
     score += intent.categories.length * 50;
     score += intent.terms.reduce(function (total, term) {
@@ -130,5 +153,17 @@
     return tags.slice(0, 2);
   };
 
-  return { getAppMatchTags: getAppMatchTags, getSearchFeaturedApps: getSearchFeaturedApps, matchApps: matchApps, parseSearchIntent: parseSearchIntent, rankApps: rankApps, scoreApp: scoreApp };
+  var isExactAppName = function (apps, query) { return (apps || []).some(function (app) { return normalize(app.name) === normalize(query); }); };
+
+  var isAppCatalogQuery = function (apps, query) {
+    var normalized = normalize(query);
+    return isExactAppName(apps, query) || (apps || []).some(function (app) {
+      return [app.category].concat(app.tags || []).some(function (value) {
+        var phrase = normalize(value);
+        return phrase && (normalized === phrase || normalized.startsWith(phrase + ' on '));
+      });
+    });
+  };
+
+  return { isAppCatalogQuery: isAppCatalogQuery, isExactAppName: isExactAppName, getAppMatchTags: getAppMatchTags, getSearchFeaturedApps: getSearchFeaturedApps, matchApps: matchApps, parseSearchIntent: parseSearchIntent, rankApps: rankApps, scoreApp: scoreApp };
 }));

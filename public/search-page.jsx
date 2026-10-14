@@ -49,10 +49,10 @@
     useEffect(() => () => requestRef.current?.abort(), []);
 
     const scannerIntent = useMemo(() => detectScannerIntent(submittedQuery), [submittedQuery]);
-    const actionIntent = useMemo(() => window.ChainLensSearchActions.parseActionIntent(submittedQuery), [submittedQuery]);
+    const actionIntent = useMemo(() => window.ChainLensSearchIntent.isAppCatalogQuery(apps, submittedQuery) ? null : window.ChainLensSearchActions.parseActionIntent(submittedQuery), [apps, submittedQuery]);
     const entityIntent = useMemo(() => window.ChainLensEntities.parseEntityIntent(submittedQuery), [submittedQuery]);
     const appResults = useMemo(
-      () => actionIntent ? window.ChainLensSearchActions.matchActionApps(apps, actionIntent).slice(0, 6) : entityIntent?.kind && entityIntent.kind !== 'address' ? [] : submittedQuery ? rankApps(apps, submittedQuery) : getSearchFeaturedApps(apps),
+      () => actionIntent ? window.ChainLensSearchActions.matchActionApps(apps, actionIntent).slice(0, 6) : submittedQuery ? rankApps(apps, submittedQuery) : getSearchFeaturedApps(apps),
       [apps, submittedQuery, actionIntent, entityIntent]
     );
 
@@ -173,12 +173,12 @@
           {window.ChainLensProfiles.parseId(submittedQuery) && <section data-testid="profile-search-result" className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
             <h2 className="font-heading text-2xl font-extrabold mb-4">ChainLens profile</h2>
             {loading ? <p>Finding profile…</p> : profileError ? <p role="status">{profileError}</p> : profileResult && <button type="button" onClick={() => onOpenProfile(profileResult.id)} className="flex w-full items-center gap-4 text-left rounded-xl p-3 hover:bg-cyan-500/10">
-              {profileResult.avatar_url ? <img src={profileResult.avatar_url} alt="" referrerPolicy="no-referrer" className="h-14 w-14 rounded-full object-cover" /> : <span className="h-14 w-14 rounded-full bg-cyan-500/20 flex items-center justify-center font-bold">{initials(profileResult.display_name)}</span>}
+              <window.ProfileAvatar profile={profileResult} size={56} />
               <span className="min-w-0 flex-1"><strong className="block">{profileResult.display_name}</strong><span className={`block break-all text-xs font-mono ${muted}`}>{profileResult.id}</span></span><span className="text-cyan-500 text-xs font-bold">View Profile →</span>
             </button>}
           </section>}
           {(!submittedQuery || window.ChainLensProfiles.parseId(submittedQuery)) && (
-            <section className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
+            <section data-testid="app-search-results" className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-6">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-500 mb-2">Start here</p>
@@ -226,11 +226,11 @@
           </section>}
 
           {submittedQuery && !actionIntent && !window.ChainLensProfiles.parseId(submittedQuery) && appResults.length > 0 && (
-            <section className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
+            <section data-testid="app-search-results" className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-6">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-500 mb-2">From App Hub</p>
-                  <h2 className="font-heading text-2xl md:text-3xl font-extrabold uppercase">Apps matching “{submittedQuery}”</h2>
+                  <h2 className="font-heading text-2xl md:text-3xl font-extrabold uppercase break-words">Apps matching “{submittedQuery}”</h2>
                 </div>
                 <button onClick={() => onOpenAppHub(submittedQuery)} className="text-xs font-bold uppercase tracking-widest text-cyan-500 hover:text-cyan-400">View in App Hub →</button>
               </div>

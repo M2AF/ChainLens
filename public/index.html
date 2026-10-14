@@ -304,7 +304,7 @@
     const { useState, useEffect, useMemo, useRef, useCallback } = React;
     const { matchApps: originalMatchAppHubSearch } = window.ChainLensSearchIntent;
     const matchAppHubSearch = (apps, query) => {
-      const intent = window.ChainLensSearchActions.parseActionIntent(query);
+      const intent = window.ChainLensSearchIntent.isAppCatalogQuery(apps, query) ? null : window.ChainLensSearchActions.parseActionIntent(query);
       return intent ? window.ChainLensSearchActions.matchActionApps(apps, intent) : originalMatchAppHubSearch(apps, query);
     };
     const ChainLensSearchPage = window.ChainLensSearchPage;
