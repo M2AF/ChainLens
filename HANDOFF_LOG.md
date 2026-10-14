@@ -123,3 +123,17 @@
 ### 2026-10-13T21:50-03:00 · codex · handoff · 4cc9f0e (main) dirty 7
 - Reviewed Claude delivery and completed all four search additions in main source.271unit13JSX syntax,10final feature browser and16existing regression pass; screenshots reviewed, key-collision and privacy cap issues fixed. Live readonly NNS/ETH NFT/Koios policy probes pass. Source/tests/docs uncommitted; no agent commit/push/deploy/sign/native/MM/DB writes. Both leases released; Claude worktree preserved.
 - next: User review/commit all new modules and deploy frontend+backend together only when authorized. See docs/SEARCH-EXPANSION.md for coverage limits and QA evidence.
+
+### 2026-10-13T22:11-03:00 · codex · claim · e652796 (main) dirty 1
+- task: Separate automatic token and collection search results
+- lease until 2026-10-14T01:11-03:00
+
+### 2026-10-13T22:15-03:00 · codex · checkpoint · e652796 (main) dirty 7
+- HEAD e652796 is user commit of prior search expansion. Separate token/collection sections auto-query with per-section network selectors; natural Monad blockchain suffix parsed.271Node pass. Browser suite session89094 at separate-final-e2e.log in progress; final visual review pending.
+
+### 2026-10-13T22:18-03:00 · codex · verify · e652796 (main) dirty 8
+- verified: e652796 plus local split-results changes:271Node,syntax,13compiledJSX and11affected browser pass;desktop/mobile screenshots reviewed;no agent commit/deploy.
+
+### 2026-10-13T22:18-03:00 · codex · handoff · e652796 (main) dirty 8
+- Separate automatic Tokens and NFTs/collections result sections complete; network selectors retained. Monad blockchain suffix normalized.271unit11browser pass and screenshots reviewed.
+- next: User review/commit split-results follow-up and deploy frontend when authorized.

@@ -52,7 +52,7 @@
     const actionIntent = useMemo(() => window.ChainLensSearchActions.parseActionIntent(submittedQuery), [submittedQuery]);
     const entityIntent = useMemo(() => window.ChainLensEntities.parseEntityIntent(submittedQuery), [submittedQuery]);
     const appResults = useMemo(
-      () => actionIntent ? window.ChainLensSearchActions.matchActionApps(apps, actionIntent).slice(0, 6) : entityIntent && entityIntent.kind !== 'address' ? [] : submittedQuery ? rankApps(apps, submittedQuery) : getSearchFeaturedApps(apps),
+      () => actionIntent ? window.ChainLensSearchActions.matchActionApps(apps, actionIntent).slice(0, 6) : entityIntent?.kind && entityIntent.kind !== 'address' ? [] : submittedQuery ? rankApps(apps, submittedQuery) : getSearchFeaturedApps(apps),
       [apps, submittedQuery, actionIntent, entityIntent]
     );
 
@@ -215,7 +215,7 @@
             </section>
           )}
 
-          {submittedQuery && !window.ChainLensProfiles.parseId(submittedQuery) && !actionIntent && (!entityIntent || entityIntent.kind === 'address') && (scannerIntent || submittedQuery.length <= 64) && <window.SearchPeopleResults key={`people:${submittedQuery}`} query={submittedQuery} domainAddress={nadResult?.address} authToken={authToken} darkMode={darkMode} onOpenProfile={onOpenProfile} />}
+          {submittedQuery && !window.ChainLensProfiles.parseId(submittedQuery) && !actionIntent && (!entityIntent?.kind || entityIntent.kind === 'address') && (scannerIntent || submittedQuery.length <= 64) && <window.SearchPeopleResults key={`people:${submittedQuery}`} query={submittedQuery} domainAddress={nadResult?.address} authToken={authToken} darkMode={darkMode} onOpenProfile={onOpenProfile} />}
 
           {actionIntent && <section data-testid="action-search-results" className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
             <h2 className="font-heading text-xl font-extrabold mb-3">{({ bridge: 'Bridge', swap: 'Swap', stake: 'Staking', lend: 'Lending' })[actionIntent.action]} tools</h2>

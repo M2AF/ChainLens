@@ -35,7 +35,7 @@
       return null;
     }
     let query = text, chain = null;
-    const network = query.match(/\s+on\s+([a-z]+)$/i);
+    const network = query.match(/\s+on\s+([a-z]+)(?:\s+(?:blockchain|network|chain))?$/i);
     if (network) { chain = chainId(network[1]); if (!chain) return null; query = query.slice(0, network.index).trim(); }
     const prefix = query.match(/^(tokens?|collections?|nfts?|policy|tx|transaction)\s+(.+)$/i);
     let kind = prefix ? /^(tx|transaction)$/i.test(prefix[1]) ? 'transaction' : /^(tokens?)$/i.test(prefix[1]) ? 'token' : 'collection' : null;
@@ -43,7 +43,7 @@
     if (!kind && /^(?:0x)?[a-f0-9]{64}$/i.test(query)) kind = 'transaction';
     if (!kind && /^[a-f0-9]{56}$/i.test(query)) { kind = 'collection'; chain = 'cardano'; }
     if (!kind && /^0x[a-f0-9]{40}$/i.test(query)) kind = 'address';
-    if (!kind) return null;
+    if (!kind && !chain) return null;
     if (kind === 'collection' && !chain && /^[a-f0-9]{56}$/i.test(query)) chain = 'cardano';
     const needsChain = !chain && (kind === 'transaction' || kind === 'address' || /^0x[a-f0-9]{40}$/i.test(query));
     return { kind, query, chain, needsChain };

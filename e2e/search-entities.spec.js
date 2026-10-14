@@ -23,11 +23,11 @@ async function fixture(page) {
 test('token-name search qualifies identity, copies it and uses safe explorer links',async({page,context})=>{
   const f=await fixture(page);await context.grantPermissions(['clipboard-read','clipboard-write']);await page.setViewportSize({width:1440,height:1000});
   await page.goto('/search?q='+encodeURIComponent('token EX on Monad'));
-  const card=page.getByTestId('entity-search-results');await expect(card.getByText('Example asset (EX)',{exact:true})).toBeVisible();
+  const card=page.locator('[data-result-kind=token]');await expect(card.getByText('Example asset (EX)',{exact:true})).toBeVisible();
   await expect(card.getByText('monad · token',{exact:true})).toBeVisible();
   await card.getByRole('button',{name:'Copy Example asset identity'}).click();await expect.poll(()=>page.evaluate(()=>navigator.clipboard.readText())).toBe(ADDRESS);
   await expect(card.getByRole('link',{name:'Inspect on explorer ↗'})).toHaveAttribute('href','https://monadscan.com/address/'+ADDRESS);
-  await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:'test-results/search-assets-desktop.png',fullPage:true});expect(f.calls.length).toBe(1);expect(f.errors).toEqual([]);
+  await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:'test-results/search-assets-desktop.png',fullPage:true});expect(f.calls.length).toBe(2);expect(f.errors).toEqual([]);
   await page.route('**/api/search/assets**',r=>r.fulfill({json:{assets:[{kind:'token',chain:'cardano',key:'cardano:native',address:null,name:'Cardano',symbol:'ADA',isNative:true,source:'ChainLens network catalog'}],partial:false}}));
   await page.goto('/search?q='+encodeURIComponent('token ADA on Cardano'));await expect(card.getByText('Native asset · no contract address',{exact:true})).toBeVisible();await expect(card.getByRole('button',{name:'Copy Cardano identity'})).toHaveCount(0);
 });
@@ -41,7 +41,7 @@ test('ambiguous hash requires network; receipt status and transfers fit mobile',
 });
 test('collection intent selects correct category; provider errors retain retry',async({page})=>{
   const f=await fixture(page);await page.goto('/search?q='+encodeURIComponent('collection Sappy Seals'));
-  const card=page.getByTestId('entity-search-results');await expect(card.getByLabel('Result type')).toHaveValue('collection');await expect(card.getByText('Example asset (EX)',{exact:true})).toBeVisible();
+  const card=page.locator('[data-result-kind=collection]');await expect(page.getByLabel('Result type')).toHaveCount(0);await expect(card.getByText('Example asset (EX)',{exact:true})).toBeVisible();
   await expect(page.getByRole('search').getByRole('button',{name:'Search',exact:true})).toBeEnabled();await page.locator('#chainlens-search').fill('token missing on Base');await page.getByRole('search').getByRole('button',{name:'Search',exact:true}).click();
   await expect(card.getByText('Fixture metadata unavailable',{exact:true})).toBeVisible();const count=f.calls.length;await card.getByRole('button',{name:'Retry lookup'}).click();await expect.poll(()=>f.calls.length).toBe(count+1);expect(f.errors).toEqual([]);
 });
@@ -54,6 +54,28 @@ test('collection names reuse loaded NFT data during metadata outages and exclude
   await page.route('**/api/profile/filters',r=>r.fulfill({json:{entries:{['ethereum:n:'+spamAddress+':2']:{s:'s',t:1}}}}));
   await page.route('**/api/nfts/**',r=>r.fulfill({json:{nfts:new URL(r.request().url()).pathname.includes('/ethereum/')?[cached,{...cached,contractAddress:spamAddress,tokenId:'2',collectionName:'Cached Seals spam'}]:[]}}));
   await page.route('**/api/search/assets**',r=>r.fulfill({status:503,json:{error:'Fixture metadata unavailable'}}));
-  await page.goto('/search?q='+encodeURIComponent('collection Cached Seals'));const card=page.getByTestId('entity-search-results');
+  await page.goto('/search?q='+encodeURIComponent('collection Cached Seals'));const card=page.locator('[data-result-kind=collection]');
   await expect(card.getByText('Cached Seals',{exact:true})).toBeVisible();await expect(card.getByText('Your loaded collections',{exact:true})).toBeVisible();await expect(card.getByText('Cached Seals spam',{exact:true})).toHaveCount(0);await expect(card.getByText('Fixture metadata unavailable',{exact:true})).toBeVisible();expect(f.errors).toEqual([]);
+});
+
+test('plain asset searches automatically show separate token and collection sections with network controls',async({page})=>{
+  const f=await fixture(page);
+  for(const width of [1440,390]) {
+    await page.setViewportSize({width,height:1000});
+    await page.goto('/search?q='+encodeURIComponent('emonad on monad blockchain'));
+    const tokens=page.locator('[data-result-kind=token]'),collections=page.locator('[data-result-kind=collection]');
+    await expect(tokens.getByText('Example asset (EX)',{exact:true})).toBeVisible();
+    await expect(collections.getByText('Example asset (EX)',{exact:true})).toBeVisible();
+    await expect(tokens.getByLabel('Search network')).toHaveValue('monad');
+    await expect(collections.getByLabel('Search network')).toHaveValue('monad');
+    await expect(page.getByLabel('Result type')).toHaveCount(0);
+    expect(f.calls.filter(c=>c.includes('q=emonad')&&c.includes('chain=monad')).length).toBeGreaterThanOrEqual(2);
+    await tokens.getByLabel('Search network').selectOption('base');
+    await expect(tokens.getByText('base · token',{exact:true})).toBeVisible();
+    await expect(collections.getByLabel('Search network')).toHaveValue('monad');
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await page.evaluate(()=>scrollTo(0,0));
+    await page.screenshot({path:`test-results/search-separate-${width}.png`,fullPage:true});
+  }
+  expect(f.errors).toEqual([]);
 });

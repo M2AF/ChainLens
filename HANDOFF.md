@@ -7,21 +7,21 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 4cc9f0e · HEAD4cc9f0e plus integrated Claude/Codex search:271Node pass,syntax/new modules/13precompiledJSX pass; final10feature browser pass no retries and16prior affected regression pass. Desktop/mobile screenshots reviewed, React sibling-key duplicate found/fixed and guarded. People privacy/cap/block tests plus real SDK stub read test pass. Live public probes NNS chain143,ERC721 SappySeals metadata andKoios Mallard policy5samples succeed. No production DB query/commit/push/deploy/signer/native/MM change. docs/SEARCH-EXPANSION.md and .local-artifacts/search-expansion logs/screenshots. · 2026-10-13T21:48-03:00
-head: 4cc9f0e (main) dirty 7
-updated: 2026-10-13T21:50-03:00 · codex
+verified: e652796 · e652796 plus local split-results changes:271Node,syntax,13compiledJSX and11affected browser pass;desktop/mobile screenshots reviewed;no agent commit/deploy. · 2026-10-13T22:18-03:00
+head: e652796 (main) dirty 8
+updated: 2026-10-13T22:18-03:00 · codex
 
-resources: ["integration"]
+resources: ["search/ui"]
 
 ## Now
-- Four search additions integrated locally on user HEAD4cc9f0e: assets/collections/native metadata, chain-qualified transactions/transfers, action/AppHub discovery and public profile name/domain/wallet matches. Claude modules copied after scoped release/review under integration lease; Codex wiring/UI/privacy/cap/known-stale action coverage fixes complete.271Node/13JSX/syntax/10final feature browser+16existing regression pass; desktop/mobile screenshots reviewed. Live NNS/ERC721 Sappy/Koios policy probes pass. No agent commit/deploy/native/MM/DB change; new untracked modules must be included. docs/SEARCH-EXPANSION.md.
+- Search expansion is in user commit e652796. Follow-up locally separates automatic Tokens and NFTs/collections results, retaining independent network selectors and transaction section. Natural suffix such as emonad on monad blockchain selects Monad in both.271Node/13compiledJSX/syntax and11affected browser checks pass; desktop/mobile screenshots reviewed. Source uncommitted; no agent commit/deploy/MM/DB change. Evidence .local-artifacts/search-expansion/separate-{unit,verified-e2e}.log; test-results/search-separate-{1440,390}.png.
 - .nad search complete locally on user HEAD4cc9f0e: mainnet NNS resolver via existing ethers, normalized namehash, fixed public RPCs with timeout/fallback/60sec bounded cache. Search shows resolved address/Copy/Scan and reuses address; direct Scanner .nad dispatch uses nad route. Live criptoejesus.nad resolves01faf6df...5efe13; RPC chain143. Syntax/11JSX/234Node/10browser pass; desktop/mobile screenshots reviewed. Source/tests/docs uncommitted; no agent deploy/new SDK/key/backend DB changes.
 - Linked-wallet owner UI is in user commit4cc9f0e: compact wallet-style rows, full wrapping addresses/exact Copy feedback, stacked Rename/Remove and inline primary action. Prior228Node/9browser checks and desktop/mobile screenshots pass; source preserved in this task.
 - Chat sizing/overflow is in user commit4dd857d; current syntax/228Node/11JSX pass. 40px avatars,36px presence; contained NFT rotation; media/text fit.17 affected browser cases covered across runs; final width+unread2pass after startup allowance. Desktop/mobile/popout screenshots reviewed.
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- User review/commit all new modules and deploy frontend+backend together only when authorized. See docs/SEARCH-EXPANSION.md for coverage limits and QA evidence.
+- User review/commit split-results follow-up and deploy frontend when authorized.
 
 ## Traps
 - Collection-name coverage is bounded indexed/loaded NFT data, not a global catalog. Exact identities use chain/provider reads. Hidden wallets must not influence match reasons/count hints; signed-in search filters blocks. Raw quantities are not token-decimal guesses. Action discovery does not prove route availability.

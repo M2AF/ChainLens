@@ -2,9 +2,13 @@
   const { useState, useEffect, useMemo } = React;
   const { parseEntityIntent, explorerUrl, isIdentity } = window.ChainLensEntities;
   const { DEFAULT_CHAINS } = window.ChainLensChains;
-  window.SearchEntityResults = function ({ query, darkMode, collectionAssets = [] }) {
+  window.SearchEntityResults = function (props) {
+    const intent = parseEntityIntent(props.query);
+    if (intent?.kind === 'transaction') return <EntityResultSection {...props} kind="transaction" />;
+    return <><EntityResultSection {...props} kind="token" /><EntityResultSection {...props} kind="collection" /></>;
+  };
+  function EntityResultSection({ query, darkMode, collectionAssets = [], kind }) {
     const intent = useMemo(() => parseEntityIntent(query), [query]);
-    const [kind, setKind] = useState(intent?.kind === 'address' ? 'token' : intent?.kind || '');
     const [chain, setChain] = useState(intent?.chain || '');
     const [data, setData] = useState(null), [error, setError] = useState(''), [loading, setLoading] = useState(false), [retry, setRetry] = useState(0);
     const [copied, setCopied] = useState(''), [notice, setNotice] = useState('');
@@ -45,13 +49,11 @@
     const assets = [...new Map([...localCollections, ...(data?.assets || [])].map(a => [a.key, a])).values()];
     const surface = darkMode ? 'border-slate-800 bg-slate-900/40' : 'border-slate-200 bg-white';
     const tx = data?.kind === 'transaction' ? data : null;
-    return <section data-testid="entity-search-results" className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
-      <h2 className="font-heading text-xl font-extrabold mb-3">{kind === 'transaction' ? 'Transaction' : 'Assets & collections'}</h2>
+    return <section data-testid="entity-search-results" data-result-kind={kind} className={`rounded-[2rem] border p-5 md:p-8 ${surface}`}>
+      <h2 className="font-heading text-xl font-extrabold mb-3">{kind === 'transaction' ? 'Transaction' : kind === 'token' ? 'Tokens' : 'NFTs & collections'}</h2>
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <label className="text-xs">Look up<select aria-label="Result type" className="block mt-1 rounded-lg border border-slate-500/30 bg-transparent p-2" value={kind} onChange={e => setKind(e.target.value)}><option value="">Choose a result type</option><option value="token">Tokens</option><option value="collection">NFTs & collections</option>{intent?.kind === 'transaction' && <option value="transaction">Transaction</option>}</select></label>
         {kind && <label className="text-xs">Network<select aria-label="Search network" className="block mt-1 rounded-lg border border-slate-500/30 bg-transparent p-2" value={chain} onChange={e => setChain(e.target.value)}><option value="">{needsChain ? 'Choose network' : 'All networks'}</option>{networks.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}</select></label>}
       </div>
-      {!kind && <p className="text-sm opacity-60">Search tokens or collections matching “{query}”.</p>}
       {kind && needsChain && !chain && <p role="status" className="text-sm opacity-70">Choose a network. An address or hash alone does not identify its blockchain.</p>}
       {loading && <p role="status">Looking up {kind === 'transaction' ? 'transaction' : 'assets'}…</p>}
       {error && <div role="status"><p>{error}</p><button type="button" className="text-cyan-500 text-xs mt-2" onClick={() => setRetry(v => v + 1)}>Retry lookup</button></div>}
@@ -66,7 +68,7 @@
         {asset.collectionAddress && <p className="text-xs break-all mt-2">Collection: {asset.collectionAddress}</p>}
         {!asset.isNative && explorerUrl(asset.chain, asset.kind, asset.address) && <a className="text-xs text-cyan-500 inline-block mt-2" href={explorerUrl(asset.chain, asset.kind, asset.address)} target="_blank" rel="noopener noreferrer">Inspect on explorer ↗</a>}
       </article>)}
-      {data && !tx && !assets.length && <p className="text-sm">No matching assets found. Try a network or exact contract, mint or policy ID.</p>}
+      {data && !tx && !assets.length && <p className="text-sm">No matching {kind === 'token' ? 'tokens' : 'NFTs or collections'} found. Try a network or exact {kind === 'token' ? 'token address' : 'contract, mint or policy ID'}.</p>}
       {tx && <article className="border-t border-slate-500/20 pt-4 min-w-0">
         <p className="font-bold">{tx.chain} · {({ 'not-found': 'Not found on this network', pending: 'Pending', successful: 'Included successfully', failed: 'Failed' })[tx.state] || 'Unknown'}</p>
         <div className="flex items-start gap-3 my-3"><code className="flex-1 min-w-0 break-all text-xs">{tx.hash}</code><button className="shrink-0 text-xs text-cyan-500" aria-label="Copy transaction hash" onClick={() => copy(tx.hash, tx.hash)}>{copied === tx.hash ? 'Copied ✓' : 'Copy'}</button></div>
@@ -77,5 +79,5 @@
         {explorerUrl(tx.chain, 'transaction', tx.hash) && <a className="text-xs text-cyan-500 inline-block mt-2" href={explorerUrl(tx.chain, 'transaction', tx.hash)} target="_blank" rel="noopener noreferrer">View transaction on explorer ↗</a>}
       </article>}
     </section>;
-  };
+  }
 })();

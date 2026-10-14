@@ -7,6 +7,7 @@ const HASH = '0x' + 'a'.repeat(64), ADDRESS = '0x' + '1'.repeat(40), OTHER = '0x
 const response = data => ({ ok: true, status: 200, json: async () => data });
 test('classifies explicit asset intent and asks for chain for ambiguous hashes/contracts', () => {
   assert.deepEqual(parseEntityIntent('token USDC on Base'), { kind: 'token', query: 'USDC', chain: 'base', needsChain: false });
+  assert.deepEqual(parseEntityIntent('emonad on monad blockchain'), {kind:null,query:'emonad',chain:'monad',needsChain:false});
   assert.equal(parseEntityIntent(ADDRESS).needsChain, true);
   assert.equal(parseEntityIntent(HASH).needsChain, true);
   assert.equal(parseEntityIntent(POLICY).chain, 'cardano');

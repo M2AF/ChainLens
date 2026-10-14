@@ -4,10 +4,16 @@ Codex and Claude implemented the four requested search additions together.
 Claude supplied action matching and allowlisted people search in the detached
 `chainlens-claude-search` worktree; Codex reviewed/copied those modules and owns
 backend wiring, result UI, assets/transactions, privacy refinements and QA.
-Both agents' work is uncommitted. No deployment, signing, transaction broadcast,
-new dependency or database/schema change occurred.
+The original expansion is in user commit e652796. The follow-up separating token
+and collection results is local and uncommitted. No agent deployment, signing,
+transaction broadcast, new dependency or database/schema change occurred.
 
 ## Behavior and examples
+
+Token and NFT/collection results search automatically in separate sections, each
+with its own network selector. There is no result-type dropdown. Network phrases
+such as `emonad on monad blockchain` search for `emonad` on Monad in both sections.
+Transaction searches retain their dedicated section and network selector.
 
 - `token USDC on Base`: chain-qualified token discovery. Names can search across
   networks; contracts/mints require a network. Native currencies are explicit
@@ -113,3 +119,12 @@ agent commit/push/deploy; no Magic Money source/native runtime change.
 - [Lido Solana sunset](https://blog.lido.fi/sunset-lido-on-solana/)
   and [Polygon sunset](https://blog.lido.fi/lido-on-polygon-sunset/)
 - [THORChain native networks](https://docs.thorchain.org/what-is-thorchain-and-rune)
+
+## Separate result sections follow-up
+
+On user HEAD e652796, 271 Node tests, syntax checks and compilation of all 13 JSX
+scripts pass. Eleven affected browser cases pass, including automatic token and
+collection searches, independent network changes and desktop/mobile overflow
+checks. Both split-result screenshots were reviewed. Logs:
+`.local-artifacts/search-expansion/separate-unit.log` and
+`.local-artifacts/search-expansion/separate-verified-e2e.log`.
