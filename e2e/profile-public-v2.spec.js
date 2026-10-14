@@ -90,3 +90,20 @@ test('public profile and GIF modal fit mobile viewport',async({page})=>{
   await page.getByRole('button',{name:'More profile options'}).click();const menu=page.getByRole('menu',{name:'More profile options'});await expect(menu).toBeVisible();const menuBox=await menu.boundingBox();expect(menuBox.x).toBeGreaterThanOrEqual(0);expect(menuBox.x+menuBox.width).toBeLessThanOrEqual(390);await page.keyboard.press('Escape');
   await page.goto('/chat');await page.getByLabel('Open GIPHY picker').click();const dialog=page.getByRole('dialog',{name:'Choose a GIF'});await expect(dialog).toBeVisible();const box=await dialog.boundingBox();expect(box.x+box.width).toBeLessThanOrEqual(390);expect(box.y+box.height).toBeLessThanOrEqual(844);await page.screenshot({path:'test-results/profile-v2-gif-mobile.png',fullPage:true});
 });
+
+test('public favorites keep artwork and captions aligned across mixed collectibles',async({page})=>{
+  const f=await fixture(page,{signedIn:false});
+  const assets=Array.from({length:8},(_,i)=>({...NFT,key:KEY+':'+i,tokenId:String(i),name:i%3===0?'A longer collectible title that wraps across several lines':i%3===1?'Short NFT':'Medium collectible name',image:`https://images.example/layout-${i}.svg`,collection:i%2?'A collection with a longer name':'Seals'}));
+  await page.route('**/api/profiles/'+OTHER+'/favorites*',r=>r.fulfill({json:{assets,total:assets.length,hidden:false,nextOffset:null}}));
+  await page.route('https://images.example/layout-*.svg',r=>{const i=Number(r.request().url().match(/layout-(\d+)/)[1]);const w=i%3===0?600:300,h=i%3===1?600:300;return r.fulfill({contentType:'image/svg+xml',headers:{'access-control-allow-origin':'*'},body:`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="#${i%2?'a6c8dd':'e9cf77'}"/><circle cx="${w/2}" cy="${h/2}" r="70" fill="#577d8d"/></svg>`});});
+  for(const width of [1440,1080,390]){
+    await page.setViewportSize({width,height:1000});await page.goto('/'+OTHER);
+    const gallery=page.getByRole('region',{name:'Favorited NFTs'}),cards=gallery.locator('.cl-favorite-grid>button');await expect(cards).toHaveCount(8);
+    const boxes=await cards.evaluateAll(cards=>cards.map(c=>{const r=c.getBoundingClientRect(),a=c.querySelector('.cl-favorite-art').getBoundingClientRect(),title=c.querySelector('strong').getBoundingClientRect();return{top:r.top,art:a.top,width:a.width,height:a.height,title:title.top};}));
+    for(const b of boxes){expect(Math.abs(b.art-b.top-1)).toBeLessThan(1);expect(Math.abs(b.width-b.height)).toBeLessThan(1);}
+    for(const b of boxes){const row=boxes.filter(other=>Math.abs(other.top-b.top)<1);expect(Math.max(...row.map(x=>x.title))-Math.min(...row.map(x=>x.title))).toBeLessThan(1);}
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await gallery.screenshot({path:`test-results/favorites-aligned-${width}.png`});
+    await cards.nth(1).click();await expect(page.getByRole('dialog').getByRole('heading',{name:'Short NFT',exact:true})).toBeVisible();await page.keyboard.press('Escape');
+  }
+});

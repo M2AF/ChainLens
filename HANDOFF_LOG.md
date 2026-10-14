@@ -108,3 +108,17 @@
 ### 2026-10-13T23:41-03:00 · codex · handoff · 1fc7cb3 (main) dirty 14
 - Unique profile usernames andsearch complete locally; nullable schema migration live andconstraints verified, no realnamesassigned.279unit20distinctbrowser14JSX pass andscreenshots reviewed. Sourceuncommitted, frontend+backend deploymentpending.
 - next: User review/commit all username modules and deploy frontend+backend together when authorized.
+
+### 2026-10-14T00:24-03:00 · codex · claim · 4c03d08 (main) dirty 1
+- task: Public favorites collectible card alignment
+- lease until 2026-10-14T03:24-03:00
+
+### 2026-10-14T00:26-03:00 · codex · checkpoint · 4c03d08 (main) dirty 4
+- UserHEAD4c03d08 username feature committed. Public favorites cardalignment CSS nowtop-aligned flex column, square nonshrinking containart and2-line title reserve/clamp.6affectedbrowser cases running83997 favorites-alignment-e2e.log; desktop1080/1440 and390 mobile layoutassertions +detailclick covermixedratio art/shortlongcaptions. No DB/deploy/commit.
+
+### 2026-10-14T00:28-03:00 · codex · verify · 4c03d08 (main) dirty 5
+- verified: HEAD4c03d08 pluspublic favoritesalignment:6affected browser cases pass;1440/1080/390 artwork top/square/title alignment andnooverflow/details verified. All3screenshots reviewed. CSSonlyproductchange, no backend/data/commit/deploy.
+
+### 2026-10-14T00:28-03:00 · codex · handoff · 4c03d08 (main) dirty 5
+- Publicfavorites collectiblecards aligned; squarecontainedart/topalignedrows/two-linetitles.6browser cases pass and3screenshots reviewed. Source CSS/test/docs uncommitted; noDB/backend/deploy.
+- next: User review/commit favorites cardalignment CSS and deploy frontend when authorized.

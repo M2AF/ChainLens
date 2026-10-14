@@ -133,3 +133,18 @@ Supabase service key remains unregistered, so authenticated local HTTP integrati
 cannot be certified with it. Production deployment credentials and actual
 same-account device sync need normal-path release QA. No app deployment, commit,
 wallet-source change, signing or broadcast occurred.
+
+## Collectible card alignment (October14,2026)
+
+Public favorite cards use a top-aligned flex column with a non-shrinking square
+art frame. Artwork uses contain to preserve the full image, including portrait
+and landscape art. Titles reserve two lines and truncate excess visually; the
+button's full accessible name and NFT detail dialog retain the complete name.
+Collection captions start at a consistent position within each grid row.
+
+On user HEAD4c03d08, all6 public-profile browser cases pass, including alignment
+checks at1440/1080/390px with mixed artwork dimensions, short/long captions,
+overflow checks and detail opening. All three screenshots reviewed. Evidence:
+`.local-artifacts/search-expansion/favorites-alignment-e2e.log` and
+`test-results/favorites-aligned-{1440,1080,390}.png`.
+Only gallery CSS and regression test changed; no backend/data/commit/deployment.
