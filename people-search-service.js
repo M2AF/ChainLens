@@ -11,7 +11,7 @@ const MAX_ADDRESS_LENGTH = 128;
 const MAX_WALLET_ROWS = 50;
 const DEFAULT_NAME = 'ChainLens user';
 // Explicit allowlist: never select email, social/passkey/session data or ids from providers.
-const USER_COLUMNS = 'id,display_name,avatar_url,avatar_nft_key,banner_url,public_wallets';
+const USER_COLUMNS = 'id,username,display_name,avatar_url,avatar_nft_key,banner_url,public_wallets';
 
 const requestError = (status, message) => Object.assign(new Error(message), { status });
 const unavailable = () => requestError(503, 'People search is temporarily unavailable');
@@ -23,7 +23,7 @@ const likeLiteral = value => value.replace(/[\\%_]/g, '\\$&').replace(/\*/g, '_'
 const cleanQuery = raw => {
   if (raw === undefined || raw === null || raw === '') return '';
   if (typeof raw !== 'string') throw requestError(400, 'Search text must be a string');
-  const text = raw.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+  const text = raw.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^@/,'');
   if (text.length > MAX_QUERY_LENGTH) throw requestError(400, 'Search text is too long');
   return text.length >= MIN_QUERY_LENGTH ? text : '';
 };
@@ -47,6 +47,7 @@ const resolveWallet = (rawAddress, rawChain) => {
 
 const toPerson = (row, match) => ({
   id: row.id,
+  username: row.username || null,
   display_name: row.display_name || DEFAULT_NAME,
   avatar_url: row.avatar_url || null,
   avatar_nft_key: row.avatar_nft_key || null,
@@ -66,16 +67,18 @@ const createPeopleSearch = ({ db } = {}) => {
   const byName = async text => {
     const needle = text.toLowerCase();
     const esc = likeLiteral(text);
-    const select = pattern => run(db.from('cl_users').select(USER_COLUMNS).ilike('display_name', pattern).limit(MAX_PEOPLE + 1));
-    const [exact, prefix, contains] = await Promise.all([select(esc), select(`${esc}%`), select(`%${esc}%`)]);
+    const select = (column,pattern) => run(db.from('cl_users').select(USER_COLUMNS).ilike(column, pattern).limit(MAX_PEOPLE + 1));
+    const groups = await Promise.all(['username','display_name'].flatMap(column => [select(column,esc),select(column,`${esc}%`),select(column,`%${esc}%`)]));
     const seen = new Set();
     const rows = [];
-    for (const row of [...exact, ...prefix, ...contains]) {
+    for (const row of groups.flat()) {
       if (!row || typeof row.id !== 'string' || seen.has(row.id)) continue;
       const name = typeof row.display_name === 'string' ? row.display_name.toLowerCase() : '';
-      if (!name.includes(needle)) continue;
+      const username = typeof row.username === 'string' ? row.username : '';
+      const handleMatch = username.includes(needle);
+      if (!handleMatch && !name.includes(needle)) continue;
       seen.add(row.id);
-      rows.push({ row, rank: name === needle ? 0 : name.startsWith(needle) ? 1 : 2 });
+      rows.push({ row: {...row,_match:handleMatch?'username':'name'}, rank: handleMatch ? username === needle ? 0 : username.startsWith(needle) ? 1 : 2 : name === needle ? 3 : name.startsWith(needle) ? 4 : 5 });
     }
     return rows
       .sort((a, b) => a.rank - b.rank || String(a.row.display_name).localeCompare(String(b.row.display_name)) || a.row.id.localeCompare(b.row.id))
@@ -112,7 +115,7 @@ const createPeopleSearch = ({ db } = {}) => {
         if (seen.has(row.id)) continue;
         seen.add(row.id);
         total += 1;
-        if (people.length < MAX_PEOPLE) people.push(toPerson(row, match));
+        if (people.length < MAX_PEOPLE) people.push(toPerson(row, match === 'name' ? row._match || match : match));
       }
     }
     return { people, truncated: total > MAX_PEOPLE || linked.capped };

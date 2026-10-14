@@ -38,14 +38,14 @@ const fakeDb = ({ users = [], wallets = [], fail = null, log = [] } = {}) => ({
   },
 });
 
-const PUBLIC_KEYS = ['avatar_nft_key', 'avatar_url', 'banner_url', 'display_name', 'id', 'match'];
+const PUBLIC_KEYS = ['avatar_nft_key', 'avatar_url', 'banner_url', 'display_name', 'id', 'match', 'username'];
 
 test('name search returns only allowlisted fields and explicit columns', async () => {
   const db = fakeDb({ users: [user(1, 'Alice')] });
   const result = await createPeopleSearch({ db }).search({ q: '  alice ' });
-  assert.deepEqual(result, { people: [{ id: uid(1), display_name: 'Alice', avatar_url: null, avatar_nft_key: null, banner_url: null, match: 'name' }], truncated: false });
+  assert.deepEqual(result, { people: [{ id: uid(1), display_name: 'Alice', username:null, avatar_url: null, avatar_nft_key: null, banner_url: null, match: 'name' }], truncated: false });
   assert.deepEqual(Object.keys(result.people[0]).sort(), PUBLIC_KEYS);
-  db.log.forEach(call => assert.equal(call.columns, 'id,display_name,avatar_url,avatar_nft_key,banner_url,public_wallets'));
+  db.log.forEach(call => assert.equal(call.columns, 'id,username,display_name,avatar_url,avatar_nft_key,banner_url,public_wallets'));
 });
 
 test('orders exact names before prefixes before substrings and dedupes', async () => {
@@ -172,5 +172,12 @@ test('public wallet matches survive an initial hidden group and hidden-only coun
 test('null profile fields use public defaults', async () => {
   const users = [{ id: uid(9), display_name: 'Nulls', avatar_url: undefined, avatar_nft_key: undefined, banner_url: undefined, public_wallets: null }];
   const { people } = await createPeopleSearch({ db: fakeDb({ users }) }).search({ q: 'nulls' });
-  assert.deepEqual(people[0], { id: uid(9), display_name: 'Nulls', avatar_url: null, avatar_nft_key: null, banner_url: null, match: 'name' });
+  assert.deepEqual(people[0], { id: uid(9), display_name: 'Nulls', username:null, avatar_url: null, avatar_nft_key: null, banner_url: null, match: 'name' });
+});
+
+test('unique username matches outrank duplicate customizable display names and @ works',async()=>{
+  const users=[user(1,'Collector',{username:'artist'}),user(2,'artist',{username:'collector'}),user(3,'Artist Fan')];
+  const result=await createPeopleSearch({db:fakeDb({users})}).search({q:'@ARTIST'});
+  assert.equal(result.people[0].id,uid(1));assert.equal(result.people[0].username,'artist');assert.equal(result.people[0].match,'username');
+  assert.equal(result.people[1].match,'name');assert.equal(new Set(result.people.map(p=>p.id)).size,result.people.length);
 });

@@ -41,7 +41,8 @@
   <script src="/profile-id.js"></script>
   <script type="text/babel" src="/social-modals.jsx"></script>
   <script type="text/babel" src="/profile-avatar.jsx"></script>
-  <script type="text/babel" src="/profile-controls.jsx"></script><script type="text/babel" src="/public-profile-gallery.jsx"></script><script type="text/babel" src="/profile-social.jsx"></script>
+  <script type="text/babel" src="/profile-controls.jsx"></script><script type="text/babel" src="/public-profile-gallery.jsx"></script><script type="text/babel" src="/profile-username.jsx"></script>
+  <script type="text/babel" src="/profile-social.jsx"></script>
   <link rel="stylesheet" href="/profile-social.css">
   <script type="text/babel" src="/profile-portfolio.jsx"></script>
   <link rel="stylesheet" href="/profile-portfolio.css">
@@ -4812,7 +4813,8 @@
                               )}
                             </div>
 </div>
-</>} profileId={
+</>} profileId={<>
+                              <window.ProfileUsername profile={userProfile} editable authFetch={authFetch} onSave={data => setUserProfile(current => current?.id===data.id ? {...current,username:data.username} : current)} />
                               <button
                                 onClick={() => {
                                   navigator.clipboard.writeText(userProfile.id).catch(() => {});
@@ -4825,7 +4827,7 @@
                                 <span className="profile-id-label">ChainLens ID</span><span className="break-all">{userProfile.id}</span>
                                 <span className="flex-shrink-0 font-sans text-[8px] font-black uppercase tracking-widest">{copiedProfileId ? 'Copied ✓' : 'Copy'}</span>
                               </button>
-} authFetch={authFetch} onSave={(id, url) => setUserProfile(p => p?.id === id ? { ...p, banner_url: url || null } : p)} />
+</>} authFetch={authFetch} onSave={(id, url) => setUserProfile(p => p?.id === id ? { ...p, banner_url: url || null } : p)} />
                       <window.ProfilePortfolio portfolio={profilePortfolio} favorites={nftFavorites} toggleFavorite={toggleNftFavorite} onSelect={openAsset} resolveImg={resolveImg} darkMode={darkMode} filterEntries={filterEntries} toggleSpam={toggleSpam} />
                     </div>
                     </div>

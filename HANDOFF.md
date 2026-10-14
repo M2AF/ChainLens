@@ -7,13 +7,14 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 5e4b223 · HEAD7ec849d plus NFTfirst/tokenpreview/marketplace links:13relevantNode,13compiledJSX,7affectedbrowser pass. Desktop/mobile screenshots reviewed. Policy exactcopy,validatedWayup/OpenSea/MagicEden URLs, localexpansion/noextraAPI andnetworkreset verified. Local/uncommitted noagentdeploy/DBchange. · 2026-10-13T23:11-03:00
-head: 5e4b223 (main) dirty 3
-updated: 2026-10-13T23:11-03:00 · codex
+verified: 1fc7cb3 · User HEAD1fc7cb3 plususername feature:279Node/check/14JSX and20distinctbrowser cases acrossruns pass;final3username rerun screenshots reviewed. Schema20261014022747 applied;uniqueindex/format constraint testedtempclone+rollback;no realusername claimed. Sourceuncommitted, deployfrontend+backend pending. docs/PROFILE-USERNAMES.md. · 2026-10-13T23:41-03:00
+head: 1fc7cb3 (main) dirty 14
+updated: 2026-10-13T23:41-03:00 · codex
 
-resources: ["search/ui"]
+resources: ["integration"]
 
 ## Now
+- Unique ChainLens username feature on user HEAD1fc7cb3 complete locally: authenticatedatomic claim/edit route, one canonical3–24ASCII handle perUUID, globalunique lower index; ownerpanel aboveID withCopy, publicidentity andusername/displayname search incl@actionwords. Migration20261014022747 applied to vxrhosrktbknogyeyewy; nullablefield andformat/uniqueness verified via tempclone+rollback, no realusername claimed.279Node/check/14JSX/20distinct affectedbrowser cases acrossruns pass; final3username visualrerun pass andscreenshots reviewed. Source/untrackedmodules/docs uncommitted; frontend+backend deployment pending. docs/PROFILE-USERNAMES.md.
 - On current user HEAD5e4b223 (search source/tests committed during verification), NFT-first results and3token preview Showmore/Showless are complete. Expands alreadyloadedtokens without request; resets newquery/network/retry. Safe marketplace links Wayup policy/OpenSea supportedEVM contract/MagicEden mint orcachedsample; Cardano fullPolicyID Copy and separateassetunit Copy.13entityNode/13JSX/7affectedbrowser pass; desktop/mobile screenshots reviewed. nft-marketplace-{unit,e2e}.log; search-{token-preview,nft-marketplaces}-{1440,390}.png. Source/testdiff is empty; docs remain dirty. No agentcommit/deploy/DBwrite; deployment unverified.
 - UUID/profile-link search avatar uses shared ProfileAvatar56px; NFThex and uploadcircle parity verified by1browser flow and13JSX compile, desktop/mobile screenshots reviewed. Local uncommitted. User-approved live cleanup removed only empty legacyDiscord a32b355b andGoogle f8c86cbe after loginmapping/FK guards; currentec18dcf5 remains9wallets2logins5passkeys15favorite rows. Live schwa-name search returns onlycurrent; plain-e spelling returnsnone (noUnicodefolding). sql/cl_cleanup_legacy_criptoejesus_accounts.sql historical APPLIED script; refuses repeat. No source deploy/agentcommit.
 - AppHub search fix on user HEAD d3237b1 is local/uncommitted: entity classification no longer hides catalog apps; category/tag phrases match before word aliases, exact app names override category/chain/action words, AppHub navigation uses same rule. Catalog audit all17categories/short labels/19chains/allappnames/323category-chain pairs and optionaltag fixtures passes.275Node/syntax/13JSX and9affectedbrowser cases pass across runs; final marketplace button/fullcategory/name/Cardano AppHub navigation and mobile heading-wrap case passes32sec. Screenshots reviewed. apphub-{unit,check,e2e,marketplaces-verified-e2e}.log; no agent commit/deploy.
@@ -24,7 +25,7 @@ resources: ["search/ui"]
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- User review commit5e4b223; deploy if authorized. Documentation updates remain local.
+- User review/commit all username modules and deploy frontend+backend together when authorized.
 
 ## Traps
 - Collection-name coverage is bounded indexed/loaded NFT data, not a global catalog. Exact identities use chain/provider reads. Hidden wallets must not influence match reasons/count hints; signed-in search filters blocks. Raw quantities are not token-decimal guesses. Action discovery does not prove route availability.
@@ -43,6 +44,7 @@ resources: ["search/ui"]
 - Shared project -> agent-handoff | used: lease, checkpoints, evidence and archived live-board history | Codex: C:/Users/balla/.codex/skills/agent-handoff/SKILL.md | Claude: C:/Users/balla/.claude/skills/agent-handoff/SKILL.md.
 
 ## Pointers
+- docs/PROFILE-USERNAMES.md; profile-username.js; public/profile-username.jsx; supabase/migrations/20261014022747_cl_profile_usernames.sql; e2e/profile-usernames.spec.js; username-*.log.
 - docs/SEARCH-EXPANSION.md; CLAUDE-SEARCH-TASK.md; docs/CLAUDE-SEARCH-RESULTS.md; .local-artifacts/search-expansion/; ../chainlens-claude-search; HANDOFF_LEASES.json.
 - docs/NAD-SEARCH.md; nad-resolver.js; test/nad-resolver.test.js; e2e/nad-search.spec.js; .local-artifacts/nad-search/; nad-final-{unit,e2e}.log.
 - docs/LINKED-WALLET-LAYOUT.md; e2e/profile-linked-wallets.spec.js; .local-artifacts/linked-wallets/; linked-wallet-{final-unit,final-e2e,regression}.log.

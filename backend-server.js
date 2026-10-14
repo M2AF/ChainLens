@@ -1629,6 +1629,8 @@ app.get('/auth/discord/callback', async (req, res) => {
   }
 });
 
+require('./profile-username').mountUsernameRoutes(app, {db:supabase,requireAuth,rateLimit:searchRateLimit});
+
 // ── Profile routes (require auth) ─────────────────────────────────────────────
 app.get('/api/profile', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });

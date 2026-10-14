@@ -1,7 +1,7 @@
 const { isUuid } = require('./chat-service');
-const PUBLIC_PROFILE_COLUMNS = 'id, display_name, avatar_url, avatar_nft_key, banner_url, public_wallets, public_favorites';
+const PUBLIC_PROFILE_COLUMNS = 'id, username, display_name, avatar_url, avatar_nft_key, banner_url, public_wallets, public_favorites';
 const PRESENCE_TTL = 75_000;
-const publicProfile = row => ({ id: row.id, display_name: row.display_name || 'ChainLens user', avatar_url: row.avatar_url || null, avatar_nft_key: row.avatar_nft_key || null, banner_url: row.banner_url || null });
+const publicProfile = row => ({ id: row.id, username: row.username || null, display_name: row.display_name || 'ChainLens user', avatar_url: row.avatar_url || null, avatar_nft_key: row.avatar_nft_key || null, banner_url: row.banner_url || null });
 
 function mountProfileSocial(app, { db, rateLimit, requireAuth, requireChatAccess }) {
   app.get('/api/profiles/:id', rateLimit, async (req, res) => {

@@ -12,7 +12,7 @@ test('profile identity accepts exact IDs and ChainLens links, rejecting lookalik
   for (const value of [`https://evil.example/${ID}`, `https://www.chainlensnft.info.evil.example/${ID}`, `http://www.chainlensnft.info/${ID}`, '/chat', ID + '/extra']) assert.equal(parseId(value), null);
 });
 test('public profile projection excludes private account fields even if supplied', () => {
-  assert.deepEqual(publicProfile({ id: ID, display_name: 'Me', email: 'private', provider_id: 'secret', cl_wallets: ['hidden'] }), { id: ID, display_name: 'Me', avatar_url: null, avatar_nft_key: null, banner_url: null });
+  assert.deepEqual(publicProfile({ id: ID, display_name: 'Me', email: 'private', provider_id: 'secret', cl_wallets: ['hidden'] }), { id: ID, username:null, display_name: 'Me', avatar_url: null, avatar_nft_key: null, banner_url: null });
 });
 async function fixture(t, results = []) {
   const calls = [];
@@ -36,7 +36,7 @@ test('public endpoint reads only allowlisted columns; invalid IDs never reach da
   assert.equal((await fetch(f.url + '/api/profiles/invalid')).status, 400); assert.equal(f.calls.length, 0);
   const res = await fetch(f.url + '/api/profiles/' + ID); assert.equal(res.status, 200);
   assert.equal((await res.json()).email, undefined);
-  assert.deepEqual(f.calls[0].methods[0], ['select', 'id, display_name, avatar_url, avatar_nft_key, banner_url, public_wallets, public_favorites']);
+  assert.deepEqual(f.calls[0].methods[0], ['select', 'id, username, display_name, avatar_url, avatar_nft_key, banner_url, public_wallets, public_favorites']);
 });
 test('profile endpoint distinguishes missing profile from unavailable database', async t => {
   const f = await fixture(t, [{ data: null }, { error: new Error('private db failure') }]);

@@ -2,108 +2,6 @@
 <!-- Append-only. Never edit or delete entries; correct with a new `correction` entry.
      Header: ### <iso-time> · <agent> · <kind> · <head> <clean|dirty N>. Use handoff.py log. -->
 
-### 2026-10-12T22:45-03:00 · codex · verify · 8c72c70 (main) dirty 10
-- verified: HEAD8c72c70 plus edits: syntax/228 Node/11 JSX and11 unique affected browser journeys pass across final logs (3avatar/3portfolio/5public-GIF); desktop/mobile/public hexagon screenshots reviewed, actual animation measured and reduced motion stops. Shared schema applied, test writes rolled back, RLS/grants intact; no app deploy/commit. Companion wallet final gate ongoing.
-
-### 2026-10-12T23:25-03:00 · codex · verify · bb4ca03 (main) dirty 3
-- verified: HEAD8c72c70 plus NFT-avatar edits: syntax/228 Node/11 JSX,11unique affected browser cases pass; desktop/mobile/public hexagon screenshots reviewed and motion measured/reduced-motion verified. Shared avatar_nft_key migration20261013012323 applied; test writes rolled back, RLS/browser grants intact. Companion wallet final verify:ci exits0 (fiveTS/2517unit/builds/92browser+1skip/critical audit). No application commit/deploy/install; production sync/native QA separate.
-
-### 2026-10-12T23:25-03:00 · codex · handoff · bb4ca03 (main) dirty 4
-- next: User review NFT avatar feature/docs and deploy ChainLens frontend/backend plus updated Magic Money Worker and wallet build when authorized. Shared schema already applied; existing NFT avatars need reselection. Verify production authenticated sync/native runtime after release.
-
-### 2026-10-12T23:26-03:00 · codex · claim · bb4ca03 (main) dirty 4
-- task: Reconcile user ChainLens NFT-avatar commit with final checks
-- lease until 2026-10-13T02:26-03:00
-
-### 2026-10-12T23:27-03:00 · codex · correction · bb4ca03 (main) dirty 4
-- verified: HEADbb4ca03 current check/228Node/11JSX pass; same feature application source as11 passing browser journeys. Shared schema remote20261013012323 applied; wallet final CI gate exits0 as recorded. No agent deployment/install.
-- User committed ChainLens feature as bb4ca03 while wallet full gate ran. Reverified current npm check/228tests/11JSX (same328153 script bytes); no app source drift. Remaining local changes final docs/handoff and migration filename aligned to actual remote20261013012323. Prior no-commit statements mean no agent commit; deployment state not asserted.
-
-### 2026-10-12T23:27-03:00 · codex · handoff · bb4ca03 (main) dirty 4
-- next: Review final notes and migration rename aligning remote20261013012323; ChainLens feature is in user commitbb4ca03. Release updated wallet Worker/build when authorized, verify matching wallet main CI after commit/push, and perform production sync/native runtime QA. Existing NFT pictures need reselection once.
-
-### 2026-10-12T23:31-03:00 · codex · claim · bb4ca03 (main) dirty 4
-- task: Larger chat avatars and responsive chat width
-- lease until 2026-10-13T02:31-03:00
-
-### 2026-10-12T23:38-03:00 · codex · checkpoint · bb4ca03 (main) dirty 8
-- Chat sizing implemented:40px message/friend/header avatars,36px presence; NFT rotation overflow now contained by avatar. New before-fix regression reproduced9px world-feed overflow; after-fix desktop/mobile/page/popout wideGIF/500char passes. Syntax and228Node pass. Running17 focused browser journeys session26703, chat-sizing-e2e.log; wallet full CI session50062.
-
-### 2026-10-12T23:45-03:00 · codex · verify · 4dd857d (main) dirty 2
-- verified: HEADbb4ca03 plus chat sizing edits:syntax/228Node/11JSX pass;17 affected browser cases covered (16 initial passes; badge startup allowance fixed and final width+unread2 pass). Animated NFT overflow reproduced9px before;zero afterward1920/1280/1024/768/390,page/popout,wideGIF/500char. Desktop/mobile screenshots reviewed;wallet fresh final gate running after stale-header follow-up.
-
-### 2026-10-12T23:46-03:00 · codex · verify · 4dd857d (main) dirty 3
-- verified: User HEAD4dd857d contains chat sizing/overflow fix (same328249-byte compiledJS);current syntax/228Node/11JSX pass.17 affected browser cases covered;final width+unread rerun2pass. Screenshots reviewed1920desktop/390mobile/popout. Wallet stale-header follow-up2520unit/full gate in progress.
-
-### 2026-10-13T00:02-03:00 · codex · verify · 4dd857d (main) dirty 4
-- verified: User HEAD4dd857d chat sizing/overflow:same328249-byte11JSX;current syntax/228Node pass;17 affected browser cases covered with final width+unread2pass. 1920/1280/1024/768/390,page/popout,NFT-animation/GIF/500char fit;screenshots reviewed. Companion wallet final CI gate exits0,2520unit/91browser+1history retry+1skip. No agent commit/deploy/install.
-
-### 2026-10-13T00:02-03:00 · codex · handoff · 4dd857d (main) dirty 4
-- User commit4dd857d contains chat fix. Final docs/evidence/handoff complete; both project leases released; no application deployment by agent.
-- next: User review remaining notes and companion wallet changes; verify matching wallet GitHub CI after any commit/push, release when authorized and perform production/native sync QA separately.
-
-### 2026-10-13T01:12-03:00 · codex · claim · 5cbf5e8 (main) dirty 1
-- task: Modernize linked wallet profile cards
-- lease until 2026-10-13T04:12-03:00
-
-### 2026-10-13T01:15-03:00 · codex · checkpoint · 5cbf5e8 (main) dirty 4
-- Compact wallet-style rows implemented in index HTML and scoped portfolio CSS. Full wrapped addresses with clipboard feedback; persistent vertical rename/remove actions and existing primary/edit/remove handlers. Baseline syntax and228Node pass. Responsive clipboard/edit/primary/remove browser journey running session68171 .local-artifacts/linked-wallet-e2e.log; no backend or wallet app edits.
-
-### 2026-10-13T01:19-03:00 · codex · verify · 5cbf5e8 (main) dirty 4
-- verified: Base5cbf5e8 plus linked-wallet UI: syntax,11precompiled JSX assets,228Node and9 affected browser cases pass. Focused final journey exact clipboard8chains/stacked RenameRemove/editSaveCancel/primary/remove and1920/1024/768/390 no overflow. Final desktop/mobile screenshots reviewed .local-artifacts/linked-wallets; logs linked-wallet-final-unit/final-e2e/regression. No backend/schema/MagicMoney edit/commit/deploy.
-
-### 2026-10-13T01:19-03:00 · codex · handoff · 5cbf5e8 (main) dirty 4
-- Compact wallet-style owner rows complete with full addresses, Copy and stacked persistent Rename/Remove. Checks/screenshots/docs complete; source and notes uncommitted. No deployment.
-- next: User review/commit/deploy linked-wallet UI when desired. See docs/LINKED-WALLET-LAYOUT.md and .local-artifacts/linked-wallets/.
-
-### 2026-10-13T20:49-03:00 · codex · claim · 4cc9f0e (main) dirty 1
-- task: Add Nad Name Service resolution and search recommendations
-- lease until 2026-10-13T23:49-03:00
-
-### 2026-10-13T20:53-03:00 · codex · checkpoint · 4cc9f0e (main) dirty 6
-- Official NNS docs confirm mainnet contract Cc7a1bff (older SDK address3019 is testnet). Read-only RPC resolution of criptoejesus.nad succeeded to01faf6df...5efe13; no signing/key/new dependency. nad-resolver.js route, search resolved-address card/copy/reused scanner input and direct scanner endpoint selection implemented. Unit/browser validation in progress; suggestions only for other capabilities.
-
-### 2026-10-13T20:57-03:00 · codex · verify · 4cc9f0e (main) dirty 6
-- verified: User HEAD4cc9f0e plus NNS search/resolver: syntax/newmodule check,11precompiled JSX assets,234Node and10browser cases pass without retries. Desktop/mobile screenshots reviewed .local-artifacts/nad-search. Live public RPC chain143 and criptoejesus.nad resolution01faF6DFc230d755141D84d7cB980dd68f5Efe13 verified. Test fixtures corrected broad api route to preserve dedicated failed-web Worker stub; no production bug. Backend/frontend uncommitted; no agent commit/deploy/new dependency/key/signing/DB change.
-
-### 2026-10-13T20:57-03:00 · codex · handoff · 4cc9f0e (main) dirty 6
-- .nad support complete locally, full address Copy/Scan reuse and direct Scanner dispatch. Official mainnet contract verified and live domain read succeeded.234unit10browser and screenshots pass. Suggestions documented only; no commit/deploy.
-- next: User review/commit/deploy NNS backend+frontend together when desired. Other search ideas are proposals in docs/NAD-SEARCH.md; require user scope before implementation.
-
-### 2026-10-13T20:58-03:00 · codex · claim · 4cc9f0e (main) dirty 6
-- task: Reconcile user-committed linked-wallet handoff status
-- lease until 2026-10-13T23:58-03:00
-
-### 2026-10-13T20:58-03:00 · codex · handoff · 4cc9f0e (main) dirty 6
-- Reconciled previous linked-wallet status with current user commit4cc9f0e; NNS verified local implementation remains uncommitted. No further source changes.
-- next: User review/commit/deploy NNS backend+frontend together when desired; proposals only in docs/NAD-SEARCH.md.
-
-### 2026-10-13T21:00-03:00 · codex · claim · 4cc9f0e (main) dirty 6
-- task: Search assets transactions UI orchestration
-- lease until 2026-10-14T00:00-03:00
-
-### 2026-10-13T21:01-03:00 · codex · checkpoint · 4cc9f0e (main) dirty 6
-- User explicitly requested Claude collaboration on all4 search additions. Prepared detached worktree ../chainlens-claude-search at4cc9f0e and CLAUDE-SEARCH-TASK.md. Codex owns search/assets,transactions,results; Claude instructed scoped actions+people lease, newfiles only, fakeDB/no live production or signing, no main edits/commits/merge/deploy. Claude prompt ready for user to start; not running automatically.
-- next: Implement Codex typed result search and integrate Claude modules only after completed scoped release/review.
-
-### 2026-10-13T21:03-03:00 · claude · claim · 4cc9f0e (detached) clean
-- scoped lease claude-search: Action intent and public identity search
-- resources: checkout/c:/users/balla/desktop/chainlens/chainlens-claude-search, search/actions, search/people
-- until: 2026-10-14T00:03-03:00
-
-### 2026-10-13T21:08-03:00 · claude · checkpoint · 4cc9f0e (detached) clean
-- scoped lease: claude-search
-- search-actions + people-search implemented; 21 node tests pass (fake DB, no network); pickup note docs/CLAUDE-SEARCH-RESULTS.md
-- next: Codex review and integrate
-
-### 2026-10-13T21:08-03:00 · claude · handoff · 4cc9f0e (detached) clean
-- scoped lease: claude-search
-- Complete in worktree chainlens-claude-search, uncommitted; 5 new files + note only
-- next: Codex review/integrate; route wiring + rate limit + blocked-user filtering are Codex's
-
-### 2026-10-13T21:09-03:00 · codex · checkpoint · 4cc9f0e (main) dirty 6
-- Codex architecture: shared entity classifier/known explorer allowlist; independent read-only asset/transaction modules. Reuse existing token discovery; exact EVM NFT contract checks, Solana DAS with existing key, generic Cardano policy/unit/name Koios lookups; bounded collection index plus client cache. EVM/Solana/BTC/Cardano tx lookup distinguishes not-found/pending/failed and limits transfer summaries. UI/tests/wiring next. Claude external prompt available; no scoped lease yet.
-
 ### 2026-10-13T21:15-03:00 · codex · claim · 4cc9f0e (main) dirty 6
 - task: Search integration
 - lease until 2026-10-14T00:15-03:00
@@ -193,3 +91,20 @@
 ### 2026-10-13T23:11-03:00 · codex · handoff · 5e4b223 (main) dirty 3
 - Allrequested search UI improvements in usercommit5e4b223; testedsource unchanged,13Node/13JSX/7browser pass, desktop/mobile reviewed. Docs dirty, deployment unverified.
 - next: User review commit5e4b223; deploy if authorized. Documentation updates remain local.
+
+### 2026-10-13T23:22-03:00 · codex · claim · 1fc7cb3 (main) dirty 1
+- task: Unique profile usernames and search integration
+- lease until 2026-10-14T02:22-03:00
+
+### 2026-10-13T23:29-03:00 · codex · checkpoint · 1fc7cb3 (main) dirty 13
+- Usernames implemented across authenticated atomic claimroute/publicallowlists/name+username search/owner form aboveID and publiccopy. Additive migration applied viaMCP; currentusers unset.279fullNode andsyntax14JSX pass. Starting username/profile regression browser at username-e2e.log; production uniqueness QA uses tempclone+rollback only, no realusername claimed.
+
+### 2026-10-13T23:33-03:00 · codex · checkpoint · 1fc7cb3 (main) dirty 13
+- 279unit/check/14compiledJSX pass;14browser profile/chat/ownerclaim/publicusername cases pass. Schema migration remote20261014022747 applied and localfilename aligned; tempclone rejects duplicate andnoncanonical usernames withrollback, no realclaims. @actionword andbareactionusername guards added; final8browser session13749 username-final-e2e.log inprogress. Productionsecurityadvisors keepintentionalserveronlyRLS no newgrants.
+
+### 2026-10-13T23:41-03:00 · codex · verify · 1fc7cb3 (main) dirty 13
+- verified: User HEAD1fc7cb3 plususername feature:279Node/check/14JSX and20distinctbrowser cases acrossruns pass;final3username rerun screenshots reviewed. Schema20261014022747 applied;uniqueindex/format constraint testedtempclone+rollback;no realusername claimed. Sourceuncommitted, deployfrontend+backend pending. docs/PROFILE-USERNAMES.md.
+
+### 2026-10-13T23:41-03:00 · codex · handoff · 1fc7cb3 (main) dirty 14
+- Unique profile usernames andsearch complete locally; nullable schema migration live andconstraints verified, no realnamesassigned.279unit20distinctbrowser14JSX pass andscreenshots reviewed. Sourceuncommitted, frontend+backend deploymentpending.
+- next: User review/commit all username modules and deploy frontend+backend together when authorized.

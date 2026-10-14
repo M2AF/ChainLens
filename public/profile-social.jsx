@@ -93,6 +93,7 @@
           <window.ProfileAvatar profile={state.profile} size={100} />
           <small>CHAINLENS PROFILE</small><h1>{state.profile.display_name}</h1>
           <window.PublicProfileControls person={state.profile} authToken={authToken} onMessage={onMessage} />
+          <window.ProfileUsername profile={state.profile} />
           <PublicProfileId id={state.profile.id} />
           {state.profile.public_wallets !== false && <details className="cl-public-wallets"><summary>Linked wallets · {(state.profile.wallets || []).length}</summary>{(state.profile.wallets || []).map((wallet,index)=><PublicWalletAddress key={`${wallet.chain}:${wallet.address}:${index}`} wallet={wallet} />)}{!(state.profile.wallets || []).length && <p>No linked wallets.</p>}</details>}
         </div>

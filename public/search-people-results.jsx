@@ -22,7 +22,7 @@
           }
           params.set('address', address); params.set('chain', wallet.chain);
         } else {
-          const value = query.replace(/^(?:people|person|profile|user)\s+/i, '').replace(/^@/, '').trim();
+          const value = query.replace(/^(?:people|person|profile|user|username|handle)\s+/i, '').replace(/^@/, '').trim();
           if (value.length < 2 || value.length > 64) return null;
           params.set('q', value);
         }
@@ -39,7 +39,7 @@
       {error && <div role="status"><p>{error}</p><button className="text-xs text-cyan-500 mt-2" onClick={() => setRetry(v => v + 1)}>Retry profile search</button></div>}
       {data?.people?.map(person => <button key={person.id} type="button" onClick={() => onOpenProfile(person.id)} className="w-full flex items-center gap-3 text-left border-t border-slate-500/20 py-4 hover:bg-cyan-500/5">
         <window.ProfileAvatar profile={person} size={44} />
-        <span className="flex-1 min-w-0"><strong className="block break-words">{person.display_name}</strong><code className="block break-all text-xs opacity-60">{person.id}</code><span className="block text-xs opacity-60 mt-1">{person.match === 'public-wallet' ? 'Publicly linked wallet match' : 'Display name match'}</span></span><span className="shrink-0 text-xs text-cyan-500">Profile →</span>
+        <span className="flex-1 min-w-0"><strong className="block break-words">{person.display_name}</strong><span className="block text-sm text-cyan-500">{person.username && `@${person.username}`}</span><code className="block break-all text-xs opacity-60">{person.id}</code><span className="block text-xs opacity-60 mt-1">{person.match === 'public-wallet' ? 'Publicly linked wallet match' : person.match === 'username' ? 'Username match' : 'Display name match'}</span></span><span className="shrink-0 text-xs text-cyan-500">Profile →</span>
       </button>)}
       {data && !data.people?.length && <p className="text-sm opacity-70">No matching public profiles.</p>}
       {data?.truncated && <p className="text-xs opacity-60 mt-3">More profiles match. Refine the name to narrow your search.</p>}

@@ -526,3 +526,17 @@
     grid-template-columns: repeat(12, minmax(0, 1fr));
   }
 }
+
+.cl-profile-username { margin-top:16px; padding:12px 14px; border:1px solid rgba(128,145,165,.25); border-radius:14px; background:rgba(128,145,165,.06); min-width:0; }
+.cl-username-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12px; }
+.cl-username-row strong { overflow-wrap:anywhere; flex:1; }
+.cl-username-row button,.cl-username-form-row button { padding:7px 10px; border:1px solid rgba(128,145,165,.3); border-radius:8px; font-size:11px; font-weight:700; }
+.cl-profile-username form { margin-top:10px; }
+.cl-profile-username label { display:block; font-size:11px; margin-bottom:5px; }
+.cl-username-form-row { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+.cl-username-form-row input { flex:1; min-width:120px; width:120px; padding:9px; border:1px solid rgba(128,145,165,.35); border-radius:8px; background:transparent; color:inherit; }
+.cl-profile-username small { display:block; font-size:11px; opacity:.65; margin-top:8px; line-height:1.5; }
+.cl-profile-username p { margin-top:8px; font-size:12px; }
+.cl-profile-username [role=alert] { color:#ef8080; }
+.cl-profile-username button:disabled { opacity:.5; }
+.cl-profile-username button:focus-visible,.cl-profile-username input:focus-visible { outline:2px solid #50d5e4; outline-offset:2px; }

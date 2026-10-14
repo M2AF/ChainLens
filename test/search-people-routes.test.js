@@ -12,7 +12,7 @@ test('actual Supabase client sends only allowlisted read queries to a stub trans
   }}});
   const result=await createPeopleSearch({db}).search({q:'Public Name'});
   assert.equal(result.people[0].display_name,'Public Name');assert.equal(result.people[0].email,undefined);
-  assert.equal(requests.length,3);for(const r of requests){assert.ok(!r.u.searchParams.get('select').includes('email'));assert.equal(r.u.searchParams.get('limit'),'11');}
+  assert.equal(requests.length,6);for(const r of requests){assert.ok(!r.u.searchParams.get('select').includes('email'));assert.equal(r.u.searchParams.get('limit'),'11');}
 });
 test('people HTTP route applies rate/auth/block rules and exposes no-store results',async t=>{
   let limited=0,offline=false;
