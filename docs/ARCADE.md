@@ -9,3 +9,5 @@ Validation: npm run check, 282 Node tests and production precompilation pass. Th
 Local source change only. Deploy the frontend and the new CSS/logo files with the existing release process to show it on the public site. The Play link intentionally targets the provided DUO home URL; shared account SSO remains separate work.
 
 DUO Poker is the second entry, using the supplied original `logos/poker_logo.png` copied to `public/arcade/poker-logo.png`. Its Play button opens https://duo-u3mp.onrender.com/poker/. Both game links and responsive card placement are covered by the three Arcade browser journeys. Poker artwork uses a lighter panel to retain the supplied dark logo colors.
+
+DUO Swarm is the third entry, using the supplied Swarm logo (trimmed to its artwork) at `public/arcade/swarm-logo.png`. Its Play button opens https://duo-u3mp.onrender.com/swarm/ in a new tab and is covered by the same Arcade browser journeys.

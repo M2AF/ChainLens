@@ -23,3 +23,4 @@
 .cl-arcade-play { margin-top: auto; }
 .cl-arcade-art-poker { background: radial-gradient(ellipse at 15% 20%, #bceee4, transparent 70%), #e5edf7; }
 .cl-arcade-art-poker img { width: 260px; height: 260px; filter: none; }
+.cl-arcade-art-swarm img { width: min(88%, 320px); height: auto; }
