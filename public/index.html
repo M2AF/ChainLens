@@ -569,6 +569,12 @@
       </div>
     );
 
+    // Arcade games open on their own site in a new tab; embedding breaks wallet and sign-in cookies.
+    const ARCADE_GAMES = [
+      { id: 'duo', name: 'DUO', url: 'https://duo-u3mp.onrender.com', signInUrl: 'https://duo-u3mp.onrender.com/auth/chainlens', image: '/arcade/duo-logo.webp',
+        description: 'Team card game for 2 to 8 players. Pool your hands with a teammate in DUO, or play classic SOLO, SURVIVAL and ROULETTE against friends or bots.' },
+    ];
+
     const NavIcon = ({ name }) => {
       const paths = {
         search: <><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></>,
@@ -578,6 +584,7 @@
         profile: <><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></>,
         chat: <><path d="M3 4h18v13H8l-5 4V4Z"/><path d="M7 9h10M7 13h7"/></>,
         'magic-swap': <><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></>,
+        arcade: <><rect x="2" y="7" width="20" height="12" rx="4"/><path d="M7 11v4M5 13h4M15 12h.01M18 14h.01"/></>,
         docs: <><path d="M6 2h9l4 4v16H6V2Z"/><path d="M15 2v5h4M9 12h7M9 16h7"/></>,
         wallet: <><rect x="2" y="5" width="20" height="16" rx="2"/><path d="M2 9h20M17 15h1"/></>,
         donate: <path d="M12 21S3 15 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 7-9 13-9 13Z"/>,
@@ -1564,6 +1571,7 @@
         if (window.ChainLensProfiles.pathId(window.location.pathname)) return 'public-profile';
         if (window.location.pathname === '/chat') return 'chat';
         if (window.location.pathname === '/magic-swap') return 'magic-swap';
+        if (window.location.pathname === '/arcade') return 'arcade';
         const tab = new URLSearchParams(window.location.search).get('tab');
         return ['search', 'portfolio', 'swap', 'market', 'profile', 'chat'].includes(tab) ? tab : 'search';
       };
@@ -1582,7 +1590,7 @@
         return () => window.removeEventListener('popstate', onPopState);
       }, []);
       useEffect(() => {
-        if (activeTab !== 'magic-swap' && window.location.pathname === '/magic-swap') {
+        if ((activeTab !== 'magic-swap' && window.location.pathname === '/magic-swap') || (activeTab !== 'arcade' && window.location.pathname === '/arcade')) {
           window.history.replaceState({}, '', '/');
         }
       }, [activeTab]);
@@ -3543,7 +3551,7 @@
       };
 
       const navigateTo = (tab) => {
-        const path = tab === 'magic-swap' ? '/magic-swap' : tab === 'chat' ? '/chat' : tab === 'profile' && userProfile?.id ? `/${userProfile.id}` : '/';
+        const path = tab === 'magic-swap' ? '/magic-swap' : tab === 'arcade' ? '/arcade' : tab === 'chat' ? '/chat' : tab === 'profile' && userProfile?.id ? `/${userProfile.id}` : '/';
         if (window.location.pathname !== path) window.history.pushState({}, '', path);
         setPublicProfileId(window.ChainLensProfiles.pathId(path));
         setActiveTab(tab);
@@ -3576,7 +3584,7 @@
       };
 
       const primaryNavigation = [
-        ['search', 'Search'], ['portfolio', 'Scanner'], ['magic-swap', 'Magic Swap'], ['swap', 'App Hub'],
+        ['search', 'Search'], ['portfolio', 'Scanner'], ['arcade', 'Arcade'], ['magic-swap', 'Magic Swap'], ['swap', 'App Hub'],
         ['market', 'Market'], ['chat', 'Chat'], ['profile', 'Profile'],
       ];
       const utilityNavigation = [
@@ -3662,6 +3670,31 @@
               onClose={() => setThemeEditor(null)} onSave={saveTheme} busy={themeSaveBusy} error={themeSaveError} />}
 
             {/* Navigation is in the sidebar. */}
+
+            {activeTab === 'arcade' && (
+              <section className="mx-auto max-w-5xl min-h-[70vh] py-10" data-testid="arcade-page">
+                <p className="text-xs font-black uppercase tracking-[.25em] text-cyan-400">Play</p>
+                <h1 className="mt-3 text-4xl md:text-5xl font-black tracking-tight">Arcade</h1>
+                <p className="mt-3 max-w-2xl opacity-70">Browser games you can play with your ChainLens account. Games open in a new tab.</p>
+                <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {ARCADE_GAMES.map(game => (
+                    <article key={game.id} data-testid={`arcade-game-${game.id}`} className={`flex flex-col overflow-hidden rounded-3xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                      <div className="flex h-48 items-center justify-center bg-black p-6">
+                        <img src={game.image} alt={game.name} className="h-full w-auto object-contain" />
+                      </div>
+                      <div className="flex flex-1 flex-col p-5">
+                        <h2 className="text-xl font-black">{game.name}</h2>
+                        <p className="mt-2 flex-1 text-sm opacity-70">{game.description}</p>
+                        <div className="mt-5 flex flex-wrap gap-2">
+                          <a href={game.url} target="_blank" rel="noopener" className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-cyan-400">Play ↗</a>
+                          {game.signInUrl && <a href={game.signInUrl} target="_blank" rel="noopener" className={`rounded-xl border px-4 py-2 text-sm font-bold ${darkMode ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}>Play signed in ↗</a>}
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {activeTab === 'magic-swap' && (
               <section className="mx-auto max-w-5xl min-h-[70vh] py-10" data-testid="magic-swap-page">
