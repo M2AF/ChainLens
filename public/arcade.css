@@ -16,3 +16,10 @@
 .cl-arcade-play:hover { background: #8beaf0; }
 .cl-arcade-play:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }
 @media (max-width: 600px) { .cl-arcade { padding-top: 54px; } .cl-arcade-details { padding: 22px; } }
+
+.cl-arcade-card { display: flex; flex-direction: column; }
+.cl-arcade-art { flex-shrink: 0; }
+.cl-arcade-details { display: flex; flex-direction: column; flex: 1; }
+.cl-arcade-play { margin-top: auto; }
+.cl-arcade-art-poker { background: radial-gradient(ellipse at 15% 20%, #bceee4, transparent 70%), #e5edf7; }
+.cl-arcade-art-poker img { width: 260px; height: 260px; filter: none; }
