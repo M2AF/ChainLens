@@ -2,7 +2,10 @@
 const crypto = require('node:crypto');
 const express = require('express');
 
-function mountDuoSso(app, { requireAuth, getUser, frontendUrl, redirectUris = process.env.DUO_REDIRECT_URIS || '', now = Date.now }) {
+// Production DUO callbacks, used when DUO_REDIRECT_URIS is not set on the host.
+const DEFAULT_REDIRECT_URIS = ['chainlens', 'google', 'discord'].map(p => `https://duo-u3mp.onrender.com/auth/${p}/callback`).join(',');
+
+function mountDuoSso(app, { requireAuth, getUser, frontendUrl, redirectUris = process.env.DUO_REDIRECT_URIS || DEFAULT_REDIRECT_URIS, now = Date.now }) {
   const allowed = new Set(redirectUris.split(',').map(v => v.trim()).filter(Boolean));
   const codes = new Map(), tokens = new Map(), limits = new Map();
   const hash = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -11,7 +14,7 @@ function mountDuoSso(app, { requireAuth, getUser, frontendUrl, redirectUris = pr
   const guard = (req, res, next) => {
     res.set('Cache-Control', 'no-store'); res.set('Referrer-Policy', 'no-referrer');
     for (const map of [codes, tokens, limits]) for (const [key, v] of map) if (v.expires <= now()) map.delete(key);
-    const key = req.socket.remoteAddress;
+    const key = req.ip || req.socket.remoteAddress;
     const limit = limits.get(key) || { count: 0, expires: now() + 60000 };
     limits.set(key, limit);
     if (++limit.count > 120 || codes.size > 2000 || tokens.size > 2000) return res.status(429).json({ error: 'Sign-in is busy. Try again shortly.' });
