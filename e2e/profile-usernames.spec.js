@@ -9,6 +9,7 @@ async function fixture(page,{signedIn=true}={}){
   await page.route('**/api/**',r=>{
     const u=new URL(r.request().url()),path=u.pathname;
     if(u.hostname.endsWith('workers.dev'))return r.fallback();
+    if(path==='/api/chat/friends')return r.fulfill({json:{friends:[],incoming:[],outgoing:[]}});
     if(path==='/api/profile')return r.fulfill({json:owner()});
     if(path==='/api/profile/username'){
       const value=r.request().postDataJSON().username.trim().replace(/^@/,'').toLowerCase();claims.push(value);

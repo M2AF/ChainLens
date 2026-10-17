@@ -51,7 +51,7 @@ test('own UUID uses the existing Profile page and owner can hide public wallets 
   await page.goForward();await expect(page).toHaveURL('/'+ME);await expect(page.getByText("'s gallery",{exact:true})).toBeVisible();
   const settings=page.locator('.profile-account').getByRole('region',{name:'Public profile visibility'});
   await expect(settings).toBeVisible();
-  expect(await settings.evaluate(el=>!!el.previousElementSibling?.querySelector('.profile-signout-action') && el.nextElementSibling?.tagName==='DETAILS')).toBe(true);
+  expect(await settings.evaluate(el=>el.previousElementSibling?.matches('.cl-profile-requests') && !!el.previousElementSibling?.previousElementSibling?.querySelector('.profile-signout-action') && el.nextElementSibling?.tagName==='DETAILS')).toBe(true);
   await settings.getByLabel('Display linked wallets').uncheck();await expect(settings.getByLabel('Display linked wallets')).not.toBeChecked();
   await settings.getByLabel(/Display favorited NFTs/).uncheck();await expect(settings.getByLabel(/Display favorited NFTs/)).not.toBeChecked();expect(f.patches).toEqual([{public_wallets:false},{public_favorites:false}]);
   await page.screenshot({path:'test-results/profile-v2-owner.png',fullPage:true});

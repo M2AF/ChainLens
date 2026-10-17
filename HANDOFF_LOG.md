@@ -133,3 +133,42 @@
 ### 2026-10-14T01:10-03:00 · codex · handoff · ed2b07a (main) dirty 6
 - Compact username chip matches ID with adjacent Copy/Edit and inlinecopyfeedback.3browser14JSX pass, screenshots reviewed; localUI changes only.
 - next: User review/commit compact username UI and deploy frontend when authorized.
+
+### 2026-10-14T16:44-03:00 · codex · claim · 9e14feb (main) dirty 1
+- task: Profile sidebar friend request acceptance
+- lease until 2026-10-14T19:44-03:00
+
+### 2026-10-14T16:47-03:00 · codex · checkpoint · 9e14feb (main) dirty 6
+- Profilefriendrequests panel insertedunderSignout abovePublicsettings. Usesexistingauthenticatedchatfriend APIs; incomingavatar/name/UUID/Viewprofile +Accept/Decline, guardedrefresh/poll/focus/socialevent, loading/empty/errorRetry, scrollablelist.14JSX compile.12affectedbrowser cases running48895 profile-requests-e2e.log; no backend/DBchange.
+
+### 2026-10-14T16:55-03:00 · codex · verify · 9e14feb (main) dirty 7
+- verified: UserHEAD9e14feb plusprofileFriendRequests:14JSX and12distinct affectedbrowser cases pass acrossruns, finalaccept/decline->Chatfriendsflow33sec. Placement/errors/retry/failedmutationretention/mobile-scroll/profilelink covered; desktop/mobile screenshots reviewed. Localfrontend only, no realrelationships changed. docs/PROFILE-FRIEND-REQUESTS.md.
+
+### 2026-10-14T16:55-03:00 · codex · handoff · 9e14feb (main) dirty 7
+- Friendrequests card belowSignout abovePublicsettings complete. Accept/Decline useexistingauthendpoints andacceptedfriendsvisibleinChat.14JSX12distinctbrowser pass acrossruns; screenshots reviewed. Local/uncommitted, no backend/DB/deploy.
+- next: User review/commit profile friendrequests UI and deploy frontend when authorized.
+
+### 2026-10-16T22:13-03:00 · codex · claim · 9e14feb (main) dirty 7
+- task: DUO account sign-in bridge for upcoming Arcade
+- lease until 2026-10-17T01:13-03:00
+
+### 2026-10-16T22:14-03:00 · codex · checkpoint · 9e14feb (main) dirty 7
+- verified: Baseline syntax/check and 279 Node tests pass
+- DUO SSO scope claimed; baseline npm run check and 279 tests pass on current dirty checkout. Preserve existing profile UI/e2e work. Add separate PKCE bridge module and dedicated consent page; one mount in backend-server.js, no DB writes or Arcade UI.
+- next: Implement isolated DUO SSO bridge and tests
+
+### 2026-10-16T22:23-03:00 · codex · checkpoint · 9e14feb (main) dirty 8
+- Isolated duo-sso.js, dedicated duo-connect HTML/CSS/JS and backend mount implemented. 3 focused bridge tests pass: exact callback, existing auth, PKCE, privacy allowlist, one-use codes/tokens, expiry. No DB writes or production config changes.
+- next: Run end-to-end two-server sign-in, full check/test, then leave Arcade integration handoff
+
+### 2026-10-16T22:29-03:00 · codex · handoff · 9e14feb (main) dirty 8
+- DUO bridge complete locally: 282 tests/check pass; dedicated consent page and two-server browser PKCE flow pass with stub account store. One backend mount plus isolated module/page/tests/docs; no existing Profile code modified, no production accounts/config/DB/deploy touched.
+- next: Arcade agent: read docs/DUO-ARCADE-SSO.md, preserve dirty Profile UI/e2e, link Arcade DUO tile to DUO origin or /auth/chainlens. Configure DUO_REDIRECT_URIS and deploy bridge only when authorized.
+
+### 2026-10-16T22:34-03:00 · codex · claim · 9e14feb (main) dirty 8
+- task: Reuse existing ChainLens social accounts through DUO shared-login provider hints
+- lease until 2026-10-17T01:34-03:00
+
+### 2026-10-16T22:37-03:00 · codex · handoff · 9e14feb (main) dirty 8
+- Shared social provider hints added; existing ChainLens Google/Discord configuration is reused without copying secrets. Same account ID across 3 provider buttons proven by two-server browser test. 3 bridge tests/syntax pass. Local source only; live endpoint fallback confirms production bridge not active.
+- next: Arcade/deployment agent reads docs/DUO-ARCADE-SSO.md; deploy bridge and allowlist DUO /auth/{chainlens,google,discord}/callback paths when authorized. Preserve existing Profile UI/e2e work.

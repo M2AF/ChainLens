@@ -4535,6 +4535,7 @@
                         <button onClick={logout} className="profile-signout-action">Sign out</button>
                       </div>
 
+                      <window.ProfileFriendRequests key={userProfile.id} profileId={userProfile.id} authToken={authToken} onView={viewPerson} />
                       <window.PublicProfileSettings profile={userProfile} authToken={authToken} onSave={(updates,owner) => setUserProfile(current => current?.id===owner ? {...current,...updates} : current)} />
 
                       {/* Add more wallets — always visible even when wallets exist */}

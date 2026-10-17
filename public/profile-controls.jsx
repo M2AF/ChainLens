@@ -31,4 +31,48 @@
       {report && <window.SocialModal title={`Report ${person.display_name}`} onClose={()=>setReport(false)}><form onSubmit={sendReport} className="cl-report-form"><label>Reason<select value={reason} onChange={e=>setReason(e.target.value)}><option value="spam">Spam</option><option value="harassment">Harassment</option><option value="impersonation">Impersonation</option><option value="other">Other</option></select></label><label>Details (optional)<textarea value={details} onChange={e=>setDetails(e.target.value)} maxLength={1000} rows={4}/></label>{error && <p role="alert">{error}</p>}<button disabled={busy}>{busy?'Submitting…':'Submit report'}</button></form></window.SocialModal>}
     </div>;
   };
+  window.ProfileFriendRequests=function({profileId,authToken,onView}){
+    const [incoming,setIncoming]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(null),[notice,setNotice]=useState('');
+    const refreshRef=useRef(null),version=useRef(0),mutating=useRef(false);
+    useEffect(()=>{
+      let live=true;const controller=new AbortController();
+      setIncoming([]);setLoading(true);setError('');setNotice('');
+      const refresh=async()=>{
+        if(mutating.current || document.visibilityState==='hidden')return;
+        const requestVersion=++version.current;
+        try{
+          const response=await fetch('/api/chat/friends',{signal:controller.signal,cache:'no-store',headers:{Authorization:`Bearer ${authToken}`}});
+          const data=await response.json();if(!response.ok)throw new Error(data.error||'Friend requests are unavailable.');
+          if(!Array.isArray(data.incoming))throw new Error('Friend requests are unavailable.');
+          if(live && requestVersion===version.current){setIncoming(data.incoming);setError('');}
+        }catch(error){if(live && requestVersion===version.current && error.name!=='AbortError')setError(error.message);}
+        finally{if(live && requestVersion===version.current)setLoading(false);}
+      };
+      refreshRef.current=refresh;refresh();const timer=setInterval(refresh,20000);
+      window.addEventListener('focus',refresh);window.addEventListener('cl-social-change',refresh);
+      return()=>{live=false;controller.abort();version.current++;refreshRef.current=null;clearInterval(timer);window.removeEventListener('focus',refresh);window.removeEventListener('cl-social-change',refresh);};
+    },[profileId,authToken]);
+    const act=async(person,accept)=>{
+      if(mutating.current)return;mutating.current=true;version.current++;setBusy(person.friendship_id);setError('');setNotice('');
+      try{
+        const response=await fetch(`/api/chat/friends/${encodeURIComponent(person.friendship_id)}${accept?'/accept':''}`,{method:accept?'POST':'DELETE',headers:{Authorization:`Bearer ${authToken}`}});
+        const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not update the friend request.');
+        if(!refreshRef.current)return;
+        setIncoming(rows=>rows.filter(row=>row.friendship_id!==person.friendship_id));setNotice(accept?'Friend request accepted':'Friend request declined');
+        mutating.current=false;window.dispatchEvent(new Event('cl-social-change'));
+      }catch(error){if(refreshRef.current)setError(error.message);}
+      finally{mutating.current=false;if(refreshRef.current)setBusy(null);}
+    };
+    return <section className="cl-profile-requests" aria-label="Friend requests">
+      <h2>Friend requests{incoming.length>0 && <span>{incoming.length}</span>}</h2>
+      {loading && <p role="status">Loading friend requests…</p>}
+      {error && <div role="alert"><p>{error}</p><button type="button" onClick={()=>refreshRef.current?.()}>Retry</button></div>}
+      {!loading && !error && !incoming.length && <p>No pending friend requests.</p>}
+      <div className="cl-profile-request-list">{incoming.map(person=><article key={person.friendship_id}>
+        <button type="button" className="cl-profile-request-person" onClick={()=>onView(person.id)} aria-label={`View profile of ${person.display_name}`}><window.ProfileAvatar profile={person} size={32}/><span><strong>{person.display_name||'ChainLens user'}</strong><code>{person.id}</code></span></button>
+        <div className="cl-profile-request-actions"><button type="button" disabled={busy!==null} onClick={()=>act(person,true)} aria-label={`Accept friend request from ${person.display_name}`}>{busy===person.friendship_id?'Updating…':'Accept'}</button><button type="button" disabled={busy!==null} onClick={()=>act(person,false)} aria-label={`Decline friend request from ${person.display_name}`}>Decline</button></div>
+      </article>)}</div>
+      {notice && <p role="status">{notice}</p>}
+    </section>;
+  };
 })();

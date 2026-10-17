@@ -1632,6 +1632,7 @@ app.get('/auth/discord/callback', async (req, res) => {
 require('./profile-username').mountUsernameRoutes(app, {db:supabase,requireAuth,rateLimit:searchRateLimit});
 
 // ── Profile routes (require auth) ─────────────────────────────────────────────
+require('./duo-sso').mountDuoSso(app, { requireAuth, getUser: dbGetUserById, frontendUrl: FRONTEND_URL });
 app.get('/api/profile', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
   const profile = await dbGetUserById(req.user.sub);

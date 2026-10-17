@@ -7,13 +7,16 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: ed2b07a · HEADed2b07a plus compactusername UI:3username browser workflows pass; compactwidth/height/button-distance,copy/edit/reload/publicsearch/mobileoverflow verified.14JSX compile; desktop/mobile screenshots reviewed. No schema/backend/commit/deploy. · 2026-10-14T01:10-03:00
-head: ed2b07a (main) dirty 6
-updated: 2026-10-14T01:10-03:00 · codex
+verified: 9e14feb · Baseline syntax/check and 279 Node tests pass · 2026-10-16T22:14-03:00
+head: 9e14feb (main) dirty 8
+updated: 2026-10-16T22:37-03:00 · codex
 
-resources: ["profile/ui"]
+resources: ["auth/duo-sso", "public/duo-connect"]
 
 ## Now
+- DUO shared social login reuses existing ChainLens OAuth apps via allowlisted login_provider Google/Discord hints; all 3 buttons resolve same account. No existing .env secrets copied/printed or account/DB changes. 3 updated bridge tests and two-server 3-provider browser flow pass. Live bridge URLs still serve HTML fallback; deploy module/page and allowlist all 3 DUO callback paths to activate. See docs/DUO-ARCADE-SSO.md.
+- DUO SSO bridge local/uncommitted: duo-sso.js + one backend mount + public/duo-connect HTML/CSS/JS; existing account/login/create flow and explicit consent, 60sec one-use PKCE code/token, only accountID/displayname shared. 282 Node/check and two-server browser flow pass using stub account store. No DB writes/provider config/deploy; docs/DUO-ARCADE-SSO.md gives future Arcade agent exact callback/env/route contract. Preserve unrelated dirty Profile UI/e2e.
+- Profile owner friendrequests sidebar on user HEAD9e14feb complete locally: directlyunderSignout/abovePublicsettings; incomingNFTaware avatar/name/UUID/profilelink,Accept/Decline;20secvisible/focus/socialrefresh, stale-readguard,errorRetry,scrolllist. Usesexistingauthfriend APIs/ownership/eligibility.14JSX/12distinctaffectedbrowser cases acrossruns pass;finalaccept->Chatfriendsflow passes33sec. Desktop/mobile screenshots reviewed. docs/PROFILE-FRIEND-REQUESTS.md; profile-requests-{e2e,final-e2e,accept-e2e}.log. No backend/DB/productionfriendship/commit/deployment change.
 - On user HEADed2b07a (favorites alignment committed), username display nowcompact like ChainLensID: fit-content11pxmono chip, adjacent smallCopy/Edit, mobile9px, inlineCopiedfeedback; editableform remains roomy.3username browser workflows pass inclwidth/height/gap/copy/edit/reload/public/search/mobileoverflow;14JSX compile; desktop/mobile screenshots reviewed. username-compact-e2e.log; docs/PROFILE-USERNAMES.md. LocalUI uncommitted, noDB/backend/deploy.
 - On user HEAD4c03d08 (username source committed), publicfavorites cardalignment fixed locally: top-aligned flex, square containart, two-line title reserve/clamp andconsistentcaption offsets.6public-profile browser cases pass incl1440/1080/390 geometry/mixedratio/captions/detailclick; all3screenshots reviewed. favorites-alignment-e2e.log; favorites-aligned-{1440,1080,390}.png; docs/PUBLIC-PROFILE-GALLERY.md. CSS/test/docs uncommitted; no data/backend/deployment change.
 - Unique ChainLens username feature on user HEAD1fc7cb3 complete locally: authenticatedatomic claim/edit route, one canonical3–24ASCII handle perUUID, globalunique lower index; ownerpanel aboveID withCopy, publicidentity andusername/displayname search incl@actionwords. Migration20261014022747 applied to vxrhosrktbknogyeyewy; nullablefield andformat/uniqueness verified via tempclone+rollback, no realusername claimed.279Node/check/14JSX/20distinct affectedbrowser cases acrossruns pass; final3username visualrerun pass andscreenshots reviewed. Source/untrackedmodules/docs uncommitted; frontend+backend deployment pending. docs/PROFILE-USERNAMES.md.
@@ -27,7 +30,7 @@ resources: ["profile/ui"]
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- User review/commit compact username UI and deploy frontend when authorized.
+- Arcade/deployment agent reads docs/DUO-ARCADE-SSO.md; deploy bridge and allowlist DUO /auth/{chainlens,google,discord}/callback paths when authorized. Preserve existing Profile UI/e2e work.
 
 ## Traps
 - Collection-name coverage is bounded indexed/loaded NFT data, not a global catalog. Exact identities use chain/provider reads. Hidden wallets must not influence match reasons/count hints; signed-in search filters blocks. Raw quantities are not token-decimal guesses. Action discovery does not prove route availability.
