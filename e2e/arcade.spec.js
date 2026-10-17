@@ -32,6 +32,10 @@ for(const [label,width,height] of [['desktop',1440,1000],['tablet',768,1024],['m
   await expect(poker.getByRole('link')).toHaveAttribute('href','https://duo-u3mp.onrender.com/poker/');
   await expect(poker.getByRole('img')).toBeVisible();
   expect(await poker.getByRole('img').evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
+  const swarm=page.getByRole('article',{name:'DUO Swarm',exact:true});
+  await expect(swarm).toBeVisible();
+  await expect(swarm.getByRole('link')).toHaveAttribute('href','https://duo-u3mp.onrender.com/swarm/');
+  expect(await swarm.getByRole('img').evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
   const duoBox=await game.boundingBox(),pokerBox=await poker.boundingBox();
   if(width===1440)expect(pokerBox.y).toBe(duoBox.y);
   if(width===390)expect(pokerBox.y).toBeGreaterThan(duoBox.y);
@@ -44,6 +48,9 @@ for(const [label,width,height] of [['desktop',1440,1000],['tablet',768,1024],['m
   await page.context().route('https://duo-u3mp.onrender.com/poker/',r=>r.fulfill({body:'Poker launch destination'}));
   const pokerLaunch=page.waitForEvent('popup');await poker.getByRole('link').click();
   const pokerPopup=await pokerLaunch;await pokerPopup.waitForLoadState();expect(pokerPopup.url()).toBe('https://duo-u3mp.onrender.com/poker/');await pokerPopup.close();
+  await page.context().route('https://duo-u3mp.onrender.com/swarm/',r=>r.fulfill({body:'Swarm launch destination'}));
+  const swarmLaunch=page.waitForEvent('popup');await swarm.getByRole('link').click();
+  const swarmPopup=await swarmLaunch;await swarmPopup.waitForLoadState();expect(swarmPopup.url()).toBe('https://duo-u3mp.onrender.com/swarm/');await swarmPopup.close();
   await page.reload();await expect(page.getByRole('heading' ,{name:'Arcade',exact:true})).toBeVisible();
   await page.goBack();await expect(page.getByRole('heading',{name:'Arcade',exact:true})).toHaveCount(0);
   await page.goForward();await expect(page.getByRole('heading',{name:'Arcade',exact:true})).toBeVisible();
