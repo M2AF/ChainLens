@@ -29,6 +29,7 @@
   <script src="/exchange-assets.js"></script>
   <script type="text/babel" src="/exchange-swap.jsx"></script>
   <link rel="stylesheet" href="/dex-swap.css">
+  <link rel="stylesheet" href="/arcade.css">
   <link rel="stylesheet" href="/market-ticker.css">
   <script type="text/babel" src="/market-ticker.jsx"></script>
   <script src="/asset-filter-key.js"></script>
@@ -572,6 +573,7 @@
     const NavIcon = ({ name }) => {
       const paths = {
         search: <><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></>,
+        arcade: <><path d="M7 7h10a4 4 0 0 1 4 3l1 7a2 2 0 0 1-3 2l-4-3H9l-4 3a2 2 0 0 1-3-2l1-7a4 4 0 0 1 4-3Z"/><path d="M6 11h4m-2-2v4m7-2h.01m3 2h.01"/></>,
         portfolio: <><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="M3 7v10l9 5 9-5V7M12 12v10"/></>,
         swap: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
         market: <><path d="M4 21V11h4v10M10 21V3h4v18M16 21v-7h4v7"/></>,
@@ -1562,10 +1564,11 @@
     const App = () => {
       const tabFromLocation = () => {
         if (window.ChainLensProfiles.pathId(window.location.pathname)) return 'public-profile';
+        if (window.location.pathname === '/arcade') return 'arcade';
         if (window.location.pathname === '/chat') return 'chat';
         if (window.location.pathname === '/magic-swap') return 'magic-swap';
         const tab = new URLSearchParams(window.location.search).get('tab');
-        return ['search', 'portfolio', 'swap', 'market', 'profile', 'chat'].includes(tab) ? tab : 'search';
+        return ['search', 'portfolio', 'arcade', 'swap', 'market', 'profile', 'chat'].includes(tab) ? tab : 'search';
       };
       const [activeTab, setActiveTab] = useState(tabFromLocation);
       const [publicProfileId, setPublicProfileId] = useState(() => window.ChainLensProfiles.pathId(window.location.pathname));
@@ -3543,7 +3546,7 @@
       };
 
       const navigateTo = (tab) => {
-        const path = tab === 'magic-swap' ? '/magic-swap' : tab === 'chat' ? '/chat' : tab === 'profile' && userProfile?.id ? `/${userProfile.id}` : '/';
+        const path = tab === 'arcade' ? '/arcade' : tab === 'magic-swap' ? '/magic-swap' : tab === 'chat' ? '/chat' : tab === 'profile' && userProfile?.id ? `/${userProfile.id}` : '/';
         if (window.location.pathname !== path) window.history.pushState({}, '', path);
         setPublicProfileId(window.ChainLensProfiles.pathId(path));
         setActiveTab(tab);
@@ -3576,7 +3579,7 @@
       };
 
       const primaryNavigation = [
-        ['search', 'Search'], ['portfolio', 'Scanner'], ['magic-swap', 'Magic Swap'], ['swap', 'App Hub'],
+        ['search', 'Search'], ['portfolio', 'Scanner'], ['arcade', 'Arcade'], ['magic-swap', 'Magic Swap'], ['swap', 'App Hub'],
         ['market', 'Market'], ['chat', 'Chat'], ['profile', 'Profile'],
       ];
       const utilityNavigation = [
@@ -3632,7 +3635,7 @@
           />
           <MarketTicker darkMode={darkMode} />
           <button aria-label="Open menu" onClick={() => setMobileMenuOpen(true)} className={`fixed left-4 top-4 z-[60] min-[901px]:hidden rounded-xl border px-3 py-2 text-xl ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>☰</button>
-          <div hidden={activeTab === 'chat'} className={`max-w-[1600px] mx-auto p-4 md:p-8 pt-12 ${['search', 'portfolio', 'market', 'profile', 'public-profile'].includes(activeTab) ? 'cl-primary-content' : ''}`}>
+          <div hidden={activeTab === 'chat'} className={`max-w-[1600px] mx-auto p-4 md:p-8 pt-12 ${['search', 'portfolio', 'arcade', 'market', 'profile', 'public-profile'].includes(activeTab) ? 'cl-primary-content' : ''}`}>
             <div className="cl-main-logo flex-col items-center mb-8">
               <div className="relative group">
                   <img 
@@ -3662,6 +3665,28 @@
               onClose={() => setThemeEditor(null)} onSave={saveTheme} busy={themeSaveBusy} error={themeSaveError} />}
 
             {/* Navigation is in the sidebar. */}
+
+            {activeTab === 'arcade' && (
+              <section className="cl-arcade" aria-labelledby="arcade-heading">
+                <header className="cl-arcade-header">
+                  <p className="cl-arcade-eyebrow">Take a break. Make your move.</p>
+                  <h1 id="arcade-heading">Arcade</h1>
+                  <p>Good games. Great company. Find your next game night right here on ChainLens.</p>
+                </header>
+                <div className="cl-arcade-grid" aria-label="Arcade games">
+                  <article className="cl-arcade-card" aria-labelledby="duo-game-title">
+                    <div className="cl-arcade-art"><img src="/arcade/duo-logo.png" alt="DUO" width="512" height="512" /></div>
+                    <div className="cl-arcade-details">
+                      <p className="cl-arcade-eyebrow">Multiplayer · Card game</p>
+                      <h2 id="duo-game-title">DUO</h2>
+                      <p>Match colors, make moves, and share the win. Team up in DUO or go solo, with custom cards, Survival, Roulette, and bots to keep every seat warm.</p>
+                      <ul className="cl-arcade-tags" aria-label="DUO features"><li>Free to play</li><li>2–10 players</li><li>Mobile &amp; desktop</li></ul>
+                      <a className="cl-arcade-play" href="https://duo-u3mp.onrender.com/" target="_blank" rel="noopener noreferrer" aria-label="Play DUO (opens in a new tab)">Play <span aria-hidden="true">↗</span></a>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            )}
 
             {activeTab === 'magic-swap' && (
               <section className="mx-auto max-w-5xl min-h-[70vh] py-10" data-testid="magic-swap-page">
