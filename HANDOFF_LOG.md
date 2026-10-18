@@ -172,3 +172,44 @@
 ### 2026-10-16T22:37-03:00 · codex · handoff · 9e14feb (main) dirty 8
 - Shared social provider hints added; existing ChainLens Google/Discord configuration is reused without copying secrets. Same account ID across 3 provider buttons proven by two-server browser test. 3 bridge tests/syntax pass. Local source only; live endpoint fallback confirms production bridge not active.
 - next: Arcade/deployment agent reads docs/DUO-ARCADE-SSO.md; deploy bridge and allowlist DUO /auth/{chainlens,google,discord}/callback paths when authorized. Preserve existing Profile UI/e2e work.
+
+### 2026-10-16T23:40-03:00 · codex · claim · effd117 (main) dirty 1
+- task: Add Arcade navigation and responsive DUO game grid
+- lease until 2026-10-17T02:40-03:00
+
+### 2026-10-16T23:42-03:00 · codex · verify · effd117 (main) dirty 3
+- verified: npm run check and 282 Node tests pass at effd117 plus Arcade changes; 14 JSX scripts precompile; 3 desktop/tablet/mobile Arcade browser journeys pass including real popup opening with stubbed external destination; screenshots reviewed.
+- Arcade between Scanner and Magic Swap; internal /arcade grid with original DUO logo, description and Play to exact provided public origin. docs/ARCADE.md. No backend/bridge changes or deploy.
+
+### 2026-10-16T23:42-03:00 · codex · handoff · effd117 (main) dirty 3
+- Arcade UI complete locally; code and visual validation pass. Claude bridge work preserved. No commit/push/deploy.
+- next: Review/deploy Arcade frontend files via normal authorized release process. Keep bridge/account setup with Claude; docs/ARCADE.md records files and validation.
+
+### 2026-10-17T00:48-03:00 · codex · claim · 2c414ed (main) dirty 1
+- task: Add Poker card to Arcade grid
+- lease until 2026-10-17T03:48-03:00
+
+### 2026-10-17T00:49-03:00 · codex · verify · 2c414ed (main) dirty 6
+- verified: npm run check and all282 Node tests pass; 14 JSX scripts precompile; final3 Arcade desktop/tablet/mobile browser journeys pass with both logo loads, both Play popup destinations stubbed externally, grid placement and refresh/back/forward. Screenshots reviewed.
+- Poker card added using supplied logo unchanged and exact public /poker/ URL. No backend/login/DUO game changes.
+
+### 2026-10-17T00:49-03:00 · codex · handoff · 2c414ed (main) dirty 6
+- DUO Poker Arcade entry complete locally; checks and visual verification pass. No commit/push/deploy.
+- next: Deploy reviewed Arcade frontend changes through authorized release process, including public/arcade/poker-logo.png and arcade.css.
+
+### 2026-10-18T00:31-03:00 · codex · claim · 952bbe2 (main) dirty 1
+- task: Add DUO Pool card and supplied logo to ChainLens Arcade
+- lease until 2026-10-18T03:31-03:00
+
+### 2026-10-18T00:32-03:00 · codex · checkpoint · 952bbe2 (main) dirty 6
+- verified: Baseline npm run check and all 282 Node tests pass on current HEAD 952bbe2 before Pool source edits.
+- Added third Arcade card DUO Pool, unchanged supplied logo, exact /pool/ Play URL; e2e and docs updated. Starting responsive Playwright and final check runs; evidence .local-artifacts/pool-e2e.log and test-results/arcade-*.png.
+- next: Run Arcade browser journeys and review screenshots.
+
+### 2026-10-18T00:33-03:00 · codex · verify · 952bbe2 (main) dirty 6
+- verified: HEAD952bbe2 plus Pool: npm run check pass;14 JSX precompiles pass;baseline282 Node tests pass;Arcade Playwright3/3 pass (32sec). No separate lint/type scripts. External game responses stubbed.
+- Pool card complete; all three Arcade Play popup URLs and logos pass browser checks, no page errors or horizontal overflow; desktop/tablet/mobile screenshots reviewed. Supplied logo SHA256 matches exactly. Files: public/index.html, public/arcade.css, public/arcade/pool-logo.png, e2e/arcade.spec.js, docs/ARCADE.md plus handoff.
+
+### 2026-10-18T00:33-03:00 · codex · handoff · 952bbe2 (main) dirty 6
+- DUO Pool Arcade addition complete and locally validated; no commit/push/deploy. Board and docs updated.
+- next: Review/deploy public/index.html, public/arcade.css and public/arcade/pool-logo.png through authorized release process. Browser launch destinations stubbed; gameplay not validated.

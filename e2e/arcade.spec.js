@@ -1,0 +1,66 @@
+const {test,expect}=require('@playwright/test');
+const path=require('node:path');
+const {buildPrecompiledPage}=require('../precompile-page');
+const compiled=buildPrecompiledPage(path.resolve(__dirname,'../public'));
+for(const [label,width,height] of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844]]) {
+ test(`Arcade navigation, game card and refresh on ${label}`,async({page})=>{
+  test.setTimeout(60000);
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.setViewportSize({width,height});
+  await page.route('**/*',r=>{
+   const u=new URL(r.request().url());
+   if(u.pathname.startsWith('/_compiled/'))return r.fulfill({contentType:'application/javascript',body:compiled.assets.get(u.pathname)});
+   if(u.hostname==='127.0.0.1' && ['/', '/arcade'].includes(u.pathname))return r.fulfill({contentType:'text/html',body:compiled.html});
+   if(u.pathname.startsWith('/api/')||u.hostname.endsWith('workers.dev'))return r.fulfill({json:{}});
+   return r.continue();
+  });
+  await page.goto('/');
+  if(width<=900)await page.getByRole('button',{name:'Open menu',exact:true}).click();
+  const nav=page.getByRole('navigation',{name:'Main navigation'});
+  await expect(nav.getByRole('button',{name:'Arcade',exact:true})).toBeVisible();
+  const names=await nav.locator('.cl-nav-item').allTextContents();
+  expect(names.slice(1,4).map(n=>n.trim())).toEqual(['Scanner','Arcade','Magic Swap']);
+  await nav.getByRole('button',{name:'Arcade',exact:true}).click();
+  await expect(page).toHaveURL(/\/arcade$/);
+  await expect(page.getByRole('heading',{name:'Arcade',exact:true})).toBeVisible();
+  const game=page.getByRole('article',{name:'DUO',exact:true});
+  await expect(game).toBeVisible();
+  await expect(game.getByRole('link',{name:'Play DUO (opens in a new tab)',exact:true})).toHaveAttribute('href','https://duo-u3mp.onrender.com/');
+  expect(await game.getByRole('img',{name:'DUO',exact:true}).evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
+  const poker=page.getByRole('article',{name:'DUO Poker',exact:true});
+  await expect(poker).toBeVisible();
+  await expect(poker.getByRole('link')).toHaveAttribute('href','https://duo-u3mp.onrender.com/poker/');
+  await expect(poker.getByRole('img')).toBeVisible();
+  expect(await poker.getByRole('img').evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
+  const pool=page.getByRole('article',{name:'DUO Pool',exact:true});
+  await expect(pool).toBeVisible();
+  const poolPlay=pool.getByRole('link',{name:'Play DUO Pool (opens in a new tab)',exact:true});
+  await expect(poolPlay).toHaveAttribute('href','https://duo-u3mp.onrender.com/pool/');
+  await expect(poolPlay).toHaveAttribute('rel','noopener noreferrer');
+  await expect(pool.getByRole('img',{name:'DUO Pool',exact:true})).toBeVisible();
+  await expect.poll(()=>pool.getByRole('img').evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
+  const duoBox=await game.boundingBox(),pokerBox=await poker.boundingBox();
+  const poolBox=await pool.boundingBox();
+  if(width===1440){expect(poolBox.y).toBe(duoBox.y);expect(poolBox.x).toBeGreaterThan(pokerBox.x);}
+  if(width<1440)expect(poolBox.y).toBeGreaterThan(pokerBox.y);
+  if(width===1440)expect(pokerBox.y).toBe(duoBox.y);
+  if(width===390)expect(pokerBox.y).toBeGreaterThan(duoBox.y);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.screenshot({path:`test-results/arcade-${label}.png`,fullPage:true});
+  await page.context().route('https://duo-u3mp.onrender.com/',r=>r.fulfill({body:'DUO launch destination'}));
+  const launched=page.waitForEvent('popup');
+  await game.getByRole('link',{name:'Play DUO (opens in a new tab)',exact:true}).click();
+  const popup=await launched;await popup.waitForLoadState();expect(popup.url()).toBe('https://duo-u3mp.onrender.com/');await popup.close();
+  await page.context().route('https://duo-u3mp.onrender.com/poker/',r=>r.fulfill({body:'Poker launch destination'}));
+  const pokerLaunch=page.waitForEvent('popup');await poker.getByRole('link').click();
+  const pokerPopup=await pokerLaunch;await pokerPopup.waitForLoadState();expect(pokerPopup.url()).toBe('https://duo-u3mp.onrender.com/poker/');await pokerPopup.close();
+  await page.context().route('https://duo-u3mp.onrender.com/pool/',r=>r.fulfill({body:'Pool launch destination'}));
+  const poolLaunch=page.waitForEvent('popup');await poolPlay.click();
+  const poolPopup=await poolLaunch;await poolPopup.waitForLoadState();expect(poolPopup.url()).toBe('https://duo-u3mp.onrender.com/pool/');await poolPopup.close();
+  await page.reload();await expect(page.getByRole('heading' ,{name:'Arcade',exact:true})).toBeVisible();
+  await expect(pool).toBeVisible();
+  await page.goBack();await expect(page.getByRole('heading',{name:'Arcade',exact:true})).toHaveCount(0);
+  await page.goForward();await expect(page.getByRole('heading',{name:'Arcade',exact:true})).toBeVisible();
+  expect(errors).toEqual([]);
+ });
+}

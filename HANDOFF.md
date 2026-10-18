@@ -7,13 +7,16 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 9e14feb · Baseline syntax/check and 279 Node tests pass · 2026-10-16T22:14-03:00
-head: 9e14feb (main) dirty 8
-updated: 2026-10-16T22:37-03:00 · codex
+verified: 952bbe2 · HEAD952bbe2 plus Pool: npm run check pass;14 JSX precompiles pass;baseline282 Node tests pass;Arcade Playwright3/3 pass (32sec). No separate lint/type scripts. External game responses stubbed. · 2026-10-18T00:33-03:00
+head: 952bbe2 (main) dirty 6
+updated: 2026-10-18T00:33-03:00 · codex
 
-resources: ["auth/duo-sso", "public/duo-connect"]
+resources: ["public/arcade", "public/index.html"]
 
 ## Now
+- DUO Pool added as third Arcade card on HEAD952bbe2: supplied DUO/logos/pool.png copied unchanged to public/arcade/pool-logo.png; landscape contain art, description and exact /pool/ Play URL. Source checks/14 JSX compile pass; baseline282 Node tests pass; final3 desktop/tablet/mobile Arcade journeys pass, screenshots reviewed. docs/ARCADE.md; .local-artifacts/pool-{baseline-tests,e2e}.log. Local uncommitted; no deploy.
+- DUO Poker added as second Arcade card on user HEAD2c414ed, supplied logo copied unchanged, readable light art panel, description and exact /poker/ Play link. Equal-height cards align Play controls. docs/ARCADE.md and e2e/arcade.spec.js updated; local source only.
+- Arcade navigation/page added on effd117: between Scanner and Magic Swap; /arcade responsive grid, original DUO logo, description/features and exact public Play URL. Source local; no bridge/backend/login changes. docs/ARCADE.md; e2e/arcade.spec.js; test-results/arcade-{desktop,tablet,mobile}.png.
 - DUO shared social login reuses existing ChainLens OAuth apps via allowlisted login_provider Google/Discord hints; all 3 buttons resolve same account. No existing .env secrets copied/printed or account/DB changes. 3 updated bridge tests and two-server 3-provider browser flow pass. Live bridge URLs still serve HTML fallback; deploy module/page and allowlist all 3 DUO callback paths to activate. See docs/DUO-ARCADE-SSO.md.
 - DUO SSO bridge local/uncommitted: duo-sso.js + one backend mount + public/duo-connect HTML/CSS/JS; existing account/login/create flow and explicit consent, 60sec one-use PKCE code/token, only accountID/displayname shared. 282 Node/check and two-server browser flow pass using stub account store. No DB writes/provider config/deploy; docs/DUO-ARCADE-SSO.md gives future Arcade agent exact callback/env/route contract. Preserve unrelated dirty Profile UI/e2e.
 - Profile owner friendrequests sidebar on user HEAD9e14feb complete locally: directlyunderSignout/abovePublicsettings; incomingNFTaware avatar/name/UUID/profilelink,Accept/Decline;20secvisible/focus/socialrefresh, stale-readguard,errorRetry,scrolllist. Usesexistingauthfriend APIs/ownership/eligibility.14JSX/12distinctaffectedbrowser cases acrossruns pass;finalaccept->Chatfriendsflow passes33sec. Desktop/mobile screenshots reviewed. docs/PROFILE-FRIEND-REQUESTS.md; profile-requests-{e2e,final-e2e,accept-e2e}.log. No backend/DB/productionfriendship/commit/deployment change.
@@ -30,7 +33,7 @@ resources: ["auth/duo-sso", "public/duo-connect"]
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- Arcade/deployment agent reads docs/DUO-ARCADE-SSO.md; deploy bridge and allowlist DUO /auth/{chainlens,google,discord}/callback paths when authorized. Preserve existing Profile UI/e2e work.
+- Review/deploy public/index.html, public/arcade.css and public/arcade/pool-logo.png through authorized release process. Browser launch destinations stubbed; gameplay not validated.
 
 ## Traps
 - Collection-name coverage is bounded indexed/loaded NFT data, not a global catalog. Exact identities use chain/provider reads. Hidden wallets must not influence match reasons/count hints; signed-in search filters blocks. Raw quantities are not token-decimal guesses. Action discovery does not prove route availability.

@@ -29,6 +29,7 @@
   <script src="/exchange-assets.js"></script>
   <script type="text/babel" src="/exchange-swap.jsx"></script>
   <link rel="stylesheet" href="/dex-swap.css">
+  <link rel="stylesheet" href="/arcade.css">
   <link rel="stylesheet" href="/market-ticker.css">
   <script type="text/babel" src="/market-ticker.jsx"></script>
   <script src="/asset-filter-key.js"></script>
@@ -569,22 +570,16 @@
       </div>
     );
 
-    // Arcade games open on their own site in a new tab; embedding breaks wallet and sign-in cookies.
-    const ARCADE_GAMES = [
-      { id: 'duo', name: 'DUO', url: 'https://duo-u3mp.onrender.com', signInUrl: 'https://duo-u3mp.onrender.com/auth/chainlens', image: '/arcade/duo-logo.webp',
-        description: 'Team card game for 2 to 8 players. Pool your hands with a teammate in DUO, or play classic SOLO, SURVIVAL and ROULETTE against friends or bots.' },
-    ];
-
     const NavIcon = ({ name }) => {
       const paths = {
         search: <><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></>,
+        arcade: <><path d="M7 7h10a4 4 0 0 1 4 3l1 7a2 2 0 0 1-3 2l-4-3H9l-4 3a2 2 0 0 1-3-2l1-7a4 4 0 0 1 4-3Z"/><path d="M6 11h4m-2-2v4m7-2h.01m3 2h.01"/></>,
         portfolio: <><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="M3 7v10l9 5 9-5V7M12 12v10"/></>,
         swap: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
         market: <><path d="M4 21V11h4v10M10 21V3h4v18M16 21v-7h4v7"/></>,
         profile: <><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></>,
         chat: <><path d="M3 4h18v13H8l-5 4V4Z"/><path d="M7 9h10M7 13h7"/></>,
         'magic-swap': <><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></>,
-        arcade: <><rect x="2" y="7" width="20" height="12" rx="4"/><path d="M7 11v4M5 13h4M15 12h.01M18 14h.01"/></>,
         docs: <><path d="M6 2h9l4 4v16H6V2Z"/><path d="M15 2v5h4M9 12h7M9 16h7"/></>,
         wallet: <><rect x="2" y="5" width="20" height="16" rx="2"/><path d="M2 9h20M17 15h1"/></>,
         donate: <path d="M12 21S3 15 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 7-9 13-9 13Z"/>,
@@ -1569,11 +1564,11 @@
     const App = () => {
       const tabFromLocation = () => {
         if (window.ChainLensProfiles.pathId(window.location.pathname)) return 'public-profile';
+        if (window.location.pathname === '/arcade') return 'arcade';
         if (window.location.pathname === '/chat') return 'chat';
         if (window.location.pathname === '/magic-swap') return 'magic-swap';
-        if (window.location.pathname === '/arcade') return 'arcade';
         const tab = new URLSearchParams(window.location.search).get('tab');
-        return ['search', 'portfolio', 'swap', 'market', 'profile', 'chat'].includes(tab) ? tab : 'search';
+        return ['search', 'portfolio', 'arcade', 'swap', 'market', 'profile', 'chat'].includes(tab) ? tab : 'search';
       };
       const [activeTab, setActiveTab] = useState(tabFromLocation);
       const [publicProfileId, setPublicProfileId] = useState(() => window.ChainLensProfiles.pathId(window.location.pathname));
@@ -1590,7 +1585,7 @@
         return () => window.removeEventListener('popstate', onPopState);
       }, []);
       useEffect(() => {
-        if ((activeTab !== 'magic-swap' && window.location.pathname === '/magic-swap') || (activeTab !== 'arcade' && window.location.pathname === '/arcade')) {
+        if (activeTab !== 'magic-swap' && window.location.pathname === '/magic-swap') {
           window.history.replaceState({}, '', '/');
         }
       }, [activeTab]);
@@ -3551,7 +3546,7 @@
       };
 
       const navigateTo = (tab) => {
-        const path = tab === 'magic-swap' ? '/magic-swap' : tab === 'arcade' ? '/arcade' : tab === 'chat' ? '/chat' : tab === 'profile' && userProfile?.id ? `/${userProfile.id}` : '/';
+        const path = tab === 'arcade' ? '/arcade' : tab === 'magic-swap' ? '/magic-swap' : tab === 'chat' ? '/chat' : tab === 'profile' && userProfile?.id ? `/${userProfile.id}` : '/';
         if (window.location.pathname !== path) window.history.pushState({}, '', path);
         setPublicProfileId(window.ChainLensProfiles.pathId(path));
         setActiveTab(tab);
@@ -3640,7 +3635,7 @@
           />
           <MarketTicker darkMode={darkMode} />
           <button aria-label="Open menu" onClick={() => setMobileMenuOpen(true)} className={`fixed left-4 top-4 z-[60] min-[901px]:hidden rounded-xl border px-3 py-2 text-xl ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>☰</button>
-          <div hidden={activeTab === 'chat'} className={`max-w-[1600px] mx-auto p-4 md:p-8 pt-12 ${['search', 'portfolio', 'market', 'profile', 'public-profile'].includes(activeTab) ? 'cl-primary-content' : ''}`}>
+          <div hidden={activeTab === 'chat'} className={`max-w-[1600px] mx-auto p-4 md:p-8 pt-12 ${['search', 'portfolio', 'arcade', 'market', 'profile', 'public-profile'].includes(activeTab) ? 'cl-primary-content' : ''}`}>
             <div className="cl-main-logo flex-col items-center mb-8">
               <div className="relative group">
                   <img 
@@ -3672,26 +3667,43 @@
             {/* Navigation is in the sidebar. */}
 
             {activeTab === 'arcade' && (
-              <section className="mx-auto max-w-5xl min-h-[70vh] py-10" data-testid="arcade-page">
-                <p className="text-xs font-black uppercase tracking-[.25em] text-cyan-400">Play</p>
-                <h1 className="mt-3 text-4xl md:text-5xl font-black tracking-tight">Arcade</h1>
-                <p className="mt-3 max-w-2xl opacity-70">Browser games you can play with your ChainLens account. Games open in a new tab.</p>
-                <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {ARCADE_GAMES.map(game => (
-                    <article key={game.id} data-testid={`arcade-game-${game.id}`} className={`flex flex-col overflow-hidden rounded-3xl border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                      <div className="flex h-48 items-center justify-center bg-black p-6">
-                        <img src={game.image} alt={game.name} className="h-full w-auto object-contain" />
-                      </div>
-                      <div className="flex flex-1 flex-col p-5">
-                        <h2 className="text-xl font-black">{game.name}</h2>
-                        <p className="mt-2 flex-1 text-sm opacity-70">{game.description}</p>
-                        <div className="mt-5 flex flex-wrap gap-2">
-                          <a href={game.url} target="_blank" rel="noopener" className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-cyan-400">Play ↗</a>
-                          {game.signInUrl && <a href={game.signInUrl} target="_blank" rel="noopener" className={`rounded-xl border px-4 py-2 text-sm font-bold ${darkMode ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}>Play signed in ↗</a>}
-                        </div>
-                      </div>
-                    </article>
-                  ))}
+              <section className="cl-arcade" aria-labelledby="arcade-heading">
+                <header className="cl-arcade-header">
+                  <p className="cl-arcade-eyebrow">Take a break. Make your move.</p>
+                  <h1 id="arcade-heading">Arcade</h1>
+                  <p>Good games. Great company. Find your next game night right here on ChainLens.</p>
+                </header>
+                <div className="cl-arcade-grid" aria-label="Arcade games">
+                  <article className="cl-arcade-card" aria-labelledby="duo-game-title">
+                    <div className="cl-arcade-art"><img src="/arcade/duo-logo.png" alt="DUO" width="512" height="512" /></div>
+                    <div className="cl-arcade-details">
+                      <p className="cl-arcade-eyebrow">Multiplayer · Card game</p>
+                      <h2 id="duo-game-title">DUO</h2>
+                      <p>Match colors, make moves, and share the win. Team up in DUO or go solo, with custom cards, Survival, Roulette, and bots to keep every seat warm.</p>
+                      <ul className="cl-arcade-tags" aria-label="DUO features"><li>Free to play</li><li>2–10 players</li><li>Mobile &amp; desktop</li></ul>
+                      <a className="cl-arcade-play" href="https://duo-u3mp.onrender.com/" target="_blank" rel="noopener noreferrer" aria-label="Play DUO (opens in a new tab)">Play <span aria-hidden="true">↗</span></a>
+                    </div>
+                  </article>
+                  <article className="cl-arcade-card" aria-labelledby="poker-game-title">
+                    <div className="cl-arcade-art cl-arcade-art-poker"><img src="/arcade/poker-logo.png" alt="DUO Poker" width="4166" height="4166" /></div>
+                    <div className="cl-arcade-details">
+                      <p className="cl-arcade-eyebrow">Poker · Card game</p>
+                      <h2 id="poker-game-title">DUO Poker</h2>
+                      <p>Take a seat at the poker table. Read the table, plan your next move, and put your card skills to the test.</p>
+                      <ul className="cl-arcade-tags" aria-label="DUO Poker features"><li>Poker</li><li>Play in your browser</li></ul>
+                      <a className="cl-arcade-play" href="https://duo-u3mp.onrender.com/poker/" target="_blank" rel="noopener noreferrer" aria-label="Play DUO Poker (opens in a new tab)">Play <span aria-hidden="true">↗</span></a>
+                    </div>
+                  </article>
+                  <article className="cl-arcade-card" aria-labelledby="pool-game-title">
+                    <div className="cl-arcade-art cl-arcade-art-pool"><img src="/arcade/pool-logo.png" alt="DUO Pool" width="1536" height="1024" /></div>
+                    <div className="cl-arcade-details">
+                      <p className="cl-arcade-eyebrow">Pool · Sports game</p>
+                      <h2 id="pool-game-title">DUO Pool</h2>
+                      <p>Line up your shot and take to the pool table. Plan your angles, sharpen your aim, and play pool in your browser.</p>
+                      <ul className="cl-arcade-tags" aria-label="DUO Pool features"><li>Pool</li><li>Play in your browser</li></ul>
+                      <a className="cl-arcade-play" href="https://duo-u3mp.onrender.com/pool/" target="_blank" rel="noopener noreferrer" aria-label="Play DUO Pool (opens in a new tab)">Play <span aria-hidden="true">↗</span></a>
+                    </div>
+                  </article>
                 </div>
               </section>
             )}
