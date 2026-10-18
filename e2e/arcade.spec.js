@@ -32,7 +32,17 @@ for(const [label,width,height] of [['desktop',1440,1000],['tablet',768,1024],['m
   await expect(poker.getByRole('link')).toHaveAttribute('href','https://duo-u3mp.onrender.com/poker/');
   await expect(poker.getByRole('img')).toBeVisible();
   expect(await poker.getByRole('img').evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
+  const pool=page.getByRole('article',{name:'DUO Pool',exact:true});
+  await expect(pool).toBeVisible();
+  const poolPlay=pool.getByRole('link',{name:'Play DUO Pool (opens in a new tab)',exact:true});
+  await expect(poolPlay).toHaveAttribute('href','https://duo-u3mp.onrender.com/pool/');
+  await expect(poolPlay).toHaveAttribute('rel','noopener noreferrer');
+  await expect(pool.getByRole('img',{name:'DUO Pool',exact:true})).toBeVisible();
+  await expect.poll(()=>pool.getByRole('img').evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
   const duoBox=await game.boundingBox(),pokerBox=await poker.boundingBox();
+  const poolBox=await pool.boundingBox();
+  if(width===1440){expect(poolBox.y).toBe(duoBox.y);expect(poolBox.x).toBeGreaterThan(pokerBox.x);}
+  if(width<1440)expect(poolBox.y).toBeGreaterThan(pokerBox.y);
   if(width===1440)expect(pokerBox.y).toBe(duoBox.y);
   if(width===390)expect(pokerBox.y).toBeGreaterThan(duoBox.y);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -44,7 +54,11 @@ for(const [label,width,height] of [['desktop',1440,1000],['tablet',768,1024],['m
   await page.context().route('https://duo-u3mp.onrender.com/poker/',r=>r.fulfill({body:'Poker launch destination'}));
   const pokerLaunch=page.waitForEvent('popup');await poker.getByRole('link').click();
   const pokerPopup=await pokerLaunch;await pokerPopup.waitForLoadState();expect(pokerPopup.url()).toBe('https://duo-u3mp.onrender.com/poker/');await pokerPopup.close();
+  await page.context().route('https://duo-u3mp.onrender.com/pool/',r=>r.fulfill({body:'Pool launch destination'}));
+  const poolLaunch=page.waitForEvent('popup');await poolPlay.click();
+  const poolPopup=await poolLaunch;await poolPopup.waitForLoadState();expect(poolPopup.url()).toBe('https://duo-u3mp.onrender.com/pool/');await poolPopup.close();
   await page.reload();await expect(page.getByRole('heading' ,{name:'Arcade',exact:true})).toBeVisible();
+  await expect(pool).toBeVisible();
   await page.goBack();await expect(page.getByRole('heading',{name:'Arcade',exact:true})).toHaveCount(0);
   await page.goForward();await expect(page.getByRole('heading',{name:'Arcade',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
