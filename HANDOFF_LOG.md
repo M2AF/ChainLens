@@ -196,3 +196,20 @@
 ### 2026-10-17T00:49-03:00 · codex · handoff · 2c414ed (main) dirty 6
 - DUO Poker Arcade entry complete locally; checks and visual verification pass. No commit/push/deploy.
 - next: Deploy reviewed Arcade frontend changes through authorized release process, including public/arcade/poker-logo.png and arcade.css.
+
+### 2026-10-18T00:31-03:00 · codex · claim · 952bbe2 (main) dirty 1
+- task: Add DUO Pool card and supplied logo to ChainLens Arcade
+- lease until 2026-10-18T03:31-03:00
+
+### 2026-10-18T00:32-03:00 · codex · checkpoint · 952bbe2 (main) dirty 6
+- verified: Baseline npm run check and all 282 Node tests pass on current HEAD 952bbe2 before Pool source edits.
+- Added third Arcade card DUO Pool, unchanged supplied logo, exact /pool/ Play URL; e2e and docs updated. Starting responsive Playwright and final check runs; evidence .local-artifacts/pool-e2e.log and test-results/arcade-*.png.
+- next: Run Arcade browser journeys and review screenshots.
+
+### 2026-10-18T00:33-03:00 · codex · verify · 952bbe2 (main) dirty 6
+- verified: HEAD952bbe2 plus Pool: npm run check pass;14 JSX precompiles pass;baseline282 Node tests pass;Arcade Playwright3/3 pass (32sec). No separate lint/type scripts. External game responses stubbed.
+- Pool card complete; all three Arcade Play popup URLs and logos pass browser checks, no page errors or horizontal overflow; desktop/tablet/mobile screenshots reviewed. Supplied logo SHA256 matches exactly. Files: public/index.html, public/arcade.css, public/arcade/pool-logo.png, e2e/arcade.spec.js, docs/ARCADE.md plus handoff.
+
+### 2026-10-18T00:33-03:00 · codex · handoff · 952bbe2 (main) dirty 6
+- DUO Pool Arcade addition complete and locally validated; no commit/push/deploy. Board and docs updated.
+- next: Review/deploy public/index.html, public/arcade.css and public/arcade/pool-logo.png through authorized release process. Browser launch destinations stubbed; gameplay not validated.

@@ -467,7 +467,7 @@ app.use(express.json({ limit: '3mb' }));
 // file on its own if the compile ever fails.
 const precompiledPage = createPrecompiledPage(path.join(__dirname, 'public'));
 precompiledPage.current();   // compile at boot, not on the first visitor
-app.get(['/', '/index.html', '/magic-swap'], precompiledPage.sendPage);
+app.get(['/', '/index.html', '/magic-swap', '/arcade'], precompiledPage.sendPage);
 app.get(`${COMPILED_PREFIX}*`, precompiledPage.sendAsset);
 // Keep old bookmarks working; both swap modes now live on Magic Swap.
 app.get(['/dex-swap', '/dex-swap.html'], (req, res) => res.redirect(302, '/magic-swap'));

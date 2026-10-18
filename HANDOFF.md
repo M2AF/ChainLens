@@ -7,13 +7,14 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 2c414ed · npm run check and all282 Node tests pass; 14 JSX scripts precompile; final3 Arcade desktop/tablet/mobile browser journeys pass with both logo loads, both Play popup destinations stubbed externally, grid placement and refresh/back/forward. Screenshots reviewed. · 2026-10-17T00:49-03:00
-head: 2c414ed (main) dirty 6
-updated: 2026-10-17T00:49-03:00 · codex
+verified: 952bbe2 · HEAD952bbe2 plus Pool: npm run check pass;14 JSX precompiles pass;baseline282 Node tests pass;Arcade Playwright3/3 pass (32sec). No separate lint/type scripts. External game responses stubbed. · 2026-10-18T00:33-03:00
+head: 952bbe2 (main) dirty 6
+updated: 2026-10-18T00:33-03:00 · codex
 
 resources: ["public/arcade", "public/index.html"]
 
 ## Now
+- DUO Pool added as third Arcade card on HEAD952bbe2: supplied DUO/logos/pool.png copied unchanged to public/arcade/pool-logo.png; landscape contain art, description and exact /pool/ Play URL. Source checks/14 JSX compile pass; baseline282 Node tests pass; final3 desktop/tablet/mobile Arcade journeys pass, screenshots reviewed. docs/ARCADE.md; .local-artifacts/pool-{baseline-tests,e2e}.log. Local uncommitted; no deploy.
 - DUO Poker added as second Arcade card on user HEAD2c414ed, supplied logo copied unchanged, readable light art panel, description and exact /poker/ Play link. Equal-height cards align Play controls. docs/ARCADE.md and e2e/arcade.spec.js updated; local source only.
 - Arcade navigation/page added on effd117: between Scanner and Magic Swap; /arcade responsive grid, original DUO logo, description/features and exact public Play URL. Source local; no bridge/backend/login changes. docs/ARCADE.md; e2e/arcade.spec.js; test-results/arcade-{desktop,tablet,mobile}.png.
 - DUO shared social login reuses existing ChainLens OAuth apps via allowlisted login_provider Google/Discord hints; all 3 buttons resolve same account. No existing .env secrets copied/printed or account/DB changes. 3 updated bridge tests and two-server 3-provider browser flow pass. Live bridge URLs still serve HTML fallback; deploy module/page and allowlist all 3 DUO callback paths to activate. See docs/DUO-ARCADE-SSO.md.
@@ -32,7 +33,7 @@ resources: ["public/arcade", "public/index.html"]
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- Deploy reviewed Arcade frontend changes through authorized release process, including public/arcade/poker-logo.png and arcade.css.
+- Review/deploy public/index.html, public/arcade.css and public/arcade/pool-logo.png through authorized release process. Browser launch destinations stubbed; gameplay not validated.
 
 ## Traps
 - Collection-name coverage is bounded indexed/loaded NFT data, not a global catalog. Exact identities use chain/provider reads. Hidden wallets must not influence match reasons/count hints; signed-in search filters blocks. Raw quantities are not token-decimal guesses. Action discovery does not prove route availability.
