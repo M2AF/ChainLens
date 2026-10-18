@@ -7,13 +7,15 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 952bbe2 · HEAD952bbe2 plus Pool: npm run check pass;14 JSX precompiles pass;baseline282 Node tests pass;Arcade Playwright3/3 pass (32sec). No separate lint/type scripts. External game responses stubbed. · 2026-10-18T00:33-03:00
-head: 952bbe2 (main) dirty 6
-updated: 2026-10-18T00:33-03:00 · codex
+verified: b8c5a40 · PR e13b52f: npm run check and all282 Node tests pass;14 JSX scripts precompile;3 desktop/tablet/mobile Arcade journeys pass (31.1s), screenshots reviewed. Fresh-checkout generated swap bundle restored from exact Git blob after CRLF conversion; no bundle source change. No GitHub Actions workflows/checks configured. · 2026-10-18T02:03-03:00
+head: b8c5a40 (main) dirty 7
+updated: 2026-10-18T02:04-03:00 · codex
 
-resources: ["public/arcade", "public/index.html"]
+resources: -
 
 ## Now
+- PR12 conflict resolution pushed to claude/arcade-tab at e13b52f via detached ../chainlens-pr12-conflicts. Preserves DUO/Poker/Pool/Swarm, modern layout, original PR signed-in link and compiled /arcade handler. check/282 Node/14 JSX/3 responsive Arcade browser checks pass; screenshots reviewed; .conflict-{tests,e2e}.log in worktree. No Actions workflows/checks configured.
+- Local main b8c5a40 remains in user's merge of origin/main8b2e854: docs/ARCADE.md, e2e/arcade.spec.js, public/arcade.css and public/index.html resolved additively and staged with incoming Swarm logo; no unmerged paths. Main not committed/pushed. Handoff updates unstaged. Local merge omits PR-only signed-in link until PR integration.
 - DUO Pool added as third Arcade card on HEAD952bbe2: supplied DUO/logos/pool.png copied unchanged to public/arcade/pool-logo.png; landscape contain art, description and exact /pool/ Play URL. Source checks/14 JSX compile pass; baseline282 Node tests pass; final3 desktop/tablet/mobile Arcade journeys pass, screenshots reviewed. docs/ARCADE.md; .local-artifacts/pool-{baseline-tests,e2e}.log. Local uncommitted; no deploy.
 - DUO Poker added as second Arcade card on user HEAD2c414ed, supplied logo copied unchanged, readable light art panel, description and exact /poker/ Play link. Equal-height cards align Play controls. docs/ARCADE.md and e2e/arcade.spec.js updated; local source only.
 - Arcade navigation/page added on effd117: between Scanner and Magic Swap; /arcade responsive grid, original DUO logo, description/features and exact public Play URL. Source local; no bridge/backend/login changes. docs/ARCADE.md; e2e/arcade.spec.js; test-results/arcade-{desktop,tablet,mobile}.png.
@@ -33,9 +35,10 @@ resources: ["public/arcade", "public/index.html"]
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- Review/deploy public/index.html, public/arcade.css and public/arcade/pool-logo.png through authorized release process. Browser launch destinations stubbed; gameplay not validated.
+- User may review/merge PR12. Local main still has existing merge in progress with resolutions staged plus unstaged handoff updates; finish deliberately through user's Git workflow.
 
 ## Traps
+- Fresh Windows worktrees may convert generated public/swap-core.js to CRLF and fail its manifest hash test. Exact tracked Git blob matches manifest; restore exact blob bytes for validation, never replace expected hash or hand-edit generated logic.
 - Collection-name coverage is bounded indexed/loaded NFT data, not a global catalog. Exact identities use chain/provider reads. Hidden wallets must not influence match reasons/count hints; signed-in search filters blocks. Raw quantities are not token-decimal guesses. Action discovery does not prove route availability.
 - NNS older SDK constant3019BF is testnet; mainnet Cc7a1bfF is documented separately. Resolve record, never substitute name owner for an unset wallet. Network outage503 differs from no address404.
 - Only the lease owner edits shared code; preserve dirty work. No commit/push/deploy/install/sign/broadcast without user authorization.

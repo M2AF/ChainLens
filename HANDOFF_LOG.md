@@ -213,3 +213,20 @@
 ### 2026-10-18T00:33-03:00 · codex · handoff · 952bbe2 (main) dirty 6
 - DUO Pool Arcade addition complete and locally validated; no commit/push/deploy. Board and docs updated.
 - next: Review/deploy public/index.html, public/arcade.css and public/arcade/pool-logo.png through authorized release process. Browser launch destinations stubbed; gameplay not validated.
+
+### 2026-10-18T02:01-03:00 · codex · claim · b8c5a40 (main) dirty 6
+- task: Resolve Arcade integration conflicts preserving Pool and Swarm and update PR12
+- lease until 2026-10-18T05:01-03:00
+
+### 2026-10-18T02:02-03:00 · codex · checkpoint · b8c5a40 (main) dirty 7
+- Resolved four local merge-conflict files additively (Pool plus Swarm), staged without committing main. Isolated detached worktree ../chainlens-pr12-conflicts merges PR12 with local Pool commit and origin/main; retains original PR Play signed in intent and compiled /arcade route. Starting check/282 tests/3 Arcade browser journeys there.
+- next: Validate isolated PR resolution, commit merge and push HEAD to existing claude/arcade-tab; verify GitHub mergeability.
+
+### 2026-10-18T02:03-03:00 · codex · verify · b8c5a40 (main) dirty 7
+- verified: PR e13b52f: npm run check and all282 Node tests pass;14 JSX scripts precompile;3 desktop/tablet/mobile Arcade journeys pass (31.1s), screenshots reviewed. Fresh-checkout generated swap bundle restored from exact Git blob after CRLF conversion; no bundle source change. No GitHub Actions workflows/checks configured.
+- Pushed conflict resolutions to existing PR12 claude/arcade-tab at e13b52f. Detached worktree ../chainlens-pr12-conflicts retains all four cards plus PR signed-in link and compiled /arcade route. Local main's existing merge has all four conflicts resolved and staged; main not committed/pushed.
+- next: Verify PR12 GitHub mergeability; keep local staged merge available for user.
+
+### 2026-10-18T02:04-03:00 · codex · handoff · b8c5a40 (main) dirty 7
+- GitHub confirms PR12 e13b52f MERGEABLE/CLEAN. All282 Node tests, syntax/14 JSX compile and3 responsive Arcade browser journeys pass. No Actions workflows/checks exist. Main existing merge conflicts resolved/staged; main not committed/pushed; PR not merged.
+- next: User may review/merge PR12. Local main still has existing merge in progress with resolutions staged plus unstaged handoff updates; finish deliberately through user's Git workflow.
