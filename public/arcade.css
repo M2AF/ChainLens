@@ -21,7 +21,10 @@
 .cl-arcade-art { flex-shrink: 0; }
 .cl-arcade-details { display: flex; flex-direction: column; flex: 1; }
 .cl-arcade-play { margin-top: auto; }
+.cl-arcade-signin { align-self: flex-start; margin-bottom: 18px; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.cl-arcade-signin:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }
 .cl-arcade-art-poker { background: radial-gradient(ellipse at 15% 20%, #bceee4, transparent 70%), #e5edf7; }
 .cl-arcade-art-poker img { width: 260px; height: 260px; filter: none; }
 .cl-arcade-art-pool { background: #050916; }
 .cl-arcade-art-pool img { width: 100%; height: 260px; filter: none; }
+.cl-arcade-art-swarm img { width: min(88%, 320px); height: auto; }
