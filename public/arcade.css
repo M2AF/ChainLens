@@ -25,4 +25,4 @@
 .cl-arcade-art-poker img { width: 260px; height: 260px; filter: none; }
 .cl-arcade-art-pool { background: #050916; }
 .cl-arcade-art-pool img { width: 100%; height: 260px; filter: none; }
-.cl-arcade-art-swarm img { width: min(88%, 320px); height: auto; }
+.cl-arcade-art-swarm img, .cl-arcade-art-clash img { width: min(88%, 320px); height: auto; }

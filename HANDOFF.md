@@ -7,15 +7,16 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: b8c5a40 · PR e13b52f: npm run check and all282 Node tests pass;14 JSX scripts precompile;3 desktop/tablet/mobile Arcade journeys pass (31.1s), screenshots reviewed. Fresh-checkout generated swap bundle restored from exact Git blob after CRLF conversion; no bundle source change. No GitHub Actions workflows/checks configured. · 2026-10-18T02:03-03:00
-head: b8c5a40 (main) dirty 7
-updated: 2026-10-18T02:04-03:00 · codex
+verified: d28ff43 · d28ff43 plus CLASH/SWARM edits: npm run check pass;14 JSX scripts precompile;baseline282 Node tests pass;Arcade Playwright3/3 pass (40sec). Navigation external responses stubbed; gameplay not validated. No separate lint/type scripts. · 2026-10-19T22:28-03:00
+head: d28ff43 (main) dirty 7
+updated: 2026-10-19T22:28-03:00 · codex
 
-resources: -
+resources: ["public/arcade", "public/index.html"]
 
 ## Now
+- CLASH added fifth to Arcade on user HEADd28ff43 with original attached logo at public/arcade/clash-logo.png and exact /clash/ Play URL. Fourth card renamed SWARM in heading/alt/accessibility labels. Baseline282 Node tests, final source checks/14 JSX precompiles and3 responsive Arcade journeys pass (40sec); screenshots reviewed. .local-artifacts/clash-{baseline-tests,e2e}.log; test-results/arcade-*.png. Local edits, no commit/deploy.
 - PR12 conflict resolution pushed to claude/arcade-tab at e13b52f via detached ../chainlens-pr12-conflicts. Preserves DUO/Poker/Pool/Swarm, modern layout, original PR signed-in link and compiled /arcade handler. check/282 Node/14 JSX/3 responsive Arcade browser checks pass; screenshots reviewed; .conflict-{tests,e2e}.log in worktree. No Actions workflows/checks configured.
-- Local main b8c5a40 remains in user's merge of origin/main8b2e854: docs/ARCADE.md, e2e/arcade.spec.js, public/arcade.css and public/index.html resolved additively and staged with incoming Swarm logo; no unmerged paths. Main not committed/pushed. Handoff updates unstaged. Local merge omits PR-only signed-in link until PR integration.
+- User completed prior Pool/Swarm merge in f2fda36 and handoff commit d28ff43. Session started clean on main d28ff43; local source omits PR-only signed-in link until PR integration.
 - DUO Pool added as third Arcade card on HEAD952bbe2: supplied DUO/logos/pool.png copied unchanged to public/arcade/pool-logo.png; landscape contain art, description and exact /pool/ Play URL. Source checks/14 JSX compile pass; baseline282 Node tests pass; final3 desktop/tablet/mobile Arcade journeys pass, screenshots reviewed. docs/ARCADE.md; .local-artifacts/pool-{baseline-tests,e2e}.log. Local uncommitted; no deploy.
 - DUO Poker added as second Arcade card on user HEAD2c414ed, supplied logo copied unchanged, readable light art panel, description and exact /poker/ Play link. Equal-height cards align Play controls. docs/ARCADE.md and e2e/arcade.spec.js updated; local source only.
 - Arcade navigation/page added on effd117: between Scanner and Magic Swap; /arcade responsive grid, original DUO logo, description/features and exact public Play URL. Source local; no bridge/backend/login changes. docs/ARCADE.md; e2e/arcade.spec.js; test-results/arcade-{desktop,tablet,mobile}.png.
@@ -35,7 +36,7 @@ resources: -
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- User may review/merge PR12. Local main still has existing merge in progress with resolutions staged plus unstaged handoff updates; finish deliberately through user's Git workflow.
+- Review/release public/index.html, public/arcade.css and public/arcade/clash-logo.png through authorized workflow. Tests/docs and handoff changes are local.
 
 ## Traps
 - Fresh Windows worktrees may convert generated public/swap-core.js to CRLF and fail its manifest hash test. Exact tracked Git blob matches manifest; restore exact blob bytes for validation, never replace expected hash or hand-edit generated logic.

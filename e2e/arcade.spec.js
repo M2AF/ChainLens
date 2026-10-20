@@ -39,13 +39,26 @@ for(const [label,width,height] of [['desktop',1440,1000],['tablet',768,1024],['m
   await expect(poolPlay).toHaveAttribute('rel','noopener noreferrer');
   await expect(pool.getByRole('img',{name:'DUO Pool',exact:true})).toBeVisible();
   await expect.poll(()=>pool.getByRole('img').evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
-  const swarm=page.getByRole('article',{name:'DUO Swarm',exact:true});
+  const swarm=page.getByRole('article',{name:'SWARM',exact:true});
   await expect(swarm).toBeVisible();
+  await expect(page.getByRole('heading',{name:'DUO Swarm',exact:true})).toHaveCount(0);
+  await expect(swarm.getByRole('link',{name:'Play SWARM (opens in a new tab)',exact:true})).toBeVisible();
   await expect(swarm.getByRole('link')).toHaveAttribute('href','https://duo-u3mp.onrender.com/swarm/');
   expect(await swarm.getByRole('img').evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
+  const clash=page.getByRole('article',{name:'CLASH',exact:true});
+  await expect(clash).toBeVisible();
+  const clashPlay=clash.getByRole('link',{name:'Play CLASH (opens in a new tab)',exact:true});
+  await expect(clashPlay).toHaveAttribute('href','https://duo-u3mp.onrender.com/clash/');
+  await expect(clashPlay).toHaveAttribute('target','_blank');
+  await expect(clashPlay).toHaveAttribute('rel','noopener noreferrer');
+  await expect.poll(()=>clash.getByRole('img',{name:'CLASH',exact:true}).evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
+  await expect(page.locator('.cl-arcade-card')).toHaveCount(5);
   const duoBox=await game.boundingBox(),pokerBox=await poker.boundingBox();
   const poolBox=await pool.boundingBox(),swarmBox=await swarm.boundingBox();
   expect(swarmBox.y).toBeGreaterThan(duoBox.y);
+  const clashBox=await clash.boundingBox();
+  if(width===1440){expect(clashBox.y).toBe(swarmBox.y);expect(clashBox.x).toBeGreaterThan(swarmBox.x);}
+  if(width<1440)expect(clashBox.y).toBeGreaterThan(swarmBox.y);
   if(width===390)expect(swarmBox.y).toBeGreaterThan(poolBox.y);
   if(width===1440){expect(poolBox.y).toBe(duoBox.y);expect(poolBox.x).toBeGreaterThan(pokerBox.x);}
   if(width<1440)expect(poolBox.y).toBeGreaterThan(pokerBox.y);
@@ -66,9 +79,13 @@ for(const [label,width,height] of [['desktop',1440,1000],['tablet',768,1024],['m
   await page.context().route('https://duo-u3mp.onrender.com/swarm/',r=>r.fulfill({body:'Swarm launch destination'}));
   const swarmLaunch=page.waitForEvent('popup');await swarm.getByRole('link').click();
   const swarmPopup=await swarmLaunch;await swarmPopup.waitForLoadState();expect(swarmPopup.url()).toBe('https://duo-u3mp.onrender.com/swarm/');await swarmPopup.close();
+  await page.context().route('https://duo-u3mp.onrender.com/clash/',r=>r.fulfill({body:'CLASH launch destination'}));
+  const clashLaunch=page.waitForEvent('popup');await clashPlay.click();
+  const clashPopup=await clashLaunch;await clashPopup.waitForLoadState();expect(clashPopup.url()).toBe('https://duo-u3mp.onrender.com/clash/');await clashPopup.close();
   await page.reload();await expect(page.getByRole('heading' ,{name:'Arcade',exact:true})).toBeVisible();
   await expect(pool).toBeVisible();
   await expect(swarm).toBeVisible();
+  await expect(clash).toBeVisible();
   await page.goBack();await expect(page.getByRole('heading',{name:'Arcade',exact:true})).toHaveCount(0);
   await page.goForward();await expect(page.getByRole('heading',{name:'Arcade',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
