@@ -9,7 +9,8 @@ const GAME_ROOMS = Object.freeze([
 ]);
 
 // A separate signing key and audience keep game credentials out of profile,
-// wallet, friend and account-management APIs. The DUO server holds this token.
+// wallet and account-management APIs. Only the explicit game-social aliases
+// below may also use it for player-requested friendship actions.
 function gameChatCredentials(secret) {
   const key = crypto.createHmac('sha256', secret).update('chainlens-game-chat-v1').digest();
   return {
@@ -22,12 +23,16 @@ function gameChatCredentials(secret) {
   };
 }
 
-function mountGameChat(app, { db, requireAuth, credentials, hydrate, blockedIds, allowed }) {
-  const authenticate = (req, res, next) => {
+function gameChatAuthenticate(requireAuth, credentials) {
+  return (req, res, next) => {
     const token = String(req.headers.authorization || '').replace(/^Bearer /, '');
     try { req.user = credentials.verify(token); next(); }
     catch { requireAuth(req, res, next); }
   };
+}
+
+function mountGameChat(app, { db, requireAuth, credentials, hydrate, blockedIds, allowed }) {
+  const authenticate = gameChatAuthenticate(requireAuth, credentials);
   app.get('/api/chat/game-rooms', requireAuth, (req, res) => res.json({ rooms: GAME_ROOMS }));
   app.use('/api/chat/games/:game', authenticate, async (req, res, next) => {
     res.set('Cache-Control', 'no-store');
@@ -53,6 +58,16 @@ function mountGameChat(app, { db, requireAuth, credentials, hydrate, blockedIds,
       res.json({ messages: await hydrate(rows) });
     } catch { res.status(503).json({ error: 'Game chat is unavailable. Try again shortly.' }); }
   });
+  app.get('/api/chat/games/:game/profiles', async (req, res) => {
+    const ids = [...new Set(String(req.query.ids || '').split(',').filter(Boolean))];
+    if (!ids.length || ids.length > 100 || ids.some(id => !isUuid(id))) return res.status(400).json({ error: 'Invalid player IDs' });
+    try {
+      const blocked = await blockedIds(db, req.user.sub);
+      const rows = await hydrate(ids.filter(id => !blocked.has(id)).map(user_id => ({ user_id })));
+      // Explicit projection: game clients never receive private profile fields.
+      res.json({ profiles: rows.map(({ author }) => ({ id: author.id, display_name: author.display_name, avatar_url: author.avatar_url || null, avatar_nft_key: author.avatar_nft_key || null })) });
+    } catch { res.status(503).json({ error: 'Player pictures are unavailable' }); }
+  });
   app.post('/api/chat/games/:game', async (req, res) => {
     if (!allowed(req.user.sub)) return res.status(429).json({ error: 'Please wait before sending another message' });
     let message;
@@ -74,4 +89,4 @@ function mountGameChat(app, { db, requireAuth, credentials, hydrate, blockedIds,
     } catch { res.status(503).json({ error: 'Could not delete that message' }); }
   });
 }
-module.exports = { GAME_ROOMS, gameChatCredentials, mountGameChat };
+module.exports = { GAME_ROOMS, gameChatCredentials, gameChatAuthenticate, mountGameChat };

@@ -2,18 +2,19 @@
 <!-- handoff v1. LIVE STATE ONLY: rewrite in place, keep under ~60 lines.
      History goes in HANDOFF_LOG.md. Machine fields above the first ## are managed by handoff.py. -->
 
-owner: none
-task: -
-lease_until: -
+owner: codex
+task: Scoped game chat profile and friend actions
+lease_until: 2026-10-21T17:56-03:00
 repo: .
 verify: npm run check && npm test
 verified: 3f3de23 · 3f3de23 plus game-chat changes: source check,14 JSX compiles,284 Node pass;10 full chat UI tests pass plus account-only room access test pass. Final room/drawer responsive replay evidence .local-artifacts/game-chat-responsive-verified.log; screenshots .local-artifacts/game-chat/. Local only; SQL migration not applied. · 2026-10-21T14:08-03:00
-head: 3f3de23 (main) dirty 11
-updated: 2026-10-21T14:10-03:00 · codex
+head: 1aceeda (main) dirty 8
+updated: 2026-10-21T14:56-03:00 · codex
 
 resources: ["chat"]
 
 ## Now
+- Live game-chat error diagnosed: public.cl_game_messages was absent after user deployed1aceeda. Applied cl_game_chat migration on2026-10-21; RLS enabled, anon/authenticated denied, service_role access and SELECT verified; PostgREST schema reload notified. Existing DUO sessions need game-side logout/login once for chainlensId and limited chat credential. Local .env Supabase service key reports Unregistered API key; do not copy it into Render or infer production key is broken.
 - Per-game chat implemented locally across ChainLens and DUO: six independent World Chats/Game Rooms; account-only access; private live-lobby chat; collapsed Friends with ID/add/request controls below. Separate limited SSO chat capability stays server-side. No migration/commit/push/deploy. docs/GAME-CHAT.md.
 - CLASH added fifth to Arcade on user HEADd28ff43 with original attached logo at public/arcade/clash-logo.png and exact /clash/ Play URL. Fourth card renamed SWARM in heading/alt/accessibility labels. Baseline282 Node tests, final source checks/14 JSX precompiles and3 responsive Arcade journeys pass (40sec); screenshots reviewed. .local-artifacts/clash-{baseline-tests,e2e}.log; test-results/arcade-*.png. Local edits, no commit/deploy.
 - PR12 conflict resolution pushed to claude/arcade-tab at e13b52f via detached ../chainlens-pr12-conflicts. Preserves DUO/Poker/Pool/Swarm, modern layout, original PR signed-in link and compiled /arcade handler. check/282 Node/14 JSX/3 responsive Arcade browser checks pass; screenshots reviewed; .conflict-{tests,e2e}.log in worktree. No Actions workflows/checks configured.
@@ -37,7 +38,7 @@ resources: ["chat"]
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- Authorized release: apply sql/cl_game_chat.sql; deploy ChainLens including consent copy; then deploy DUO; user signs out/in once. docs/GAME-CHAT.md has verification and exact paths.
+- Finish DUO browser menu verification and document deployment order; preserve existing dirty handoff/docs.
 
 ## Traps
 - Fresh Windows worktrees may convert generated public/swap-core.js to CRLF and fail its manifest hash test. Exact tracked Git blob matches manifest; restore exact blob bytes for validation, never replace expected hash or hand-edit generated logic.

@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const { GAME_ROOMS, gameChatCredentials, mountGameChat } = require('../game-chat');
+const { GAME_ROOMS, gameChatCredentials, gameChatAuthenticate, mountGameChat } = require('../game-chat');
 const ME = 'ec18dcf5-3271-46fd-8029-41e5b2f39eed';
 const OTHER = '3f2c6cb8-2a43-4b69-bf5e-099ef63be79f';
 
@@ -41,13 +41,16 @@ test('each game has its own messages; verified authors, block filtering, cursors
   const app = express(); app.use(express.json()); const db=database();
   const credentials=gameChatCredentials('test-secret');
   const requireAuth=(req,res,next) => {if(req.headers.authorization !== 'Bearer account-session') return res.sendStatus(401);req.user={sub:ME};next();};
-  mountGameChat(app,{db,requireAuth,credentials,allowed:()=>true,blockedIds:async()=>new Set([OTHER]),hydrate:async rows=>rows.map(row=>({...row,author:{id:row.user_id}}))});
+  mountGameChat(app,{db,requireAuth,credentials,allowed:()=>true,blockedIds:async()=>new Set([OTHER]),hydrate:async rows=>rows.map(row=>({...row,author:{id:row.user_id,display_name:'Player',avatar_url:'https://images.example/photo.png',avatar_nft_key:'nft:test',email:'private@example.com'}}))});
   const server=app.listen(0,'127.0.0.1'); await new Promise(r=>server.once('listening',r)); t.after(()=>new Promise(r=>server.close(r)));
   const base=`http://127.0.0.1:${server.address().port}`;
   const request=(path,method='GET',body,token='account-session')=>fetch(base+path,{method,headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
   assert.equal((await request('/api/chat/games/poker','GET',null,'fake')).status,401);
   assert.equal((await request('/api/chat/games/unknown')).status,404);
   assert.equal((await request('/api/chat/game-rooms')).status,200);
+  const profiles=await (await request(`/api/chat/games/poker/profiles?ids=${ME},${OTHER}`,'GET',null,credentials.issue(ME))).json();
+  assert.deepEqual(profiles.profiles,[{id:ME,display_name:'Player',avatar_url:'https://images.example/photo.png',avatar_nft_key:'nft:test'}]);
+  assert.equal((await request('/api/chat/games/poker/profiles?ids=invalid')).status,400);
   for(const game of GAME_ROOMS) {
     const response=await request(`/api/chat/games/${game.id}`,'POST',{type:'text',content:`hello ${game.id}`,user_id:OTHER},credentials.issue(ME));
     assert.equal(response.status,201);const message=(await response.json()).message;assert.equal(message.author.id,ME);
@@ -61,4 +64,18 @@ test('each game has its own messages; verified authors, block filtering, cursors
   assert.equal((await (await request('/api/chat/games/poker?after=99')).json()).messages.length,0);
   assert.equal((await request('/api/chat/games/pool/2','DELETE')).status,404);
   assert.equal((await request('/api/chat/games/poker/2','DELETE')).status,200);
+});
+
+test('explicit game-social routes accept scoped identities while preserving the friendship eligibility gate', async t => {
+  const credentials=gameChatCredentials('scoped-key'),app=express();
+  const requireAuth=(req,res,next)=>{if(req.headers.authorization!=='Bearer main-session')return res.sendStatus(401);req.user={sub:ME};next()};
+  let eligible=true;
+  app.get('/api/profile',requireAuth,(req,res)=>res.json({id:req.user.sub}));
+  app.get('/api/game-social/friends',gameChatAuthenticate(requireAuth,credentials),(req,res)=>eligible?res.json({actor:req.user.sub}):res.sendStatus(403));
+  const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));t.after(()=>new Promise(r=>server.close(r)));
+  const request=(path,token)=>fetch(`http://127.0.0.1:${server.address().port}${path}`,{headers:{Authorization:`Bearer ${token}`}});
+  assert.equal((await request('/api/profile',credentials.issue(ME))).status,401);
+  assert.equal((await request('/api/game-social/friends','forged')).status,401);
+  assert.deepEqual(await (await request('/api/game-social/friends',credentials.issue(ME))).json(),{actor:ME});
+  eligible=false;assert.equal((await request('/api/game-social/friends',credentials.issue(ME))).status,403);
 });

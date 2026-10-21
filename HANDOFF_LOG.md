@@ -152,3 +152,19 @@
 ### 2026-10-21T14:10-03:00 · codex · handoff · 3f3de23 (main) dirty 11
 - Game Room API, scoped SSO capability, account-only room UI and collapsed Friends ready locally. All requested flows tested with local fixtures and responsive screenshots; migration and both deployments still pending. No commit/push.
 - next: Authorized release: apply sql/cl_game_chat.sql; deploy ChainLens including consent copy; then deploy DUO; user signs out/in once. docs/GAME-CHAT.md has verification and exact paths.
+
+### 2026-10-21T14:36-03:00 · codex · claim · 1aceeda (main) dirty 1
+- task: Fix deployed Game Room database error
+- lease until 2026-10-21T17:36-03:00
+
+### 2026-10-21T14:37-03:00 · codex · handoff · 1aceeda (main) dirty 3
+- Applied missing live cl_game_messages migration to fix deployed Game Room503. RLS/browser denial/server grants and SELECT as service_role verified; PostgREST reload notified. No user messages created. Local Supabase key is stale (Unregistered API key); no Render config changed. User's DUO sign-in screenshot matches legacy session lacking new chat identity/capability; game-side logout/login once required.
+- next: User refreshes ChainLens chat, logs out/in inside DUO via ChainLens, and verifies per-game room send/read. If error persists, inspect current deployed backend response; do not reuse stale local Supabase key.
+
+### 2026-10-21T14:48-03:00 · codex · claim · 1aceeda (main) dirty 3
+- task: Scoped game chat profile and friend actions
+- lease until 2026-10-21T17:48-03:00
+
+### 2026-10-21T14:56-03:00 · codex · checkpoint · 1aceeda (main) dirty 8
+- Added allowlisted batch public-profile projection and four game-social aliases reusing existing friendship handlers and eligibility/ownership/block checks. General account JWT verification unchanged. Focused6 tests and285 full Node/check pass. Consent discloses player-chosen friend requests. Local source only, no migration/commit/deploy.
+- next: Finish DUO browser menu verification and document deployment order; preserve existing dirty handoff/docs.

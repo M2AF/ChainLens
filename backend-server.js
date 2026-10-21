@@ -1633,6 +1633,9 @@ require('./profile-username').mountUsernameRoutes(app, {db:supabase,requireAuth,
 
 // ── Profile routes (require auth) ─────────────────────────────────────────────
 const gameChatCredentials = require('./game-chat').gameChatCredentials(JWT_SECRET);
+const gameSocialAuth = require('./game-chat').gameChatAuthenticate(requireAuth, gameChatCredentials);
+// A game credential can reach only these four aliases, never general account APIs.
+const requireChatOrGameSocial = (req, res, next) => req.path.startsWith('/api/game-social/') ? gameSocialAuth(req, res, next) : requireAuth(req, res, next);
 require('./duo-sso').mountDuoSso(app, { requireAuth, getUser: dbGetUserById, frontendUrl: FRONTEND_URL, issueGameChat: gameChatCredentials.issue });
 require('./game-chat').mountGameChat(app, { db: supabase, requireAuth, credentials: gameChatCredentials, hydrate: dbHydrateChatMessages, blockedIds: require('./profile-community-service').blockedIds, allowed: chatMessageAllowed });
 app.get('/api/profile', requireAuth, async (req, res) => {
@@ -2038,7 +2041,7 @@ const dbListChatFriends = async (userId) => {
   return summary;
 };
 
-app.get('/api/chat/friends', requireAuth, requireChatAccess, async (req, res) => {
+app.get(['/api/chat/friends', '/api/game-social/friends'], requireChatOrGameSocial, requireChatAccess, async (req, res) => {
   try {
     res.json(await dbListChatFriends(req.user.sub));
   } catch (error) {
@@ -2046,7 +2049,7 @@ app.get('/api/chat/friends', requireAuth, requireChatAccess, async (req, res) =>
   }
 });
 
-app.post('/api/chat/friends', requireAuth, requireChatAccess, async (req, res) => {
+app.post(['/api/chat/friends', '/api/game-social/friends'], requireChatOrGameSocial, requireChatAccess, async (req, res) => {
   const chainlensId = typeof req.body?.chainlens_id === 'string'
     ? req.body.chainlens_id.trim().toLowerCase()
     : '';
@@ -2091,7 +2094,7 @@ app.post('/api/chat/friends', requireAuth, requireChatAccess, async (req, res) =
   }
 });
 
-app.post('/api/chat/friends/:friendshipId/accept', requireAuth, requireChatAccess, async (req, res) => {
+app.post(['/api/chat/friends/:friendshipId/accept', '/api/game-social/friends/:friendshipId/accept'], requireChatOrGameSocial, requireChatAccess, async (req, res) => {
   const friendshipId = Number(req.params.friendshipId);
   if (!Number.isSafeInteger(friendshipId) || friendshipId < 1) {
     return res.status(400).json({ error: 'Invalid friend request' });
@@ -2122,7 +2125,7 @@ app.post('/api/chat/friends/:friendshipId/accept', requireAuth, requireChatAcces
 
 // Decline/cancel a pending request or remove an accepted friend. The participant
 // check keeps another user's numeric friendship id from becoming an IDOR.
-app.delete('/api/chat/friends/:friendshipId', requireAuth, requireChatAccess, async (req, res) => {
+app.delete(['/api/chat/friends/:friendshipId', '/api/game-social/friends/:friendshipId'], requireChatOrGameSocial, requireChatAccess, async (req, res) => {
   const friendshipId = Number(req.params.friendshipId);
   if (!Number.isSafeInteger(friendshipId) || friendshipId < 1) {
     return res.status(400).json({ error: 'Invalid friendship' });
