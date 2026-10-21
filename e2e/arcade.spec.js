@@ -52,7 +52,11 @@ for(const [label,width,height] of [['desktop',1440,1000],['tablet',768,1024],['m
   await expect(clashPlay).toHaveAttribute('target','_blank');
   await expect(clashPlay).toHaveAttribute('rel','noopener noreferrer');
   await expect.poll(()=>clash.getByRole('img',{name:'CLASH',exact:true}).evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
-  await expect(page.locator('.cl-arcade-card')).toHaveCount(5);
+  const world=page.getByRole('article',{name:'DUO World',exact:true});
+  await expect(world).toBeVisible();
+  await expect(world.getByRole('link',{name:'Play DUO World (opens in a new tab)',exact:true})).toHaveAttribute('href','https://duo-u3mp.onrender.com/world/');
+  await expect.poll(()=>world.getByRole('img',{name:'DUO World',exact:true}).evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
+  await expect(page.locator('.cl-arcade-card')).toHaveCount(6);
   const duoBox=await game.boundingBox(),pokerBox=await poker.boundingBox();
   const poolBox=await pool.boundingBox(),swarmBox=await swarm.boundingBox();
   expect(swarmBox.y).toBeGreaterThan(duoBox.y);
