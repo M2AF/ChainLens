@@ -51,3 +51,6 @@
 .cl-profile-request-actions button:first-child{background:#10b98122;border-color:#10b98166}
 .cl-profile-request-actions button:disabled{opacity:.5}
 .cl-profile-requests button:focus-visible{outline:2px solid #50d5e4;outline-offset:2px}
+
+/* Game-room navigation above a compact, collapsed-by-default friend drawer. */
+.cl-chat-sidebar-content{display:flex;flex-direction:column;gap:18px;min-height:100%}.cl-game-rooms{display:grid;gap:3px}.cl-game-room{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:10px;text-align:left;font-size:12px;font-weight:600;border:1px solid transparent}.cl-game-room span{opacity:.45}.cl-game-room:hover{background:#8881}.cl-game-room.active{background:#32c9bf18;border-color:#32c9bf50;color:#4cd5c7}.cl-chat-friends-section{margin-top:auto;padding-top:16px;border-top:1px solid #8883}.cl-friends-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;background:#8881;font-size:12px;font-weight:700}.cl-friends-toggle:hover{background:#8882}.cl-chat-people{display:flex;flex-direction:column}.cl-chat-sidebar-content{overflow-y:auto}@media(max-width:700px){.cl-chat-people{display:none}.cl-chat-page.people-open .cl-chat-people{display:flex}}

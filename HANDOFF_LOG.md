@@ -132,3 +132,23 @@
 ### 2026-10-19T22:28-03:00 · codex · handoff · d28ff43 (main) dirty 7
 - CLASH Arcade card and SWARM rename complete locally and validated. No commit/push/deploy.
 - next: Review/release public/index.html, public/arcade.css and public/arcade/clash-logo.png through authorized workflow. Tests/docs and handoff changes are local.
+
+### 2026-10-21T13:47-03:00 · codex · claim · 3f3de23 (main) dirty 1
+- task: Game rooms and friends chat sidebar cleanup
+- lease until 2026-10-21T16:47-03:00
+
+### 2026-10-21T13:57-03:00 · codex · checkpoint · 3f3de23 (main) dirty 7
+- Baseline 282 Node/check pass; new game-room capability/auth/isolation tests pass and full 284 Node pass. Six separate per-game room routes plus sidebar/friend drawer implemented. Responsive browser run caught initial null-status render bug, now fixed. SQL cl_game_chat.sql prepared only; no live DB/deploy changes.
+- next: Validate responsive room send/switch/draft/friends flows and DUO game panels; finish docs and release leases.
+
+### 2026-10-21T14:08-03:00 · codex · verify · 3f3de23 (main) dirty 11
+- verified: 3f3de23 plus game-chat changes: source check,14 JSX compiles,284 Node pass;10 full chat UI tests pass plus account-only room access test pass. Final room/drawer responsive replay evidence .local-artifacts/game-chat-responsive-verified.log; screenshots .local-artifacts/game-chat/. Local only; SQL migration not applied.
+- Six game rooms preserve separate drafts and existing World/DM behavior; Friends collapsed by default. Consent now discloses limited game-chat permission. SSO/capability 5-test focused rerun passes. docs/GAME-CHAT.md.
+
+### 2026-10-21T14:10-03:00 · codex · checkpoint · 3f3de23 (main) dirty 11
+- Final responsive replay: 3 room/drawer cases pass; account-only case separately reverified pass after raising account-startup allowance to15sec. Stable screenshots .local-artifacts/game-chat/. Full10 chat UI suite pass, focused SSO/capability5 pass,284 Node pass. No live changes.
+- next: Review docs/GAME-CHAT.md and release in documented order.
+
+### 2026-10-21T14:10-03:00 · codex · handoff · 3f3de23 (main) dirty 11
+- Game Room API, scoped SSO capability, account-only room UI and collapsed Friends ready locally. All requested flows tested with local fixtures and responsive screenshots; migration and both deployments still pending. No commit/push.
+- next: Authorized release: apply sql/cl_game_chat.sql; deploy ChainLens including consent copy; then deploy DUO; user signs out/in once. docs/GAME-CHAT.md has verification and exact paths.

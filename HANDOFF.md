@@ -7,13 +7,14 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: d28ff43 · d28ff43 plus CLASH/SWARM edits: npm run check pass;14 JSX scripts precompile;baseline282 Node tests pass;Arcade Playwright3/3 pass (40sec). Navigation external responses stubbed; gameplay not validated. No separate lint/type scripts. · 2026-10-19T22:28-03:00
-head: d28ff43 (main) dirty 7
-updated: 2026-10-19T22:28-03:00 · codex
+verified: 3f3de23 · 3f3de23 plus game-chat changes: source check,14 JSX compiles,284 Node pass;10 full chat UI tests pass plus account-only room access test pass. Final room/drawer responsive replay evidence .local-artifacts/game-chat-responsive-verified.log; screenshots .local-artifacts/game-chat/. Local only; SQL migration not applied. · 2026-10-21T14:08-03:00
+head: 3f3de23 (main) dirty 11
+updated: 2026-10-21T14:10-03:00 · codex
 
-resources: ["public/arcade", "public/index.html"]
+resources: ["chat"]
 
 ## Now
+- Per-game chat implemented locally across ChainLens and DUO: six independent World Chats/Game Rooms; account-only access; private live-lobby chat; collapsed Friends with ID/add/request controls below. Separate limited SSO chat capability stays server-side. No migration/commit/push/deploy. docs/GAME-CHAT.md.
 - CLASH added fifth to Arcade on user HEADd28ff43 with original attached logo at public/arcade/clash-logo.png and exact /clash/ Play URL. Fourth card renamed SWARM in heading/alt/accessibility labels. Baseline282 Node tests, final source checks/14 JSX precompiles and3 responsive Arcade journeys pass (40sec); screenshots reviewed. .local-artifacts/clash-{baseline-tests,e2e}.log; test-results/arcade-*.png. Local edits, no commit/deploy.
 - PR12 conflict resolution pushed to claude/arcade-tab at e13b52f via detached ../chainlens-pr12-conflicts. Preserves DUO/Poker/Pool/Swarm, modern layout, original PR signed-in link and compiled /arcade handler. check/282 Node/14 JSX/3 responsive Arcade browser checks pass; screenshots reviewed; .conflict-{tests,e2e}.log in worktree. No Actions workflows/checks configured.
 - User completed prior Pool/Swarm merge in f2fda36 and handoff commit d28ff43. Session started clean on main d28ff43; local source omits PR-only signed-in link until PR integration.
@@ -36,7 +37,7 @@ resources: ["public/arcade", "public/index.html"]
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- Review/release public/index.html, public/arcade.css and public/arcade/clash-logo.png through authorized workflow. Tests/docs and handoff changes are local.
+- Authorized release: apply sql/cl_game_chat.sql; deploy ChainLens including consent copy; then deploy DUO; user signs out/in once. docs/GAME-CHAT.md has verification and exact paths.
 
 ## Traps
 - Fresh Windows worktrees may convert generated public/swap-core.js to CRLF and fail its manifest hash test. Exact tracked Git blob matches manifest; restore exact blob bytes for validation, never replace expected hash or hand-edit generated logic.
@@ -51,6 +52,7 @@ resources: ["public/arcade", "public/index.html"]
 - Full older theme/media/provider guardrails are retained in HANDOFF_ARCHIVE.md (snapshot2026-10-12); read them before touching those systems.
 
 ## Skills
+- Cross-app game chat -> agent-handoff, Fullstack Iteration, architecture-review, Visual Iteration, Playwright Testing, supabase:supabase | used: existing SSO scope, room isolation, responsive and real-socket local fixture checks | Codex: resolve current catalog; Claude: resolve catalog.
 - Search architecture/privacy -> architecture-review / supabase:supabase | used: deterministic/read-only modules, provider caps, DB allowlists, SDK stub verification and primary docs | Codex: C:/Users/balla/.codex/skills/architecture-review/SKILL.md; C:/Users/balla/.codex/plugins/cache/openai-curated-remote/supabase/1.0.0/skills/supabase/SKILL.md | Claude: resolve catalog.
 - Chat UI -> Fullstack Iteration / Visual Iteration / Playwright Testing | used: source tracing, before/after overflow regression, responsive browser checks and screenshots | Codex: C:/Users/balla/.codex/skills/{fullstack-iteration,visual-Iteration,playwright-testing}/SKILL.md | Claude: resolve local catalog.
 - Shared project -> agent-handoff | used: lease, checkpoints, evidence and archived live-board history | Codex: C:/Users/balla/.codex/skills/agent-handoff/SKILL.md | Claude: C:/Users/balla/.claude/skills/agent-handoff/SKILL.md.

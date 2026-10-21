@@ -1632,7 +1632,9 @@ app.get('/auth/discord/callback', async (req, res) => {
 require('./profile-username').mountUsernameRoutes(app, {db:supabase,requireAuth,rateLimit:searchRateLimit});
 
 // ── Profile routes (require auth) ─────────────────────────────────────────────
-require('./duo-sso').mountDuoSso(app, { requireAuth, getUser: dbGetUserById, frontendUrl: FRONTEND_URL });
+const gameChatCredentials = require('./game-chat').gameChatCredentials(JWT_SECRET);
+require('./duo-sso').mountDuoSso(app, { requireAuth, getUser: dbGetUserById, frontendUrl: FRONTEND_URL, issueGameChat: gameChatCredentials.issue });
+require('./game-chat').mountGameChat(app, { db: supabase, requireAuth, credentials: gameChatCredentials, hydrate: dbHydrateChatMessages, blockedIds: require('./profile-community-service').blockedIds, allowed: chatMessageAllowed });
 app.get('/api/profile', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
   const profile = await dbGetUserById(req.user.sub);

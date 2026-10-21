@@ -351,6 +351,7 @@ test('World Chat, friend acceptance, DMs, GIPHY, and profile ID work together', 
   await expect(page.getByText('Message deleted')).toBeVisible();
 
   await expect(page.getByRole('complementary', { name: 'People' })).toBeVisible();
+  await page.getByRole('button', { name: /^Friends ·/ }).click();
   await expect(page.getByText(ME.id, { exact: true }).first()).toBeVisible();
   await page.getByLabel("Friend's ChainLens ID").fill('c828bf80-3280-4c46-a8bb-503a442e0743');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
@@ -430,7 +431,7 @@ test('mobile chat panel fits the viewport and retains both tabs', async ({ page 
   const panel = page.getByTestId('chat-panel');
   await expect(panel).toBeVisible();
   await expect(panel.getByRole('button', { name: 'World Chat' })).toBeVisible();
-  await expect(panel.getByRole('button', { name: /^Friends/ })).toBeVisible();
+  await expect(panel.getByRole('button', { name: /^Rooms & Friends/ })).toBeVisible();
   const box = await panel.boundingBox();
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.y).toBeGreaterThanOrEqual(0);
@@ -467,6 +468,7 @@ test('unread badge is server state, shared with the wallet', async ({ page }) =>
   await trigger.click();
   await expect(page.getByRole('complementary', { name: 'People' })).toBeVisible();
 
+  await page.getByRole('button', { name: /^Friends ·/ }).click();
   // Per-friend counts come from the same aggregate, so the list agrees with the
   // badge without one request per thread.
   await expect(page.getByRole('button', { name: /Second Friend, 2 unread messages/ })).toBeVisible();
@@ -490,4 +492,58 @@ test('unread badge is server state, shared with the wallet', async ({ page }) =>
   await expect(page.getByRole('button', { name: 'Message Chain Friend', exact: true })).toBeVisible();
 
   expect(pageErrors).toEqual([]);
+});
+
+for (const width of [1440, 768, 390]) {
+  test(`per-game rooms and collapsed friends at ${width}px`, async ({page}) => {
+    const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await installChatMocks(page, {unreadFixture:true});
+    const messages={poker:[],pool:[],world:[]};let seq=100;
+    await page.route('**/api/chat/games/**',route=>{
+      const url=new URL(route.request().url()),game=url.pathname.split('/')[4];
+      if(route.request().method()==='POST') {
+        const {content,type}=route.request().postDataJSON(); const message={id:++seq,content,message_type:type,author:ME,created_at:new Date().toISOString()};
+        (messages[game] ||= []).push(message);return route.fulfill({status:201,json:{message}});
+      }
+      return route.fulfill({json:{messages:messages[game]||[]}});
+    });
+    await page.setViewportSize({width,height:900});await page.goto('/chat');
+    const panel=page.getByTestId('chat-panel');await expect(panel).toBeVisible();
+    if(width===390) await panel.getByRole('button',{name:'People',exact:true}).click();
+    const drawer=panel.getByRole('button',{name:/^Friends ·/});await expect(drawer).toHaveAttribute('aria-expanded','false');
+    await expect(panel.getByLabel("Friend's ChainLens ID")).toBeHidden();
+    await expect(panel.getByRole('region',{name:'Game Rooms'}).getByRole('button')).toHaveCount(6);
+    await panel.getByRole('button',{name:'Poker',exact:true}).click();
+    await expect(panel.getByRole('heading',{name:'Poker World Chat',exact:true})).toBeVisible();
+    await panel.getByPlaceholder('Message Poker World Chat · no links').fill('Poker room only');await panel.getByLabel('Send message').click();
+    await expect(panel.getByText('Poker room only', {exact:true})).toBeVisible();
+    await panel.getByPlaceholder('Message Poker World Chat · no links').fill('poker draft');
+    if(width===390) await panel.getByRole('button',{name:'People',exact:true}).click();
+    await panel.getByRole('button',{name:'Pool',exact:true}).click();
+    await expect(panel.getByRole('heading',{name:'Pool World Chat',exact:true})).toBeVisible();
+    await expect(panel.getByText('Poker room only',{exact:true})).toHaveCount(0);
+    await expect(panel.getByPlaceholder('Message Pool World Chat · no links')).toHaveValue('');
+    await page.screenshot({path:`.local-artifacts/game-chat/game-rooms-${width}.png`,fullPage:true});
+    if(width===390) await panel.getByRole('button',{name:'People',exact:true}).click();
+    await panel.getByRole('button',{name:'Poker',exact:true}).click();
+    await expect(panel.getByPlaceholder('Message Poker World Chat · no links')).toHaveValue('poker draft');
+    await expect(panel.getByText('Poker room only',{exact:true})).toBeVisible();
+    if(width===390) await panel.getByRole('button',{name:'People',exact:true}).click();
+    await drawer.click();await expect(drawer).toHaveAttribute('aria-expanded','true');
+    await expect(panel.getByLabel("Friend's ChainLens ID")).toBeVisible();
+    await page.screenshot({path:`.local-artifacts/game-chat/game-friends-${width}.png`,fullPage:true});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+    expect(errors).toEqual([]);
+  });
+}
+
+test('a ChainLens account can use Game Rooms without legacy Messenger wallet eligibility', async ({page}) => {
+  await installChatMocks(page);
+  await page.route('**/api/chat/status',route=>route.fulfill({json:{eligible:false,walletLinked:false,socialLinked:false}}));
+  await page.route('**/api/chat/games/poker**',route=>route.fulfill({json:{messages:[]}}));
+  await page.goto('/chat');const panel=page.getByTestId('chat-panel');
+  await expect(panel.getByRole('heading',{name:'Unlock Messenger'})).toBeVisible({timeout:15000});
+  await panel.getByRole('button',{name:'Poker',exact:true}).click();
+  await expect(panel.getByRole('heading',{name:'Poker World Chat'})).toBeVisible();
+  await expect(panel.getByPlaceholder('Message Poker World Chat · no links')).toBeEnabled();
 });

@@ -5,7 +5,7 @@ const express = require('express');
 // Production DUO callbacks, used when DUO_REDIRECT_URIS is not set on the host.
 const DEFAULT_REDIRECT_URIS = ['chainlens', 'google', 'discord'].map(p => `https://duo-u3mp.onrender.com/auth/${p}/callback`).join(',');
 
-function mountDuoSso(app, { requireAuth, getUser, frontendUrl, redirectUris = process.env.DUO_REDIRECT_URIS || DEFAULT_REDIRECT_URIS, now = Date.now }) {
+function mountDuoSso(app, { requireAuth, getUser, frontendUrl, redirectUris = process.env.DUO_REDIRECT_URIS || DEFAULT_REDIRECT_URIS, now = Date.now, issueGameChat = null }) {
   const allowed = new Set(redirectUris.split(',').map(v => v.trim()).filter(Boolean));
   const codes = new Map(), tokens = new Map(), limits = new Map();
   const hash = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -54,7 +54,7 @@ function mountDuoSso(app, { requireAuth, getUser, frontendUrl, redirectUris = pr
     const saved = token && tokens.get(hash(token));
     if (!saved) return res.status(401).json({ error: 'invalid_token' });
     tokens.delete(hash(token));
-    res.json(saved.profile);
+    res.json({ ...saved.profile, ...(issueGameChat ? { game_chat_token: issueGameChat(saved.profile.sub) } : {}) });
   });
 }
 module.exports = { mountDuoSso };
