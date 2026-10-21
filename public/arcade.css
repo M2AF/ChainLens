@@ -8,7 +8,9 @@
 .cl-arcade-art { display: flex; align-items: center; justify-content: center; height: 260px; background: radial-gradient(ellipse at 25% 20%, #46d6e32b, transparent 65%), radial-gradient(ellipse at 90% 100%, #ff8bda26, transparent 65%), #0c1020; }
 .cl-arcade-art img { width: 218px; height: 218px; object-fit: contain; filter: drop-shadow(0 12px 22px #0005); }
 .cl-arcade-details { padding: 26px; }
-.cl-arcade h2 { margin: 12px 0; font-size: 28px; font-weight: 800; }
+.cl-arcade-group + .cl-arcade-group { margin-top: 48px; }
+.cl-arcade .cl-arcade-group-title { margin: 0 0 18px; font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; opacity: .7; }
+.cl-arcade h3 { margin: 12px 0; font-size: 28px; font-weight: 800; }
 .cl-arcade-details > p:not(.cl-arcade-eyebrow) { font-size: 14px; line-height: 1.8; opacity: .8; }
 .cl-arcade-tags { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 22px 0; list-style: none; }
 .cl-arcade-tags li { font-size: 11px; padding: 6px 9px; border-radius: 8px; background: color-mix(in srgb, currentColor 8%, transparent); }

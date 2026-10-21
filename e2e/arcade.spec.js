@@ -58,8 +58,11 @@ for(const [label,width,height] of [['desktop',1440,1000],['tablet',768,1024],['m
   expect(swarmBox.y).toBeGreaterThan(duoBox.y);
   const clashBox=await clash.boundingBox();
   if(width===1440){expect(clashBox.y).toBe(swarmBox.y);expect(clashBox.x).toBeGreaterThan(swarmBox.x);}
-  if(width<1440)expect(clashBox.y).toBeGreaterThan(swarmBox.y);
-  if(width===390)expect(swarmBox.y).toBeGreaterThan(poolBox.y);
+  if(width===390)expect(clashBox.y).toBeGreaterThan(swarmBox.y);
+  // Pub Games (DUO, Poker, Pool) come first, Action Games (SWARM, CLASH) below them.
+  expect(swarmBox.y).toBeGreaterThan(poolBox.y);
+  const pubHead=await page.getByRole('heading',{name:'Pub Games',exact:true}).boundingBox(),actionHead=await page.getByRole('heading',{name:'Action Games',exact:true}).boundingBox();
+  expect(pubHead.y).toBeLessThan(duoBox.y);expect(actionHead.y).toBeGreaterThan(poolBox.y);expect(actionHead.y).toBeLessThan(swarmBox.y);
   if(width===1440){expect(poolBox.y).toBe(duoBox.y);expect(poolBox.x).toBeGreaterThan(pokerBox.x);}
   if(width<1440)expect(poolBox.y).toBeGreaterThan(pokerBox.y);
   if(width===1440)expect(pokerBox.y).toBe(duoBox.y);
