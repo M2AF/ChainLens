@@ -52,14 +52,21 @@ for(const [label,width,height] of [['desktop',1440,1000],['tablet',768,1024],['m
   await expect(clashPlay).toHaveAttribute('target','_blank');
   await expect(clashPlay).toHaveAttribute('rel','noopener noreferrer');
   await expect.poll(()=>clash.getByRole('img',{name:'CLASH',exact:true}).evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
-  await expect(page.locator('.cl-arcade-card')).toHaveCount(5);
+  const world=page.getByRole('article',{name:'DUO World',exact:true});
+  await expect(world).toBeVisible();
+  await expect(world.getByRole('link',{name:'Play DUO World (opens in a new tab)',exact:true})).toHaveAttribute('href','https://duo-u3mp.onrender.com/world/');
+  await expect.poll(()=>world.getByRole('img',{name:'DUO World',exact:true}).evaluate(i=>i.complete&&i.naturalWidth>0)).toBe(true);
+  await expect(page.locator('.cl-arcade-card')).toHaveCount(6);
   const duoBox=await game.boundingBox(),pokerBox=await poker.boundingBox();
   const poolBox=await pool.boundingBox(),swarmBox=await swarm.boundingBox();
   expect(swarmBox.y).toBeGreaterThan(duoBox.y);
   const clashBox=await clash.boundingBox();
   if(width===1440){expect(clashBox.y).toBe(swarmBox.y);expect(clashBox.x).toBeGreaterThan(swarmBox.x);}
-  if(width<1440)expect(clashBox.y).toBeGreaterThan(swarmBox.y);
-  if(width===390)expect(swarmBox.y).toBeGreaterThan(poolBox.y);
+  if(width===390)expect(clashBox.y).toBeGreaterThan(swarmBox.y);
+  // Pub Games (DUO, Poker, Pool) come first, Action Games (SWARM, CLASH) below them.
+  expect(swarmBox.y).toBeGreaterThan(poolBox.y);
+  const pubHead=await page.getByRole('heading',{name:'Pub Games',exact:true}).boundingBox(),actionHead=await page.getByRole('heading',{name:'Action Games',exact:true}).boundingBox();
+  expect(pubHead.y).toBeLessThan(duoBox.y);expect(actionHead.y).toBeGreaterThan(poolBox.y);expect(actionHead.y).toBeLessThan(swarmBox.y);
   if(width===1440){expect(poolBox.y).toBe(duoBox.y);expect(poolBox.x).toBeGreaterThan(pokerBox.x);}
   if(width<1440)expect(poolBox.y).toBeGreaterThan(pokerBox.y);
   if(width===1440)expect(pokerBox.y).toBe(duoBox.y);
