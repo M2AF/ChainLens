@@ -168,3 +168,11 @@
 ### 2026-10-21T14:56-03:00 · codex · checkpoint · 1aceeda (main) dirty 8
 - Added allowlisted batch public-profile projection and four game-social aliases reusing existing friendship handlers and eligibility/ownership/block checks. General account JWT verification unchanged. Focused6 tests and285 full Node/check pass. Consent discloses player-chosen friend requests. Local source only, no migration/commit/deploy.
 - next: Finish DUO browser menu verification and document deployment order; preserve existing dirty handoff/docs.
+
+### 2026-10-21T14:59-03:00 · codex · verify · 6270ed5 (main) dirty 2
+- verified: 6270ed5: source check and285 Node pass;6 focused scope/profiles/SSO pass;all6 actual DUO game-page profile/menu fixtures pass with local ChainLens server fixture. No live rollout proof.
+- Aliases reuse existing friendship eligibility/ownership/block checks. General account APIs remain inaccessible to game credential; no agent commit/deploy/real friendship mutation.
+
+### 2026-10-21T14:59-03:00 · codex · handoff · 6270ed5 (main) dirty 3
+- Public PFP projection and scoped friend aliases complete and validated. User committed current code;docs/handoff remain local.
+- next: Authorized deployment verification: ChainLens first,then DUO;no DB migration. docs/GAME-CHAT.md.

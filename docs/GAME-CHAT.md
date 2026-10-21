@@ -56,3 +56,9 @@ Lobby authors’ current public pictures are fetched in a bounded batch with an 
 Release this extension in ChainLens first (game-chat.js, backend aliases and consent copy), then DUO (server/game-chat.js, client/chat-people.js and game-chat JS/CSS). Existing valid game-chat sessions continue to work. No app deployment was performed for this extension.
 
 Browser validation command: node tools/game-chat-browser.cjs <ChainLens checkout> --people. It uses local fixtures, exercises all six real game pages and live lobby membership, and tests NFT/photo styles, profile links, actual clipboard copying, Add/Cancel Request, menu stability across polling, keyboard navigation and matching lobby avatars. Evidence is saved under DUO dist/ui-review/chat-people/.
+
+### Player-menu verification, 2026-10-21
+
+All six real game pages pass World and Lobby profile-menu fixtures, with loaded NFT/photo images, actual clipboard copying, add/cancel synchronization, keyboard navigation, focus preservation across chat polls, and no page errors. Desktop1440/tablet768/mobile390 screenshots were reviewed. Report: DUO dist/ui-review/chat-people/report.json; detailed output: dist/chat-people-browser-v2.log. Filtered serial DUO regression:157 pass,1 real-Postgres skip,2 known Poker400ms tests excluded. ChainLens full285 Node and source checks pass. DUO offline build and diff checks pass.
+
+The user committed current code during validation (DUO787f462, ChainLens6270ed5). No agent commits, pushes, live friend requests, or deployments were made. Live rollout of this extension remains unverified.
