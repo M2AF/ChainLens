@@ -19,7 +19,7 @@
       $('identity').textContent = profile.display_name || profile.username || 'ChainLens account';
       $('continue').disabled = false;
       $('signin').hidden = true;
-      $('status').textContent = 'Continue to share this account’s ID and display name with DUO.';
+      $('status').textContent = 'Continue to share your account ID and display name with DUO and connect to game chats.';
     } catch {
       token = null;
       $('identity').textContent = 'Sign in to ChainLens to connect your account.';

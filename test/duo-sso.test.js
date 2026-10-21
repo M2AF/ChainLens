@@ -6,10 +6,10 @@ const { mountDuoSso } = require('../duo-sso');
 const redirect = 'http://localhost:3000/auth/chainlens/callback';
 const verifier = 'a'.repeat(64);
 const input = { client_id: 'duo', redirect_uri: redirect, code_challenge: crypto.createHash('sha256').update(verifier).digest('base64url'), code_challenge_method: 'S256', state: 'b'.repeat(64) };
-async function setup(t) {
+async function setup(t, { issueGameChat = null } = {}) {
   const app = express(); app.use(express.json());
   let now = Date.now();
-  mountDuoSso(app, { frontendUrl: 'http://localhost:10000', redirectUris: redirect, now: () => now,
+  mountDuoSso(app, { issueGameChat, frontendUrl: 'http://localhost:10000', redirectUris: redirect, now: () => now,
     requireAuth: (req, res, next) => { if (req.headers.authorization !== 'Bearer chainlens-session') return res.sendStatus(401); req.user = { sub: 'account-id' }; next(); },
     getUser: async () => ({ id: 'account-id', display_name: 'Alice', email: 'private@example.com', wallets: ['private-address'], holdings: ['private-token'] }),
   });
@@ -31,8 +31,8 @@ test('DUO SSO validates exact registered callback and requires an existing Chain
   assert.equal((await request('/api/duo/authorize', input, false)).status, 401);
   assert.equal((await request('/api/duo/authorize', { ...input, code_challenge_method: 'plain' })).status, 400);
 });
-test('DUO SSO exchanges a PKCE code for an account ID and display name only', async t => {
-  const { request } = await setup(t);
+test('DUO SSO exchanges PKCE for identity and a scoped chat capability without private profile fields', async t => {
+  const { request } = await setup(t, { issueGameChat: sub => 'limited-chat-for-' + sub });
   const authorize = await (await request('/api/duo/authorize', input)).json();
   const callback = new URL(authorize.redirect);
   assert.equal(callback.searchParams.get('state'), input.state);
@@ -46,7 +46,7 @@ test('DUO SSO exchanges a PKCE code for an account ID and display name only', as
     const base = new URL(req.url).origin;
     return fetch(base + '/api/duo/userinfo', { headers: { Authorization: 'Bearer ' + result.access_token } });
   };
-  assert.deepEqual(await (await tokenRequest()).json(), { sub: 'account-id', name: 'Alice' });
+  assert.deepEqual(await (await tokenRequest()).json(), { sub: 'account-id', name: 'Alice', game_chat_token: 'limited-chat-for-account-id' });
   assert.equal((await tokenRequest()).status, 401);
   assert.equal((await request('/api/duo/token', exchange, false, true)).status, 400);
 });
