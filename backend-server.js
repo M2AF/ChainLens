@@ -1637,6 +1637,8 @@ const gameSocialAuth = require('./game-chat').gameChatAuthenticate(requireAuth, 
 // A game credential can reach only these four aliases, never general account APIs.
 const requireChatOrGameSocial = (req, res, next) => req.path.startsWith('/api/game-social/') ? gameSocialAuth(req, res, next) : requireAuth(req, res, next);
 require('./duo-sso').mountDuoSso(app, { requireAuth, getUser: dbGetUserById, frontendUrl: FRONTEND_URL, issueGameChat: gameChatCredentials.issue });
+const castleAccounts = require('./castle-sso');
+castleAccounts.mountCastleSso(app, { requireAuth, getUser: dbGetUserById, frontendUrl: FRONTEND_URL, store: castleAccounts.createCastleSessionStore(supabase) });
 require('./game-chat').mountGameChat(app, { db: supabase, requireAuth, credentials: gameChatCredentials, hydrate: dbHydrateChatMessages, blockedIds: require('./profile-community-service').blockedIds, allowed: chatMessageAllowed });
 app.get('/api/profile', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
