@@ -2,8 +2,10 @@
 const crypto = require('node:crypto');
 const express = require('express');
 
-// Production DUO callbacks, used when DUO_REDIRECT_URIS is not set on the host.
-const DEFAULT_REDIRECT_URIS = ['chainlens', 'google', 'discord'].map(p => `https://duo-u3mp.onrender.com/auth/${p}/callback`).join(',');
+// Production DUO callbacks, used when DUO_REDIRECT_URIS is not set on the host. DUO is served from
+// duo.magicmoney.dev (Cloudflare); its former Render address stays allowed until that service is retired.
+const DEFAULT_REDIRECT_URIS = ['https://duo.magicmoney.dev', 'https://duo-u3mp.onrender.com']
+  .flatMap(origin => ['chainlens', 'google', 'discord'].map(p => `${origin}/auth/${p}/callback`)).join(',');
 
 function mountDuoSso(app, { requireAuth, getUser, frontendUrl, redirectUris = process.env.DUO_REDIRECT_URIS || DEFAULT_REDIRECT_URIS, now = Date.now, issueGameChat = null }) {
   const allowed = new Set(redirectUris.split(',').map(v => v.trim()).filter(Boolean));

@@ -7,13 +7,17 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 6270ed5 · 6270ed5: source check and285 Node pass;6 focused scope/profiles/SSO pass;all6 actual DUO game-page profile/menu fixtures pass with local ChainLens server fixture. No live rollout proof. · 2026-10-21T14:59-03:00
-head: 6270ed5 (main) dirty 3
-updated: 2026-10-21T14:59-03:00 · codex
+verified: 814f86c · 814f86c pushed/deployed; migration20261028034815 applied; live config/consent/exact script/auth denial/invalid grant pass; RLS ACL service-only.290Node/check and ephemeral SQL gates pass. No Actions configured; actual account consent pending. · 2026-10-28T02:44-03:00
+head: 814f86c (main) dirty 9
+updated: 2026-11-02T01:25-04:00 · codex
 
-resources: ["chat"]
+resources: -
 
 ## Now
+- Arcade custom domain: all seven Play links use https://duo.magicmoney.dev; DUO card game now targets /duo/ because / is the live Arcade hub. Source/tests/docs updated locally; no commit or deployment.
+- Castle Siege Android login LIVE: authorized scoped8-file commit814f86c2e76463741f47c50bdd65122aca00dedc pushed main; private migration20261028034815 applied. Native account19 installed; system-browser PKCE/consent, encrypted game credential and server revocation implemented. Actual user account consent pending; user needs phone, do not automate device. Cloud saves/friends/multiplayer remain disabled.
+- Release checks:290Node/check pass; ephemeral SQL grants/expiry/cascade pass; live config enabled/canonical callback, consent HTML/exact committed script and unauthorized/invalid-grant rejection pass. Live RLS/ACL denies anon/authenticated; server access permitted. No Actions/status checks configured. Native fixture20 exchange/storage/logout passes; earlier15 cold restore passes. docs/CASTLE-SIEGE-LOGIN.md; DUO/data/castle-siege/evidence/live-account-verification.json.
+- Castle Siege seventh Arcade card prepared locally with original XAPK192x192icon, explicit Campaign preview description and /castle-siege/ destination on DUO host. DUO has a playable Kenilworth offline browser preview; no account/online claim. Check/14JSX/3desktop-tablet-mobile Arcade journeys pass;285baselineNode pass. Deploy DUO game route before card; neither deployed. docs/ARCADE.md and DUO/docs/CASTLE-SIEGE.md. No commit/push/deploy.
 - Chat PFP/profile menu extension complete: all6 games World/Lobby show public PFPs, animated NFT hexagons or borderless photo circles; View Profile/Add-Cancel/Copy ID/Copy Link, incoming/accepted states and keyboard menu. Scoped friendship aliases reuse original checks.285 ChainLens and157 filtered DUO tests pass;1 DB skip/2 known Poker cases excluded;6 real-page browser profiles fixtures and screenshots pass. User commits787f462/6270ed5 observed; no agent commit/deploy or real friend requests. docs/GAME-CHAT.md.
 - Live game-chat error diagnosed: public.cl_game_messages was absent after user deployed1aceeda. Applied cl_game_chat migration on2026-10-21; RLS enabled, anon/authenticated denied, service_role access and SELECT verified; PostgREST schema reload notified. Existing DUO sessions need game-side logout/login once for chainlensId and limited chat credential. Local .env Supabase service key reports Unregistered API key; do not copy it into Render or infer production key is broken.
 - Per-game chat implemented locally across ChainLens and DUO: six independent World Chats/Game Rooms; account-only access; private live-lobby chat; collapsed Friends with ID/add/request controls below. Separate limited SSO chat capability stays server-side. No migration/commit/push/deploy. docs/GAME-CHAT.md.
@@ -39,7 +43,7 @@ resources: ["chat"]
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- Authorized deployment verification: ChainLens first,then DUO;no DB migration. docs/GAME-CHAT.md.
+- Deploy local Arcade changes through authorized release process; host DUO_REDIRECT_URIS override must include custom-domain callbacks if configured
 
 ## Traps
 - Fresh Windows worktrees may convert generated public/swap-core.js to CRLF and fail its manifest hash test. Exact tracked Git blob matches manifest; restore exact blob bytes for validation, never replace expected hash or hand-edit generated logic.
@@ -54,6 +58,7 @@ resources: ["chat"]
 - Full older theme/media/provider guardrails are retained in HANDOFF_ARCHIVE.md (snapshot2026-10-12); read them before touching those systems.
 
 ## Skills
+- Castle Siege account service -> agent-handoff,Fullstack Iteration,architecture-review,Playwright Testing,supabase:supabase | used: fixed native client/PKCE, persistent private session ACLs, fixture tests and live deployment verification | Codex:resolve current catalog;Claude:unknown.
 - Cross-app game chat -> agent-handoff, Fullstack Iteration, architecture-review, Visual Iteration, Playwright Testing, supabase:supabase | used: existing SSO scope, room isolation, responsive and real-socket local fixture checks | Codex: resolve current catalog; Claude: resolve catalog.
 - Search architecture/privacy -> architecture-review / supabase:supabase | used: deterministic/read-only modules, provider caps, DB allowlists, SDK stub verification and primary docs | Codex: C:/Users/balla/.codex/skills/architecture-review/SKILL.md; C:/Users/balla/.codex/plugins/cache/openai-curated-remote/supabase/1.0.0/skills/supabase/SKILL.md | Claude: resolve catalog.
 - Chat UI -> Fullstack Iteration / Visual Iteration / Playwright Testing | used: source tracing, before/after overflow regression, responsive browser checks and screenshots | Codex: C:/Users/balla/.codex/skills/{fullstack-iteration,visual-Iteration,playwright-testing}/SKILL.md | Claude: resolve local catalog.

@@ -176,3 +176,46 @@
 ### 2026-10-21T14:59-03:00 · codex · handoff · 6270ed5 (main) dirty 3
 - Public PFP projection and scoped friend aliases complete and validated. User committed current code;docs/handoff remain local.
 - next: Authorized deployment verification: ChainLens first,then DUO;no DB migration. docs/GAME-CHAT.md.
+
+### 2026-10-27T23:39-03:00 · codex · claim · 161fdf1 (main) dirty 1
+- task: Castle Siege separate Arcade preview title
+- lease until 2026-10-28T02:39-03:00
+
+### 2026-10-27T23:57-03:00 · codex · verify · 161fdf1 (main) dirty 6
+- verified: CastleSiege Arcade:baseline285Node;post-sourcecheck14JSX/3responsiveArcade journeys pass, screenshotreviewed. Local only; game destination not deployed.
+- Separate seventh Castle Siege campaign preview entry uses original XAPK icon unchanged and exact DUO /castle-siege/ route. No account/chat/backend changes. DUO game preview separately validates real offline victory/save/recovery.
+
+### 2026-10-27T23:57-03:00 · codex · handoff · 161fdf1 (main) dirty 6
+- Castle Siege Arcade preview card ready locally; preserve source/art/tests and deploy only after game route with explicit authorization.
+- next: Full game work continues in DUO; no ChainLens account/multiplayer integration yet. Deploy game route before enabling public card when authorized.
+
+### 2026-10-28T00:04-03:00 · codex · claim · 161fdf1 (main) dirty 6
+- task: Castle Siege Android account authorization and token persistence
+- lease until 2026-10-28T03:04-03:00
+
+### 2026-10-28T00:55-03:00 · codex · checkpoint · 814f86c (main) dirty 6
+- User approved migration+commit/push/deploy. Applied native session migration20261028034815 to existing ChainLens project; liveRLS/ACL verify anon/auth denied/serverallowed. Pushed scoped8-file auth commit814f86c. Public config nowJSON enabled=true/correctcallback+origin; consent assets present. 290Node/check pass; no Actions/status configured. Previous Arcade dirt remains uncommitted.
+- next: Finish live endpoint/asset checks; user completes real account consent on phone. Record final native build and deployment in handoff/docs.
+
+### 2026-10-28T02:44-03:00 · codex · verify · 814f86c (main) dirty 6
+- verified: 814f86c pushed/deployed; migration20261028034815 applied; live config/consent/exact script/auth denial/invalid grant pass; RLS ACL service-only.290Node/check and ephemeral SQL gates pass. No Actions configured; actual account consent pending.
+
+### 2026-10-28T02:44-03:00 · codex · handoff · 814f86c (main) dirty 6
+- Approved Castle Siege login release814f86c and private session migration live and verified.290Node/check pass; no Actions configured. Actual account consent pending; offline play retained. Arcade card changes preserved unpublished.
+- next: User completes browser account consent when ready. Coordinate before device testing. Extend native identity with cloud saves/friends/online play as separate verified capabilities.
+
+### 2026-10-29T16:49-03:00 · claude · note · 814f86c (main) dirty 9
+- DUO moved to https://duo.magicmoney.dev (Cloudflare). Repointed 7 arcade Play links in public/index.html + e2e/arcade.spec.js + docs/ARCADE.md; duo-sso.js default callbacks now allow duo.magicmoney.dev and old onrender. duo-sso 3/3, e2e arcade 3/3 pass. Uncommitted, mixed into existing dirty files; not deployed.
+- next: If ChainLens host sets DUO_REDIRECT_URIS, add https://duo.magicmoney.dev/auth/{chainlens,google,discord}/callback there
+
+### 2026-11-02T01:23-04:00 · codex · claim · 814f86c (main) dirty 9
+- task: Verify Arcade custom-domain links
+- lease until 2026-11-02T04:23-04:00
+
+### 2026-11-02T01:23-04:00 · codex · checkpoint · 814f86c (main) dirty 9
+- All seven local Arcade Play links already target duo.magicmoney.dev; preserving existing dirty source. Running check, Node suite and Arcade browser journeys.
+- next: Verify results and record custom-domain state
+
+### 2026-11-02T01:25-04:00 · codex · handoff · 814f86c (main) dirty 9
+- Verified seven Arcade custom-domain links; corrected DUO Play to /duo/ using live hub menu. public/index.html, e2e/arcade.spec.js and docs/ARCADE.md updated; preserved prior dirty work. Syntax checks/290 Node tests/14 JSX compilation/3 desktop-tablet-mobile Arcade browser journeys pass; desktop screenshot reviewed. Live hub and /duo/ fetched successfully. No commit/push/deploy.
+- next: Deploy local Arcade changes through authorized release process; host DUO_REDIRECT_URIS override must include custom-domain callbacks if configured

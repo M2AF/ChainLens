@@ -366,14 +366,24 @@ var MagicMoneySwapCore = (() => {
   }
 
   // src/shared/swap-networks.ts
+  var INTO_CARDANO_BRIDGE = Object.freeze({
+    ethereum: { token: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", symbol: "USDC", decimals: 6 },
+    arbitrum: { token: "0xaf88d065e77c8cc2239327c5edb3a432268e5831", symbol: "USDC", decimals: 6 },
+    optimism: { token: "0x0b2c639c533813f4aa9d7837caf62653d097ff85", symbol: "USDC", decimals: 6 },
+    base: { token: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", symbol: "USDC", decimals: 6 },
+    polygon: { token: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359", symbol: "USDC", decimals: 6 },
+    avalanche: { token: "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e", symbol: "USDC", decimals: 6 },
+    monad: { token: "0x754704bc059f8c67012fed69bc8a327a5aafb603", symbol: "USDC", decimals: 6 },
+    solana: { token: "So11111111111111111111111111111111111111112", symbol: "SOL", decimals: 9 }
+  });
   var SWAP_NETWORKS = {
     ethereum: {
       id: "ethereum",
       chainId: 1,
       signing: "evm-eoa",
       sameChain: ["0x", "1inch", "uniswap", "lifi"],
-      crossChainSource: ["lifi", "relay"],
-      crossChainDestination: ["lifi", "relay"],
+      crossChainSource: ["lifi", "relay", "near-intents"],
+      crossChainDestination: ["lifi", "relay", "near-intents"],
       discovery: true,
       status: "verified",
       reason: null,
@@ -384,8 +394,8 @@ var MagicMoneySwapCore = (() => {
       chainId: 42161,
       signing: "evm-eoa",
       sameChain: ["0x", "1inch", "uniswap", "lifi"],
-      crossChainSource: ["lifi", "relay"],
-      crossChainDestination: ["lifi", "relay"],
+      crossChainSource: ["lifi", "relay", "near-intents"],
+      crossChainDestination: ["lifi", "relay", "near-intents"],
       discovery: true,
       status: "verified",
       reason: null,
@@ -396,8 +406,8 @@ var MagicMoneySwapCore = (() => {
       chainId: 10,
       signing: "evm-eoa",
       sameChain: ["0x", "1inch", "uniswap", "lifi"],
-      crossChainSource: ["lifi", "relay"],
-      crossChainDestination: ["lifi", "relay"],
+      crossChainSource: ["lifi", "relay", "near-intents"],
+      crossChainDestination: ["lifi", "relay", "near-intents"],
       discovery: true,
       status: "verified",
       reason: null,
@@ -408,8 +418,8 @@ var MagicMoneySwapCore = (() => {
       chainId: 8453,
       signing: "evm-eoa",
       sameChain: ["0x", "1inch", "uniswap", "lifi"],
-      crossChainSource: ["lifi", "relay"],
-      crossChainDestination: ["lifi", "relay"],
+      crossChainSource: ["lifi", "relay", "near-intents"],
+      crossChainDestination: ["lifi", "relay", "near-intents"],
       discovery: true,
       status: "verified",
       reason: null,
@@ -420,8 +430,8 @@ var MagicMoneySwapCore = (() => {
       chainId: 137,
       signing: "evm-eoa",
       sameChain: ["0x", "1inch", "uniswap", "lifi"],
-      crossChainSource: ["lifi", "relay"],
-      crossChainDestination: ["lifi", "relay"],
+      crossChainSource: ["lifi", "relay", "near-intents"],
+      crossChainDestination: ["lifi", "relay", "near-intents"],
       discovery: true,
       status: "verified",
       reason: null,
@@ -432,8 +442,8 @@ var MagicMoneySwapCore = (() => {
       chainId: 43114,
       signing: "evm-eoa",
       sameChain: ["0x", "1inch", "lifi"],
-      crossChainSource: ["lifi", "relay"],
-      crossChainDestination: ["lifi", "relay"],
+      crossChainSource: ["lifi", "relay", "near-intents"],
+      crossChainDestination: ["lifi", "relay", "near-intents"],
       discovery: true,
       status: "verified",
       reason: null,
@@ -444,8 +454,8 @@ var MagicMoneySwapCore = (() => {
       chainId: 143,
       signing: "evm-eoa",
       sameChain: ["lifi"],
-      crossChainSource: ["lifi", "relay"],
-      crossChainDestination: ["lifi", "relay"],
+      crossChainSource: ["lifi", "relay", "near-intents"],
+      crossChainDestination: ["lifi", "relay", "near-intents"],
       discovery: true,
       status: "verified",
       reason: null,
@@ -457,8 +467,8 @@ var MagicMoneySwapCore = (() => {
       chainId: 4663,
       signing: "evm-eoa",
       sameChain: ["lifi"],
-      crossChainSource: ["lifi", "relay"],
-      crossChainDestination: ["lifi", "relay"],
+      crossChainSource: ["lifi", "relay", "near-intents"],
+      crossChainDestination: ["lifi", "relay", "near-intents"],
       discovery: true,
       status: "verified",
       reason: null,
@@ -618,8 +628,8 @@ var MagicMoneySwapCore = (() => {
       chainId: null,
       signing: "solana",
       sameChain: ["jupiter", "lifi"],
-      crossChainSource: ["lifi"],
-      crossChainDestination: ["lifi"],
+      crossChainSource: ["lifi", "near-intents"],
+      crossChainDestination: ["lifi", "near-intents"],
       discovery: true,
       status: "verified",
       reason: null,
@@ -638,17 +648,17 @@ var MagicMoneySwapCore = (() => {
       reason: "DEX swaps need a transaction this wallet signs locally, and Bitcoin spending uses PSBT signing the swap executor does not have. Use the Cross-Chain tab for BTC.",
       evidence: "executor has no PSBT path for swap payloads"
     },
-    // Same-chain only, through Minswap V2 batcher orders. NOT 'verified': every
-    // piece below was measured live, but no swap has yet been executed with real
-    // funds from this wallet (docs/RELEASE-QA.md). Cross-chain in or out needs the
-    // xReserve leg, which is not enabled (docs/CARDANO-SWAP-DISCOVERY.md).
+    // Same-chain through Minswap V2 orders and Danogo pools. OUT of Cardano (ADA
+    // only) through NEAR Intents 1Click: a plain ADA payment to a signed quote's
+    // deposit address (src/main/near-intents-client.ts). INTO Cardano (ADA) the
+    // same way, paid by a transfer on the source chain (NEAR_INTENTS_CHAINS).
     cardano: {
       id: "cardano",
       chainId: null,
       signing: "cardano",
       sameChain: ["minswap"],
-      crossChainSource: [],
-      crossChainDestination: [],
+      crossChainSource: ["near-intents"],
+      crossChainDestination: ["near-intents"],
       discovery: true,
       status: "implemented-unverified",
       reason: null,
@@ -1739,6 +1749,10 @@ var MagicMoneySwapCore = (() => {
     if (isCrossChain && quote.toAddress && isEvmChain(quote.fromChain) && isEvmChain(quote.toChain) && !isEvmAddress(quote.toAddress)) {
       throw new Error("Swap quote has an invalid destination address.");
     }
+    if (quote.provider === "near-intents") {
+      validateNearIntentsQuote(quote, isEvmChain);
+      return;
+    }
     if (isEvmChain(quote.fromChain)) {
       validateEvmQuote(quote);
       return;
@@ -1754,6 +1768,10 @@ var MagicMoneySwapCore = (() => {
     throw new Error(`Unsupported swap source chain: ${quote.fromChain}`);
   }
   function validateCardanoQuote(quote) {
+    if (quote.provider === "near-intents") {
+      validateNearIntentsQuote(quote);
+      return;
+    }
     if (quote.provider !== "minswap") throw new Error("Cardano swaps are only signed for Minswap orders.");
     if (quote.toChain !== "cardano") throw new Error("Cardano swaps must stay on Cardano.");
     const cbor = quote.txData?.cbor;
@@ -1762,6 +1780,23 @@ var MagicMoneySwapCore = (() => {
       throw new Error("Cardano swap quote contains EVM or Solana transaction fields.");
     }
     if (!quote.cardanoOrder) throw new Error("Cardano swap quote does not describe its order.");
+  }
+  function validateNearIntentsQuote(quote, isEvmChain = () => false) {
+    const out = quote.fromChain === "cardano", into = quote.toChain === "cardano";
+    if (out === into) throw new Error("NEAR Intents swaps here go into or out of Cardano.");
+    if (out && quote.fromTokenAddress !== "lovelace") throw new Error("NEAR Intents swaps from Cardano sell ADA only.");
+    if (into && quote.toTokenAddress !== "lovelace") throw new Error("NEAR Intents swaps into Cardano buy ADA only.");
+    if (into && !(quote.fromChain === "solana" || isEvmChain(quote.fromChain))) throw new Error(`NEAR Intents deposits are not paid from ${quote.fromChain}.`);
+    const t2 = quote.nearIntents;
+    if (!t2 || !t2.destinationAsset || !t2.refundTo || !t2.recipient || !Number.isInteger(t2.slippageBps)) {
+      throw new Error("NEAR Intents quote does not describe its terms.");
+    }
+    if (!quote.toAddress || quote.toAddress !== t2.recipient) throw new Error("NEAR Intents quote has an invalid destination address.");
+    if (!quote.minBuyAmountRaw || !isPositiveIntegerString(quote.minBuyAmountRaw)) throw new Error("NEAR Intents quote has no minimum received.");
+    const tx = quote.txData ?? {};
+    if (tx.to || tx.data || tx.value || tx.swapTransaction || tx.cbor || quote.approvalTx || quote.permitTx) {
+      throw new Error("NEAR Intents quote must not carry a transaction to sign.");
+    }
   }
   function validateEvmQuote(quote) {
     const { txData } = quote;
@@ -2120,8 +2155,49 @@ var MagicMoneySwapCore = (() => {
         return mapRangoStatus(raw, expectedTokenAddress);
       case "minswap":
         return mapMinswapStatus(raw, expectedTokenAddress);
+      case "near-intents":
+        return mapNearIntentsStatus(raw, expectedTokenAddress);
       default:
         return mapProviderStatus(raw, expectedTokenAddress);
+    }
+  }
+  function mapNearIntentsStatus(raw, expectedTokenAddress) {
+    const status = upper(raw.status);
+    const base = {
+      providerStatus: raw.status ?? null,
+      providerSubstatus: raw.substatus ?? null,
+      delivered: deliveredFrom(raw),
+      destTxHash: raw.destTxHash ?? null,
+      destExplorerUrl: raw.destExplorerUrl ?? null
+    };
+    switch (status) {
+      case "SUCCESS":
+        return {
+          ...mapProviderStatus({ ...raw, status: "DONE", substatus: "COMPLETED" }, expectedTokenAddress),
+          providerStatus: base.providerStatus,
+          providerSubstatus: base.providerSubstatus
+        };
+      case "REFUNDED":
+        return {
+          ...base,
+          state: "refunded",
+          message: "No solver filled this swap. NEAR Intents returned the ADA to your Cardano address, minus its refund fee."
+        };
+      case "FAILED":
+        return { ...base, state: "failed", message: "NEAR Intents reported this swap failed. Check the deposit address on the NEAR Intents explorer." };
+      case "INCOMPLETE_DEPOSIT":
+        return {
+          ...base,
+          state: "refund-pending",
+          message: "The deposit arrived short of the quoted amount. NEAR Intents refunds it to your Cardano address."
+        };
+      case "PENDING_DEPOSIT":
+        return { ...base, state: "source-submitted", message: null };
+      case "KNOWN_DEPOSIT_TX":
+      case "PROCESSING":
+        return { ...base, state: "bridging", message: null };
+      default:
+        return { ...base, state: "unknown", message: "NEAR Intents returned a status this wallet does not recognise." };
     }
   }
   function mapMinswapStatus(raw, expectedTokenAddress) {
