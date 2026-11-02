@@ -8,12 +8,13 @@ lease_until: -
 repo: .
 verify: npm run check && npm test
 verified: 814f86c · 814f86c pushed/deployed; migration20261028034815 applied; live config/consent/exact script/auth denial/invalid grant pass; RLS ACL service-only.290Node/check and ephemeral SQL gates pass. No Actions configured; actual account consent pending. · 2026-10-28T02:44-03:00
-head: 814f86c (main) dirty 9
-updated: 2026-11-02T01:25-04:00 · codex
+head: d483d90 (main) dirty 4
+updated: 2026-11-02T01:42-04:00 · codex
 
 resources: -
 
 ## Now
+- Mancave Back to home link added locally above desktop sidebar logo and upper-left mobile; same-tab https://mancave.chainlensnft.info/#home. Mobile menu moved below link. public/index.html + e2e/arcade.spec.js; syntax/14 JSX/290 Node/3 responsive browser journeys pass; mobile screenshot reviewed. No commit/push/Render deploy.
 - Arcade custom domain: all seven Play links use https://duo.magicmoney.dev; DUO card game now targets /duo/ because / is the live Arcade hub. Source/tests/docs updated locally; no commit or deployment.
 - Castle Siege Android login LIVE: authorized scoped8-file commit814f86c2e76463741f47c50bdd65122aca00dedc pushed main; private migration20261028034815 applied. Native account19 installed; system-browser PKCE/consent, encrypted game credential and server revocation implemented. Actual user account consent pending; user needs phone, do not automate device. Cloud saves/friends/multiplayer remain disabled.
 - Release checks:290Node/check pass; ephemeral SQL grants/expiry/cascade pass; live config enabled/canonical callback, consent HTML/exact committed script and unauthorized/invalid-grant rejection pass. Live RLS/ACL denies anon/authenticated; server access permitted. No Actions/status checks configured. Native fixture20 exchange/storage/logout passes; earlier15 cold restore passes. docs/CASTLE-SIEGE-LOGIN.md; DUO/data/castle-siege/evidence/live-account-verification.json.
@@ -43,7 +44,7 @@ resources: -
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- Deploy local Arcade changes through authorized release process; host DUO_REDIRECT_URIS override must include custom-domain callbacks if configured
+- Publish verified ChainLens home link via user release workflow after mancave DNS is active
 
 ## Traps
 - Fresh Windows worktrees may convert generated public/swap-core.js to CRLF and fail its manifest hash test. Exact tracked Git blob matches manifest; restore exact blob bytes for validation, never replace expected hash or hand-edit generated logic.

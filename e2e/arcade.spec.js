@@ -15,6 +15,12 @@ for(const [label,width,height] of [['desktop',1440,1000],['tablet',768,1024],['m
    return r.continue();
   });
   await page.goto('/');
+  const home=page.locator(width<=900?'.cl-home-link-mobile':'.cl-home-link-sidebar');
+  await expect(home).toHaveCount(1);
+  await expect(home).toHaveAttribute('href','https://mancave.chainlensnft.info/#home');
+  const homeBox=await home.boundingBox();
+  expect(homeBox.x).toBeLessThan(40);expect(homeBox.y).toBeLessThan(40);
+
   if(width<=900)await page.getByRole('button',{name:'Open menu',exact:true}).click();
   const nav=page.getByRole('navigation',{name:'Main navigation'});
   await expect(nav.getByRole('button',{name:'Arcade',exact:true})).toBeVisible();
@@ -105,5 +111,11 @@ for(const [label,width,height] of [['desktop',1440,1000],['tablet',768,1024],['m
   await page.goBack();await expect(page.getByRole('heading',{name:'Arcade',exact:true})).toHaveCount(0);
   await page.goForward();await expect(page.getByRole('heading',{name:'Arcade',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
+  if(width<=900)await page.getByRole('button',{name:'Open menu',exact:true}).click();
+  const returnHome=page.locator('.cl-home-link-sidebar');
+  await page.route('https://mancave.chainlensnft.info/',r=>r.fulfill({contentType:'text/html',body:'<h1>ManCave Productions</h1>'}));
+  await returnHome.focus();await page.keyboard.press('Enter');
+  await expect(page).toHaveURL('https://mancave.chainlensnft.info/#home');
+  await expect(page.getByRole('heading',{name:'ManCave Productions'})).toBeVisible();
  });
 }

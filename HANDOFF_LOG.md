@@ -219,3 +219,11 @@
 ### 2026-11-02T01:25-04:00 · codex · handoff · 814f86c (main) dirty 9
 - Verified seven Arcade custom-domain links; corrected DUO Play to /duo/ using live hub menu. public/index.html, e2e/arcade.spec.js and docs/ARCADE.md updated; preserved prior dirty work. Syntax checks/290 Node tests/14 JSX compilation/3 desktop-tablet-mobile Arcade browser journeys pass; desktop screenshot reviewed. Live hub and /duo/ fetched successfully. No commit/push/deploy.
 - next: Deploy local Arcade changes through authorized release process; host DUO_REDIRECT_URIS override must include custom-domain callbacks if configured
+
+### 2026-11-02T01:36-04:00 · codex · claim · d483d90 (main) dirty 1
+- task: Add Mancave Back to home navigation
+- lease until 2026-11-02T04:36-04:00
+
+### 2026-11-02T01:42-04:00 · codex · handoff · d483d90 (main) dirty 4
+- Mancave Back to home source and browser navigation ready. Checks/14 JSX compile/290 Node/3 responsive Arcade journeys pass; desktop/mobile links and keyboard navigation verified. Link destination DNS pending at Unstoppable. No commit/push/deploy.
+- next: Publish verified ChainLens home link via user release workflow after mancave DNS is active
