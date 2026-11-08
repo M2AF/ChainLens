@@ -1420,14 +1420,16 @@ app.delete('/api/auth/passkey/:id', requireAuth, async (req, res) => {
   }
 });
 
+const {oauthReturnUrl}=require('./nexus-oauth');
 // ── Google OAuth ──────────────────────────────────────────────────────────────
 app.get('/auth/google', (req, res) => {
-  if (!process.env.GOOGLE_CLIENT_ID) return res.redirect(`${FRONTEND_URL}/?auth_error=google_not_configured`);
-  const state = crypto.randomBytes(16).toString('hex');
+  if (!process.env.GOOGLE_CLIENT_ID) return res.redirect(oauthReturnUrl(FRONTEND_URL,{nexus:req.query.client==='nexus-desktop'},{auth_error:'google_not_configured'}));
+  const state = (req.query.client==='nexus-desktop'&&!req.query.link_token?'nx_':'')+crypto.randomBytes(16).toString('hex');
   // Store linkToken so callback knows whether this is a new login or linking to existing account
   _oauthStates[state] = {
     expires: Date.now() + 10 * 60 * 1000,
-    linkToken: req.query.link_token || null
+    linkToken: req.query.link_token || null,
+    nexus: req.query.client === 'nexus-desktop' && !req.query.link_token
   };
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID,
@@ -1441,8 +1443,9 @@ app.get('/auth/google', (req, res) => {
 
 app.get('/auth/google/callback', async (req, res) => {
   const { code, state, error } = req.query;
-  if (error || !code) return res.redirect(`${FRONTEND_URL}/?auth_error=${error || 'cancelled'}`);
-  if (!_oauthStates[state]) return res.redirect(`${FRONTEND_URL}/?auth_error=invalid_state`);
+  const pendingState=_oauthStates[state],returnState=pendingState||{nexus:typeof state==='string'&&/^nx_[a-f0-9]{32}$/.test(state)};
+  if (error || !code) return res.redirect(oauthReturnUrl(FRONTEND_URL,returnState,{auth_error:error||'cancelled'}));
+  if (!pendingState || pendingState.expires <= Date.now()) return res.redirect(oauthReturnUrl(FRONTEND_URL,returnState,{auth_error:'invalid_state'}));
   // IMPORTANT: save state data BEFORE deleting it
   const stateData = _oauthStates[state];
   delete _oauthStates[state];
@@ -1487,10 +1490,10 @@ app.get('/auth/google/callback', async (req, res) => {
             }).eq('id', user.id);
           }
           const jwtToken = jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: '30d' });
-          return res.redirect(`${FRONTEND_URL}/?auth_token=${jwtToken}&linked=google`);
+          return res.redirect(oauthReturnUrl(FRONTEND_URL,stateData,{auth_token:jwtToken,linked:'google'}));
         } catch (e) {
           console.error('Google link error:', e);
-          return res.redirect(`${FRONTEND_URL}/?auth_error=link_failed`);
+          return res.redirect(oauthReturnUrl(FRONTEND_URL,stateData,{auth_error:'link_failed'}));
         }
       } else {
         // LOGIN MODE: find existing account or create new one
@@ -1518,21 +1521,22 @@ app.get('/auth/google/callback', async (req, res) => {
     }
 
     const jwtToken = jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: '30d' });
-    res.redirect(`${FRONTEND_URL}/?auth_token=${jwtToken}`);
+    res.redirect(oauthReturnUrl(FRONTEND_URL,stateData,{auth_token:jwtToken}));
   } catch (e) {
     console.error('Google OAuth error:', e);
-    res.redirect(`${FRONTEND_URL}/?auth_error=google_failed`);
+    res.redirect(oauthReturnUrl(FRONTEND_URL,stateData,{auth_error:'google_failed'}));
   }
 });
 
 // ── Discord OAuth ─────────────────────────────────────────────────────────────
 app.get('/auth/discord', (req, res) => {
-  if (!process.env.DISCORD_CLIENT_ID) return res.redirect(`${FRONTEND_URL}/?auth_error=discord_not_configured`);
-  const state = crypto.randomBytes(16).toString('hex');
+  if (!process.env.DISCORD_CLIENT_ID) return res.redirect(oauthReturnUrl(FRONTEND_URL,{nexus:req.query.client==='nexus-desktop'},{auth_error:'discord_not_configured'}));
+  const state = (req.query.client==='nexus-desktop'&&!req.query.link_token?'nx_':'')+crypto.randomBytes(16).toString('hex');
   // Store linkToken so callback knows whether this is a new login or linking to existing account
   _oauthStates[state] = {
     expires: Date.now() + 10 * 60 * 1000,
-    linkToken: req.query.link_token || null
+    linkToken: req.query.link_token || null,
+    nexus: req.query.client === 'nexus-desktop' && !req.query.link_token
   };
   const params = new URLSearchParams({
     client_id: process.env.DISCORD_CLIENT_ID,
@@ -1546,8 +1550,9 @@ app.get('/auth/discord', (req, res) => {
 
 app.get('/auth/discord/callback', async (req, res) => {
   const { code, state, error } = req.query;
-  if (error || !code) return res.redirect(`${FRONTEND_URL}/?auth_error=${error || 'cancelled'}`);
-  if (!_oauthStates[state]) return res.redirect(`${FRONTEND_URL}/?auth_error=invalid_state`);
+  const pendingState=_oauthStates[state],returnState=pendingState||{nexus:typeof state==='string'&&/^nx_[a-f0-9]{32}$/.test(state)};
+  if (error || !code) return res.redirect(oauthReturnUrl(FRONTEND_URL,returnState,{auth_error:error||'cancelled'}));
+  if (!pendingState || pendingState.expires <= Date.now()) return res.redirect(oauthReturnUrl(FRONTEND_URL,returnState,{auth_error:'invalid_state'}));
   // IMPORTANT: save state data BEFORE deleting it
   const stateData = _oauthStates[state];
   delete _oauthStates[state];
@@ -1591,10 +1596,10 @@ app.get('/auth/discord/callback', async (req, res) => {
             await supabase.from('cl_users').update({ avatar_url: avatar }).eq('id', user.id);
           }
           const jwtToken = jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: '30d' });
-          return res.redirect(`${FRONTEND_URL}/?auth_token=${jwtToken}&linked=discord`);
+          return res.redirect(oauthReturnUrl(FRONTEND_URL,stateData,{auth_token:jwtToken,linked:'discord'}));
         } catch (e) {
           console.error('Discord link error:', e);
-          return res.redirect(`${FRONTEND_URL}/?auth_error=link_failed`);
+          return res.redirect(oauthReturnUrl(FRONTEND_URL,stateData,{auth_error:'link_failed'}));
         }
       } else {
         // LOGIN MODE: find existing account or create new one
@@ -1622,10 +1627,10 @@ app.get('/auth/discord/callback', async (req, res) => {
     }
 
     const jwtToken = jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: '30d' });
-    res.redirect(`${FRONTEND_URL}/?auth_token=${jwtToken}`);
+    res.redirect(oauthReturnUrl(FRONTEND_URL,stateData,{auth_token:jwtToken}));
   } catch (e) {
     console.error('Discord OAuth error:', e);
-    res.redirect(`${FRONTEND_URL}/?auth_error=discord_failed`);
+    res.redirect(oauthReturnUrl(FRONTEND_URL,stateData,{auth_error:'discord_failed'}));
   }
 });
 
@@ -1638,7 +1643,7 @@ const gameSocialAuth = require('./game-chat').gameChatAuthenticate(requireAuth, 
 const requireChatAuth = (req,res,next) => req.nexusSocialSession ? next() : requireAuth(req,res,next);
 const requireChatOrGameSocial = (req, res, next) => req.path.startsWith('/api/game-social/') ? gameSocialAuth(req, res, next) : requireChatAuth(req, res, next);
 const nexusAccounts=require('./nexus-sso');
-nexusAccounts.mountNexusSso(app,{requireAuth,getUser:dbGetUserById,getAccess:dbGetChatEligibility,store:nexusAccounts.createNexusSessionStore(supabase),frontendUrl:FRONTEND_URL});
+nexusAccounts.mountNexusSso(app,{requireAuth,getUser:async id=>{if(!supabase)return null;const {data,error}=await supabase.from('cl_users').select('id,username,display_name,avatar_url,avatar_nft_key').eq('id',id).maybeSingle();if(error)throw error;return data;},getAccess:dbGetChatEligibility,store:nexusAccounts.createNexusSessionStore(supabase),frontendUrl:FRONTEND_URL});
 require('./duo-sso').mountDuoSso(app, { requireAuth, getUser: dbGetUserById, frontendUrl: FRONTEND_URL, issueGameChat: gameChatCredentials.issue });
 const castleAccounts = require('./castle-sso');
 castleAccounts.mountCastleSso(app, { requireAuth, getUser: dbGetUserById, frontendUrl: FRONTEND_URL, store: castleAccounts.createCastleSessionStore(supabase) });

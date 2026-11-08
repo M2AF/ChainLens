@@ -4,7 +4,7 @@ const CLIENT='nexus-desktop',SESSION_MS=7*24*60*60*1000;
 const hash=value=>crypto.createHash('sha256').update(value).digest('hex');
 const random=()=>crypto.randomBytes(32).toString('hex');
 function validRedirect(value){try{const u=new URL(value);return u.protocol==='http:'&&u.hostname==='127.0.0.1'&&Number(u.port)>=1024&&Number(u.port)<=65535&&u.pathname==='/chainlens/callback'&&!u.search&&!u.hash&&!u.username&&!u.password&&u.href===value;}catch{return false;}}
-const profile=user=>({id:user.id,name:String(user.display_name||user.username||'ChainLens player').replace(/[\u0000-\u001f\u007f]/g,'').slice(0,64),avatar_url:typeof user.avatar_url==='string'?user.avatar_url:null,avatar_nft_key:user.avatar_nft_key||null});
+const profile=user=>({id:user.id,name:String(user.display_name||user.username||'ChainLens player').replace(/[\u0000-\u001f\u007f]/g,'').slice(0,64),username:typeof user.username==='string'?user.username:null,avatar_url:typeof user.avatar_url==='string'?user.avatar_url:null,avatar_nft_key:user.avatar_nft_key||null});
 function createNexusSessionStore(db){if(!db)return null;return {
  async ready(){const {error}=await db.from('cl_nexus_sessions').select('token_hash').limit(0);return !error;},
  async put(key,row){const {error}=await db.from('cl_nexus_sessions').insert({token_hash:key,user_id:row.userId,client_id:CLIENT,expires_at:new Date(row.expires).toISOString()});if(error)throw Error('session_store_unavailable');},
@@ -20,6 +20,7 @@ const SOCIAL_ROUTES=[
 function mountNexusSso(app,{requireAuth,getUser,getAccess,store,frontendUrl,fetchImpl=globalThis.fetch,giphyKey=process.env.GIPHY_API_KEY,now=Date.now}){
  const frontend=new URL(frontendUrl),codes=new Map(),limits=new Map();
  if(frontend.protocol!=='https:'&&!(frontend.protocol==='http:'&&['localhost','127.0.0.1'].includes(frontend.hostname)))throw Error('Nexus consent requires HTTPS.');
+ app.get('/api/nexus/account',requireAuth,async(req,res)=>{res.set({'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});try{const user=await getUser(req.user.sub);if(!user||user.id!==req.user.sub)return res.status(401).json({error:'Sign in again.'});res.json({user:profile(user)});}catch{res.status(503).json({error:'Account is temporarily unavailable.'});}});
  const valid=input=>input&&input.client_id===CLIENT&&input.response_type==='code'&&validRedirect(input.redirect_uri)&&input.code_challenge_method==='S256'&&/^[A-Za-z0-9_-]{43}$/.test(input.code_challenge||'')&&/^[a-f0-9]{64}$/.test(input.state||'');
  const guard=(req,res,next)=>{res.set({'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});for(const map of [codes,limits])for(const [key,row]of map)if(row.expires<=now())map.delete(key);const key=req.ip||req.socket.remoteAddress,limit=limits.get(key)||{count:0,expires:now()+60000};if(limits.size>10000||codes.size>=2000||++limit.count>120)return res.status(429).json({error:'Too many requests. Try again shortly.'});limits.set(key,limit);next();};
  const session=async(req,res,next)=>{

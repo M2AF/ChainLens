@@ -46,3 +46,9 @@ test('Missing persistent schema disables native login; expired sessions cannot a
  const disabled=await setup(t,{enabled:false});assert.equal((await disabled.request('/api/nexus/config')).status,503);assert.equal((await disabled.request('/auth/nexus?'+new URLSearchParams(input))).status,503);
  const a=await setup(t),session=await a.session();a.advance(8*24*60*60*1000);assert.equal((await a.request('/api/nexus/me',null,{bearer:session.access_token})).status,401);
 });
+
+test('The lightweight browser account endpoint returns saved public identity only',async t=>{
+ const a=await setup(t);assert.equal((await a.request('/api/nexus/account')).status,401);
+ const response=await a.request('/api/nexus/account',null,{bearer:'web-account'});assert.equal(response.status,200);const result=await response.json();assert.deepEqual(Object.keys(result.user).sort(),['avatar_nft_key','avatar_url','id','name','username']);assert(!JSON.stringify(result).includes('private'));
+ const session=await a.session();assert.equal((await a.request('/api/nexus/account',null,{bearer:session.access_token})).status,401);
+});

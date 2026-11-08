@@ -1,5 +1,13 @@
 # The Nexus social integration
 
+## Account-only browser flow (0.4.1)
+
+The launcher account button and consent sign-in link open `/nexus-account.html`, not the full ChainLens homepage/Profile application. This standalone page loads only its two stylesheets, its own script, saved PFP media and `/api/nexus/account`. It never imports the portfolio, wallet, NFT-inventory, swap or blockchain-provider bundles. Google/Discord use their existing OAuth registration with a fixed `nexus-desktop` client hint stored in server-side OAuth state. Nexus callbacks, cancellations and expired/replayed Nexus states return to this page; a successful web JWT is returned in the fragment, removed from the address bar immediately, and retained only in first-party browser storage. Existing web and social-link callbacks keep their normal destination. No arbitrary return URL is accepted.
+
+`GET /api/nexus/account` requires the existing browser account credential and projects only id, saved display name, username, avatar URL and saved avatar-selection metadata. The Nexus identity database lookup selects only these cl_users columns. It does not read holdings, scan collections or call Alchemy, Helius, RPCs or other blockchain APIs. Existing messenger eligibility checks are database checks; this work does not change messaging permissions. The launcher renders saved HTTPS PFP media (including Cloudinary) and inline raster uploads; it performs no NFT ownership lookup to display an existing picture.
+
+Validation: 300 backend tests and 20 desktop tests pass. Real OAuth route handlers are tested with stubbed Google/Discord responses to verify fixed callback destinations and only provider-auth requests. The native Electron fixture verifies the standalone account page's complete first-party request allowlist, no portfolio/blockchain requests, loaded Cloudinary-style and uploaded avatars, username refresh, draft retention and QWERTY controller chat typing without sending. No real messages or friend requests were sent. Original release a259912 is live and the user completed consent; the account-page follow-up is a separate scoped release.
+
 The Nexus can connect its friends/chat panel to an existing ChainLens account. Native sign-in uses the default browser, explicit first-party consent, S256 PKCE and a random ephemeral IPv4 loopback callback. No ChainLens web JWT, provider credential or wallet material is given to the desktop app. Production activation was authorized by the user on November 7, 2026; end-to-end messaging evidence uses isolated fictitious accounts.
 
 ## Scope and files
