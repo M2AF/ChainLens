@@ -8,6 +8,7 @@ function fixture(){
 }
 for(const provider of ['google','discord'])test(`Nexus ${provider} login and cancelled/expired flows stay out of the full crypto application`,async()=>{
  const f=fixture();let redirect;const res={redirect:url=>{redirect=url;}};
+ for(const state of ['__proto__','constructor']){await f.routes.get('/auth/'+provider+'/callback')({query:{state,code:'invalid'}},res);assert.equal(new URL(redirect).searchParams.get('auth_error'),'invalid_state');assert.equal(f.requests.length,0);}
  f.routes.get('/auth/'+provider)({query:{client:'nexus-desktop'}},res);const state=new URL(redirect).searchParams.get('state');assert(state.startsWith('nx_'));assert.equal(f.states[state].nexus,true);
  await f.routes.get('/auth/'+provider+'/callback')({query:{state,code:'fixture'}},res);let target=new URL(redirect);assert.equal(target.pathname,'/nexus-account.html');assert.equal(target.search,'');assert.equal(new URLSearchParams(target.hash.slice(1)).get('auth_token'),'fake-browser-token');assert.equal(f.requests.length,2);assert(f.requests.every(url=>/^https:\/\/(oauth2\.googleapis\.com|www\.googleapis\.com|discord\.com)\//.test(url)));
  await f.routes.get('/auth/'+provider+'/callback')({query:{state,code:'replay'}},res);target=new URL(redirect);assert.equal(target.pathname,'/nexus-account.html');assert.equal(target.searchParams.get('auth_error'),'invalid_state');assert.equal(f.requests.length,2);

@@ -1443,7 +1443,7 @@ app.get('/auth/google', (req, res) => {
 
 app.get('/auth/google/callback', async (req, res) => {
   const { code, state, error } = req.query;
-  const pendingState=_oauthStates[state],returnState=pendingState||{nexus:typeof state==='string'&&/^nx_[a-f0-9]{32}$/.test(state)};
+  const pendingState=typeof state==='string'&&Object.hasOwn(_oauthStates,state)?_oauthStates[state]:null,returnState=pendingState||{nexus:typeof state==='string'&&/^nx_[a-f0-9]{32}$/.test(state)};
   if (error || !code) return res.redirect(oauthReturnUrl(FRONTEND_URL,returnState,{auth_error:error||'cancelled'}));
   if (!pendingState || pendingState.expires <= Date.now()) return res.redirect(oauthReturnUrl(FRONTEND_URL,returnState,{auth_error:'invalid_state'}));
   // IMPORTANT: save state data BEFORE deleting it
@@ -1550,7 +1550,7 @@ app.get('/auth/discord', (req, res) => {
 
 app.get('/auth/discord/callback', async (req, res) => {
   const { code, state, error } = req.query;
-  const pendingState=_oauthStates[state],returnState=pendingState||{nexus:typeof state==='string'&&/^nx_[a-f0-9]{32}$/.test(state)};
+  const pendingState=typeof state==='string'&&Object.hasOwn(_oauthStates,state)?_oauthStates[state]:null,returnState=pendingState||{nexus:typeof state==='string'&&/^nx_[a-f0-9]{32}$/.test(state)};
   if (error || !code) return res.redirect(oauthReturnUrl(FRONTEND_URL,returnState,{auth_error:error||'cancelled'}));
   if (!pendingState || pendingState.expires <= Date.now()) return res.redirect(oauthReturnUrl(FRONTEND_URL,returnState,{auth_error:'invalid_state'}));
   // IMPORTANT: save state data BEFORE deleting it
