@@ -1635,7 +1635,10 @@ require('./profile-username').mountUsernameRoutes(app, {db:supabase,requireAuth,
 const gameChatCredentials = require('./game-chat').gameChatCredentials(JWT_SECRET);
 const gameSocialAuth = require('./game-chat').gameChatAuthenticate(requireAuth, gameChatCredentials);
 // A game credential can reach only these four aliases, never general account APIs.
-const requireChatOrGameSocial = (req, res, next) => req.path.startsWith('/api/game-social/') ? gameSocialAuth(req, res, next) : requireAuth(req, res, next);
+const requireChatAuth = (req,res,next) => req.nexusSocialSession ? next() : requireAuth(req,res,next);
+const requireChatOrGameSocial = (req, res, next) => req.path.startsWith('/api/game-social/') ? gameSocialAuth(req, res, next) : requireChatAuth(req, res, next);
+const nexusAccounts=require('./nexus-sso');
+nexusAccounts.mountNexusSso(app,{requireAuth,getUser:dbGetUserById,getAccess:dbGetChatEligibility,store:nexusAccounts.createNexusSessionStore(supabase),frontendUrl:FRONTEND_URL});
 require('./duo-sso').mountDuoSso(app, { requireAuth, getUser: dbGetUserById, frontendUrl: FRONTEND_URL, issueGameChat: gameChatCredentials.issue });
 const castleAccounts = require('./castle-sso');
 castleAccounts.mountCastleSso(app, { requireAuth, getUser: dbGetUserById, frontendUrl: FRONTEND_URL, store: castleAccounts.createCastleSessionStore(supabase) });
@@ -1923,11 +1926,11 @@ app.put('/api/profile/themes', requireAuth, async (req, res) => {
 // profile are the exact UUIDs used to send friend requests.
 // ══════════════════════════════════════════════════════════════════════════════
 
-require('./profile-social-service').mountProfileSocial(app, { db: supabase, rateLimit: searchRateLimit, requireAuth, requireChatAccess });
+require('./profile-social-service').mountProfileSocial(app, { db: supabase, rateLimit: searchRateLimit, requireAuth:requireChatAuth, requireChatAccess });
 require('./profile-community-service').mountProfileCommunity(app, { db:supabase,rateLimit:searchRateLimit,requireAuth,
   resolveFavorite:require('./public-favorites').createFavoriteResolver({fetchImpl:fetch,apiKeys:API_KEYS,repairMetadata:(network,nfts)=>nftMetadataRepair(network,nfts)}) });
 
-app.get('/api/chat/status', requireAuth, async (req, res) => {
+app.get('/api/chat/status', requireChatAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
   try {
     const access = await dbGetChatEligibility(req.user.sub);
@@ -2147,7 +2150,7 @@ app.delete(['/api/chat/friends/:friendshipId', '/api/game-social/friends/:friend
   }
 });
 
-app.get('/api/chat/friends/:friendId/messages', requireAuth, requireChatAccess, async (req, res) => {
+app.get('/api/chat/friends/:friendId/messages', requireChatAuth, requireChatAccess, async (req, res) => {
   const friendId = String(req.params.friendId || '').toLowerCase();
   if (!isUuid(friendId)) return res.status(400).json({ error: 'Invalid friend ID' });
   try {
@@ -2172,7 +2175,7 @@ app.get('/api/chat/friends/:friendId/messages', requireAuth, requireChatAccess, 
   }
 });
 
-app.post('/api/chat/friends/:friendId/messages', requireAuth, requireChatAccess, async (req, res) => {
+app.post('/api/chat/friends/:friendId/messages', requireChatAuth, requireChatAccess, async (req, res) => {
   const friendId = String(req.params.friendId || '').toLowerCase();
   if (!isUuid(friendId)) return res.status(400).json({ error: 'Invalid friend ID' });
   if (!chatMessageAllowed(req.user.sub)) {
@@ -2200,7 +2203,7 @@ app.post('/api/chat/friends/:friendId/messages', requireAuth, requireChatAccess,
   }
 });
 
-app.delete('/api/chat/friends/:friendId/messages/:messageId', requireAuth, requireChatAccess, async (req, res) => {
+app.delete('/api/chat/friends/:friendId/messages/:messageId', requireChatAuth, requireChatAccess, async (req, res) => {
   const friendId = String(req.params.friendId || '').toLowerCase();
   if (!isUuid(friendId)) return res.status(400).json({ error: 'Invalid friend ID' });
   let messageId;
@@ -2233,7 +2236,7 @@ app.delete('/api/chat/friends/:friendId/messages/:messageId', requireAuth, requi
 // deliberately absent: it is busy enough that a badge tied to it would never
 // clear, so its unseen-message state stays inside the Messenger as the
 // "Scroll to bottom" affordance and nothing else.
-app.get('/api/chat/unread', requireAuth, requireChatAccess, async (req, res) => {
+app.get('/api/chat/unread', requireChatAuth, requireChatAccess, async (req, res) => {
   try {
     res.json(await dbChatUnread(req.user.sub));
   } catch (error) {
@@ -2244,7 +2247,7 @@ app.get('/api/chat/unread', requireAuth, requireChatAccess, async (req, res) => 
 // Mark a conversation read up to a message id. Callers send the newest id they
 // have actually displayed; the cursor only ever moves forward (the GREATEST in
 // cl_chat_mark_read), so a stale request overtaking a newer one is harmless.
-app.post('/api/chat/read', requireAuth, requireChatAccess, async (req, res) => {
+app.post('/api/chat/read', requireChatAuth, requireChatAccess, async (req, res) => {
   const friendId = typeof req.body?.friend_id === 'string' ? req.body.friend_id.trim().toLowerCase() : '';
   let lastReadId;
   try {
