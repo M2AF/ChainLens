@@ -1,6 +1,15 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),express=require('express');
 const {mountIdentities}=require('../nexus-identities');
+test('Epic errors distinguish invalid app credentials from an expired code without exposing upstream details',async t=>{
+ for(const error of ['invalid_client','invalid_grant']){
+  const app=express();app.use(express.json());let writes=0;
+  mountIdentities(app,{frontendUrl:'https://www.chainlensnft.info',guard:(req,res,next)=>next(),session:(req,res,next)=>{req.user={sub:'fixture-owner'};req.nexusSocialSession={key:'fixture-session'};next();},store:{ready:async()=>true,link:async()=>writes++},getFriendIds:async()=>[],validateSession:async()=>true,epic:{clientId:'fixture-client',clientSecret:'fixture-secret'},fetchImpl:async()=>({ok:false,status:400,json:async()=>({error,errorMessage:'upstream-private-details'})})});
+  const server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));t.after(()=>new Promise(resolve=>server.close(resolve)));const base='http://127.0.0.1:'+server.address().port;
+  const start=await fetch(base+'/api/nexus/identities/link/epic',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}),job=await start.json(),state=new URL(job.authorization_url).searchParams.get('state');
+  const response=await fetch(base+'/auth/nexus/link/epic/callback?'+new URLSearchParams({state,code:'fixture-code'})),message=await response.text();assert.equal(response.status,400);assert.match(message,error==='invalid_client'?/client configuration needs updating/:/expired or was already used/);assert(!message.includes('upstream-private-details'));assert.equal(writes,0);
+ }
+});
 const owner='11111111-1111-4111-8111-111111111111',friend='22222222-2222-4222-8222-222222222222',steam='76561198000000001',discord='100000000000000001';
 async function setup(t,{conflict=false,external=false,badEpicClient=false}={}){
  const rows=[],calls=[];let active=true,clock=Date.now();const app=express();app.use(express.json());
