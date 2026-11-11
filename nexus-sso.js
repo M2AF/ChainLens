@@ -17,7 +17,7 @@ const SOCIAL_ROUTES=[
  ['GET',/^\/friends\/[0-9a-f-]{36}\/messages$/i],['POST',/^\/friends\/[0-9a-f-]{36}\/messages$/i],
  ['DELETE',/^\/friends\/[0-9a-f-]{36}\/messages\/[1-9]\d*$/i]
 ];
-function mountNexusSso(app,{requireAuth,getUser,getAccess,store,frontendUrl,fetchImpl=globalThis.fetch,giphyKey=process.env.GIPHY_API_KEY,now=Date.now}){
+function mountNexusSso(app,{requireAuth,getUser,getAccess,store,frontendUrl,fetchImpl=globalThis.fetch,giphyKey=process.env.GIPHY_API_KEY,now=Date.now,identityStore=null,getFriendIds=async()=>[],discord={},xbox={},epic={}}){
  const frontend=new URL(frontendUrl),codes=new Map(),limits=new Map();
  if(frontend.protocol!=='https:'&&!(frontend.protocol==='http:'&&['localhost','127.0.0.1'].includes(frontend.hostname)))throw Error('Nexus consent requires HTTPS.');
  app.get('/api/nexus/account',requireAuth,async(req,res)=>{res.set({'Cache-Control':'no-store','Referrer-Policy':'no-referrer'});try{const user=await getUser(req.user.sub);if(!user||user.id!==req.user.sub)return res.status(401).json({error:'Sign in again.'});res.json({user:profile(user)});}catch{res.status(503).json({error:'Account is temporarily unavailable.'});}});
@@ -27,6 +27,7 @@ function mountNexusSso(app,{requireAuth,getUser,getAccess,store,frontendUrl,fetc
   const token=String(req.headers.authorization||'').match(/^Bearer (nxs_[a-f0-9]{64})$/)?.[1];if(!token||!store)return res.status(401).json({error:'Sign in to ChainLens again.'});
   try{const key=hash(token),row=await store.get(key);if(!row||!Number.isFinite(row.expires)||row.expires<=now())return res.status(401).json({error:'Your ChainLens session has expired. Sign in again.'});const user=await getUser(row.userId);if(!user||user.id!==row.userId)return res.status(401).json({error:'Account is no longer available.'});req.nexusSocialSession={key,expires:row.expires,user:profile(user)};req.user={sub:user.id};next();}catch{res.status(503).json({error:'ChainLens is temporarily unavailable.'});}
  };
+ const identities=require('./nexus-identities').mountIdentities(app,{guard,session,store:identityStore,frontendUrl,getFriendIds,fetchImpl,now,discord,xbox,epic,validateSession:async(key,userId)=>{const row=store&&await store.get(key);return row?.userId===userId&&row.expires>now();}});
  app.get('/api/nexus/config',guard,async(req,res)=>{try{const enabled=!!store&&await store.ready();res.status(enabled?200:503).json({enabled,client_id:CLIENT,scope:'social',authorization_endpoint:new URL('/auth/nexus',frontend).href,token_endpoint:new URL('/api/nexus/token',frontend).href,redirect_type:'loopback'});}catch{res.status(503).json({enabled:false});}});
  app.get('/auth/nexus',guard,async(req,res)=>{if(!valid(req.query))return res.status(400).send('Invalid Nexus sign-in request. Start again from The Nexus.');try{if(!store||!await store.ready())return res.status(503).send('Nexus sign-in is temporarily unavailable.');const target=new URL('/nexus-connect.html',frontend);for(const key of ['client_id','redirect_uri','response_type','state','code_challenge','code_challenge_method'])target.searchParams.set(key,req.query[key]);res.redirect(target.href);}catch{res.status(503).send('Sign-in is temporarily unavailable.');}});
  app.post('/api/nexus/authorize',guard,requireAuth,async(req,res)=>{
@@ -51,5 +52,6 @@ function mountNexusSso(app,{requireAuth,getUser,getAccess,store,frontendUrl,fetc
   if(!SOCIAL_ROUTES.some(([method,pattern])=>method===req.method&&pattern.test(suffix)))return res.status(404).json({error:'Unsupported social operation.'});
   guard(req,res,()=>session(req,res,()=>{const query=req.url.includes('?')?req.url.slice(req.url.indexOf('?')):'';req.url='/api/chat'+suffix+query;next();}));
  });
+ return identities;
 }
 module.exports={mountNexusSso,createNexusSessionStore,validRedirect,CLIENT};

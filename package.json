@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node backend-server.js",
     "dev": "node --watch backend-server.js",
-    "check": "node --check backend-server.js && node --check chat-service.js && node --check auth-session.js && node --check search-service.js && node --check non-evm-scanner.js && node --check public/chain-catalog.js && node --check public/wallet-providers.js && node --check public/swap-wallet-adapter.js && node --check swap-service.js && node --check exchange-service.js && node --check public/exchange-assets.js && node --check public/swap-core.js && node --check public/dex-swap-store.js && node --check public/dex-swap.js && node --check public/search-activity.js && node --check public/theme-engine.js && node --check nexus-sso.js && node --check public/nexus-connect.js && node --check nexus-oauth.js && node --check public/nexus-account.js",
+    "check": "node --check backend-server.js && node --check chat-service.js && node --check auth-session.js && node --check search-service.js && node --check non-evm-scanner.js && node --check public/chain-catalog.js && node --check public/wallet-providers.js && node --check public/swap-wallet-adapter.js && node --check swap-service.js && node --check exchange-service.js && node --check public/exchange-assets.js && node --check public/swap-core.js && node --check public/dex-swap-store.js && node --check public/dex-swap.js && node --check public/search-activity.js && node --check public/theme-engine.js && node --check nexus-sso.js && node --check public/nexus-connect.js && node --check nexus-oauth.js && node --check public/nexus-account.js && node --check nexus-identities.js",
     "test": "node --test test/*.test.js",
     "test:e2e": "playwright test"
   },

@@ -1420,6 +1420,7 @@ app.delete('/api/auth/passkey/:id', requireAuth, async (req, res) => {
   }
 });
 
+let nexusGamingLinks;
 const {oauthReturnUrl}=require('./nexus-oauth');
 // ── Google OAuth ──────────────────────────────────────────────────────────────
 app.get('/auth/google', (req, res) => {
@@ -1549,6 +1550,7 @@ app.get('/auth/discord', (req, res) => {
 });
 
 app.get('/auth/discord/callback', async (req, res) => {
+  if(/^nxl_[a-f0-9]{64}$/.test(String(req.query.state||'')))return nexusGamingLinks.callback('discord',req,res);
   const { code, state, error } = req.query;
   const pendingState=typeof state==='string'&&Object.hasOwn(_oauthStates,state)?_oauthStates[state]:null,returnState=pendingState||{nexus:typeof state==='string'&&/^nx_[a-f0-9]{32}$/.test(state)};
   if (error || !code) return res.redirect(oauthReturnUrl(FRONTEND_URL,returnState,{auth_error:error||'cancelled'}));
@@ -1643,7 +1645,7 @@ const gameSocialAuth = require('./game-chat').gameChatAuthenticate(requireAuth, 
 const requireChatAuth = (req,res,next) => req.nexusSocialSession ? next() : requireAuth(req,res,next);
 const requireChatOrGameSocial = (req, res, next) => req.path.startsWith('/api/game-social/') ? gameSocialAuth(req, res, next) : requireChatAuth(req, res, next);
 const nexusAccounts=require('./nexus-sso');
-nexusAccounts.mountNexusSso(app,{requireAuth,getUser:async id=>{if(!supabase)return null;const {data,error}=await supabase.from('cl_users').select('id,username,display_name,avatar_url,avatar_nft_key').eq('id',id).maybeSingle();if(error)throw error;return data;},getAccess:dbGetChatEligibility,store:nexusAccounts.createNexusSessionStore(supabase),frontendUrl:FRONTEND_URL});
+nexusGamingLinks=nexusAccounts.mountNexusSso(app,{requireAuth,getUser:async id=>{if(!supabase)return null;const {data,error}=await supabase.from('cl_users').select('id,username,display_name,avatar_url,avatar_nft_key').eq('id',id).maybeSingle();if(error)throw error;return data;},getAccess:dbGetChatEligibility,store:nexusAccounts.createNexusSessionStore(supabase),identityStore:require('./nexus-identities').createIdentityStore(supabase),getFriendIds:async id=>(await dbListChatFriends(id)).friends.map(friend=>friend.id),discord:{clientId:process.env.DISCORD_CLIENT_ID,clientSecret:process.env.DISCORD_CLIENT_SECRET,redirect:process.env.DISCORD_CALLBACK_URL},xbox:{clientId:process.env.NEXUS_MICROSOFT_CLIENT_ID,clientSecret:process.env.NEXUS_MICROSOFT_CLIENT_SECRET},epic:{clientId:process.env.NEXUS_EPIC_CLIENT_ID,clientSecret:process.env.NEXUS_EPIC_CLIENT_SECRET},frontendUrl:FRONTEND_URL});
 require('./duo-sso').mountDuoSso(app, { requireAuth, getUser: dbGetUserById, frontendUrl: FRONTEND_URL, issueGameChat: gameChatCredentials.issue });
 const castleAccounts = require('./castle-sso');
 castleAccounts.mountCastleSso(app, { requireAuth, getUser: dbGetUserById, frontendUrl: FRONTEND_URL, store: castleAccounts.createCastleSessionStore(supabase) });

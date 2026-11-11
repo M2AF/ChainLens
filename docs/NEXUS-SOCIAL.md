@@ -39,3 +39,18 @@ Release checklist:
 4. Have the user complete actual browser consent from the packaged launcher. Confirm their account and existing friends. Do not send messages/friend requests without a specific user instruction.
 
 Production database migrations `20261108025403_nexus_social_sessions` and `20261108025438_nexus_session_service_grants` are applied. The follow-up overrides project default service-role ALL grants to retain only SELECT/INSERT/DELETE. Browser roles are denied; RLS is enabled. Server release verification follows deployment; actual user consent remains a separate gate. No real messages or friend requests were sent.
+
+
+## Nexus 0.8.0 gaming identities
+
+`nexus-identities.js` adds private verified Steam/Discord/Xbox/Epic identities. Each link starts with a current opaque Nexus session, is bound to that same session and owner, and completes only after platform proof. Steam uses server-verified OpenID; Discord uses identify-only OAuth/PKCE. Microsoft uses a personal-account web app and XboxLive.signin to exchange XSTS identity; Epic uses basic_profile friends_list and validates the issued client ID. Identity conflicts never transfer another ChainLens account's linked identity. Existing login accounts also block conflicting links.
+
+Apply only `supabase/migrations/20261111064353_nexus_verified_gaming_identities.sql`. Table RLS and grants deny browser roles. Service-role RPC rejects transfers. Only accepted, unblocked ChainLens friends receive verified identity edges. Local manual contact separation overrides those edges. No wallet/holdings/provider calls are introduced.
+
+Server-only configuration (ignored .env locally; configure intended deployment separately): NEXUS_MICROSOFT_CLIENT_ID, NEXUS_MICROSOFT_CLIENT_SECRET, NEXUS_EPIC_CLIENT_ID, NEXUS_EPIC_CLIENT_SECRET. Discord reuses existing server configuration. Never package these secrets in Electron. Microsoft redirect is canonical frontend origin + /auth/nexus/link/xbox/callback; Epic redirect is /auth/nexus/link/epic/callback.
+
+Xbox/Epic provider tokens are held temporarily in bounded expiring RAM intents and can be claimed once by the same authenticated Nexus session. The session endpoint returns no-store and is not exposed through renderer generic APIs. Main accepts validated tokens into encrypted per-platform local storage. No refresh tokens are retained; expiry requires reconnect. Link/unlink and local connect/disconnect are separate operations.
+
+Developer portals: Microsoft The Nexus personal-account app registered; Epic The Nexus client restricted with all game-service actions disabled and user-required policy; EAS Basic Profile/Friends/Presence enabled, Country disabled. Epic brand/domain/privacy review is unfinished, so public availability is not claimed. Epic REST friends only include consenting accounts; no Epic presence/DM support. Xbox social/profile/presence is read-only and depends on application/service access. No Xbox/Epic DM controls are enabled.
+
+Validation: all 307 backend tests pass; identity/SSO targeted13 pass including wrong-client token rejection, invalid code rejection, session-bound one-time retrieval and replay refusal. Private SQL was validated in ephemeral PGlite for grants/RLS, no-transfer, uniqueness and cascades. User approved scoped activation on November 11. Production migration20261111064353 is applied with live RLS/grants verified; backend commit and deployment follow. The local migration filename matches the version recorded by the production migration service.
