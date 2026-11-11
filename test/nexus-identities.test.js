@@ -31,7 +31,8 @@ test('Xbox and Epic proofs issue one-time session-bound desktop credentials with
  const a=await setup(t,{external:true});
  for(const provider of ['xbox','epic']){
   const job=await a.start(provider),url=new URL(job.authorization_url);
-  assert.equal(url.searchParams.get('scope'),provider==='xbox'?'XboxLive.signin':'basic_profile friends_list');
+  assert.equal(url.searchParams.get('scope'),provider==='xbox'?'XboxLive.signin':'basic_profile friends_list presence');
+  if(provider==='epic')assert.equal(url.searchParams.get('prompt'),'consent');
   const route='/auth/nexus/link/'+provider+'/callback?'+new URLSearchParams({state:url.searchParams.get('state'),code:'fixture-code'});
   assert.equal((await a.request(route,null,{auth:false})).status,200);
   const status=await(await a.request('/api/nexus/identities/link/'+job.intent_id)).json();assert.equal(status.status,'linked');assert(!JSON.stringify(status).includes('private'));
