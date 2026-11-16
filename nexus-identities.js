@@ -13,12 +13,6 @@ function createIdentityStore(db){if(!db)return null;const checked=result=>{if(re
 };}
 // offline_access makes Microsoft issue a refresh token so Nexus can renew Xbox sessions.
 const XBOX_SCOPE='XboxLive.signin offline_access',MS_TOKEN='https://login.microsoftonline.com/consumers/oauth2/v2.0/token',EPIC_TOKEN='https://api.epicgames.dev/epic/oauth/v2/token';
-// Device proof: Xbox issues device tokens for a self-generated P-256 key, and every request that
-// presents the key must carry a Signature header (policy 1, Windows-epoch timestamp, ES256 r||s).
-const XBOX_DEVICE='https://device.auth.xboxlive.com/device/authenticate',XBOX_XSTS='https://xsts.auth.xboxlive.com/xsts/authorize';
-function xboxSigner(now=Date.now){const {publicKey,privateKey}=crypto.generateKeyPairSync('ec',{namedCurve:'P-256'}),jwk={...publicKey.export({format:'jwk'}),alg:'ES256',use:'sig'};
- return {jwk,sign(url,body,authorization=''){const stamp=(BigInt(Math.floor(now()/1000))+11644473600n)*10000000n,head=Buffer.alloc(14);head.writeInt32BE(1,0);head.writeUInt8(0,4);head.writeBigUInt64BE(stamp,5);head.writeUInt8(0,13);
-  const signed=Buffer.concat([head,Buffer.from('POST\0'+new URL(url).pathname+'\0'+authorization+'\0'+body+'\0','utf8')]),signature=crypto.sign('SHA256',signed,{key:privateKey,dsaEncoding:'ieee-p1363'}),header=Buffer.alloc(12);header.writeInt32BE(1,0);header.writeBigUInt64BE(stamp,4);return Buffer.concat([header,signature]).toString('base64');}};}
 const validRefreshToken=value=>typeof value==='string'&&value.length>0&&value.length<=16384&&!/[\r\n]/.test(value);
 // Refresh tokens are handed to the desktop (encrypted there) and never stored by ChainLens.
 const refreshFields=(token,expiresAt=null)=>validRefreshToken(token)?{refreshToken:token,...(expiresAt?{refreshExpiresAt:expiresAt}:{})}:{};
@@ -53,18 +47,9 @@ function mountIdentities(app,{guard,session,store,frontendUrl,getFriendIds,valid
   if(typeof tokens.access_token!=='string')throw Error('invalid_proof');
   const headers={'Content-Type':'application/json','x-xbl-contract-version':'1'},user=await json('https://user.auth.xboxlive.com/user/authenticate',{method:'POST',headers,body:JSON.stringify({RelyingParty:'http://auth.xboxlive.com',TokenType:'JWT',Properties:{AuthMethod:'RPS',SiteName:'user.auth.xboxlive.com',RpsTicket:'d='+tokens.access_token}})});
   if(typeof user.Token!=='string')throw Error('invalid_proof');
-  // Try to add device proof (Xbox stores direct messages only from proven devices); fall back to a user-only token.
-  let xsts=null,deviceProof=false;
-  try{const signer=xboxSigner(now),deviceBody=JSON.stringify({Properties:{AuthMethod:'ProofOfPossession',Id:'{'+crypto.randomUUID()+'}',DeviceType:'Win32',SerialNumber:'{'+crypto.randomUUID()+'}',Version:'10.0.0',ProofKey:signer.jwk},RelyingParty:'http://auth.xboxlive.com',TokenType:'JWT'});
-   const device=await json(XBOX_DEVICE,{method:'POST',headers:{...headers,'Cache-Control':'no-store, must-revalidate, no-cache',Signature:signer.sign(XBOX_DEVICE,deviceBody)},body:deviceBody});
-   if(typeof device.Token!=='string')throw Error('invalid_proof');
-   const body=JSON.stringify({RelyingParty:'http://xboxlive.com',TokenType:'JWT',Properties:{UserTokens:[user.Token],DeviceToken:device.Token,ProofKey:signer.jwk,SandboxId:'RETAIL'}});
-   const proven=await json(XBOX_XSTS,{method:'POST',headers:{...headers,'Cache-Control':'no-store, must-revalidate, no-cache',Signature:signer.sign(XBOX_XSTS,body)},body});
-   if(typeof proven.Token==='string'){xsts=proven;deviceProof=true;}
-  }catch{/* Device proof is best effort. */}
-  if(!xsts)xsts=await json(XBOX_XSTS,{method:'POST',headers,body:JSON.stringify({Properties:{SandboxId:'RETAIL',UserTokens:[user.Token]},RelyingParty:'http://xboxlive.com',TokenType:'JWT'})});
+  const xsts=await json('https://xsts.auth.xboxlive.com/xsts/authorize',{method:'POST',headers,body:JSON.stringify({Properties:{SandboxId:'RETAIL',UserTokens:[user.Token]},RelyingParty:'http://xboxlive.com',TokenType:'JWT'})});
   const claims=xsts.DisplayClaims?.xui?.[0],id=identity('xbox',claims?.xid),expiresAt=Date.parse(xsts.NotAfter);if(typeof xsts.Token!=='string'||!/^\d{1,32}$/.test(claims?.uhs||'')||!Number.isFinite(expiresAt)||expiresAt<=now())throw Error('invalid_proof');
-  return {id,session:{provider:'xbox',accountId:id,token:xsts.Token,userHash:claims.uhs,expiresAt,deviceProof,...refreshFields(tokens.refresh_token)}};
+  return {id,session:{provider:'xbox',accountId:id,token:xsts.Token,userHash:claims.uhs,expiresAt,...refreshFields(tokens.refresh_token)}};
  }
  async function epicIdentity(query){
   return epicSession(await json(EPIC_TOKEN,{method:'POST',headers:{Authorization:epicAuth()},body:new URLSearchParams({grant_type:'authorization_code',code:String(query.code||''),redirect_uri:callbacks.epic,scope:'basic_profile friends_list presence'})}));
@@ -117,4 +102,4 @@ function mountIdentities(app,{guard,session,store,frontendUrl,getFriendIds,valid
  app.get('/auth/nexus/link/steam/callback',(req,res)=>callback('steam',req,res));
  return {callback};
 }
-module.exports={xboxSigner,createIdentityStore,mountIdentities,identity};
+module.exports={createIdentityStore,mountIdentities,identity};
