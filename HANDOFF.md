@@ -7,13 +7,15 @@ task: -
 lease_until: -
 repo: .
 verify: npm run check && npm test
-verified: 814f86c · 814f86c pushed/deployed; migration20261028034815 applied; live config/consent/exact script/auth denial/invalid grant pass; RLS ACL service-only.290Node/check and ephemeral SQL gates pass. No Actions configured; actual account consent pending. · 2026-10-28T02:44-03:00
-head: d483d90 (main) dirty 4
-updated: 2026-11-02T01:42-04:00 · codex
+verified: 8cff04c · 8cff04c check and all308 backend tests pass; matching Render commit Live; actual Epic authorization callback and profile read succeed. No messages sent. · 2026-11-11T12:32-04:00
+head: 8cff04c (fix/nexus-identity-session-refresh) dirty 4
+updated: 2026-11-16T15:01-04:00 · claude
 
-resources: -
+resources: ["nexus-identities"]
 
 ## Now
+- Nexus account linking LIVE at 8cff04c98256e4cb95151c93288542390b369f9d; matching Render deploy Live. Epic real OAuth root cause: required Presence scope omitted (corrective_action_required/SCOPE_CONSENT); authorization/token now request basic_profile friends_list presence and prompt=consent. Real consent/callback succeeded; one-time main-process session claim saved encrypted own Epic session, display-name API succeeds, authorized friends currently 0. 308 backend tests/check pass. Prior invalid-code probe only proved credentials, not actual OAuth. Public brand/domain review remains separate. Nexus source Xbox adapter preserves own gamertag and 96 friend IDs/presence through profile429, honors Retry-After, caches profiles; 0.8.1 Windows build in progress at launcher output/accounts/081-windows-build.log.
+- The Nexus 0.4.1 complete: saved self/friend PFPs (Cloudinary/inline), username refresh without draft loss, QWERTY controller keyboard. Portable built; 20 desktop/300 backend tests/check and packaged social/controller/runtime pass. Initial a259912 live; user consent completed. Follow-up ac07fb3 +5f1b326 pushed; user triggered Render deployment. Live account script matches exact local SHA256; config/account denials/invalid grants/Google+Discord error destinations and consent account-only link pass. Standalone account flow avoids portfolio/crypto-provider requests. No real social writes. docs/NEXUS-SOCIAL.md; launcher output/social-{results,live-verification}.json.
 - Mancave Back to home link added locally above desktop sidebar logo and upper-left mobile; same-tab https://mancave.chainlensnft.info/#home. Mobile menu moved below link. public/index.html + e2e/arcade.spec.js; syntax/14 JSX/290 Node/3 responsive browser journeys pass; mobile screenshot reviewed. No commit/push/Render deploy.
 - Arcade custom domain: all seven Play links use https://duo.magicmoney.dev; DUO card game now targets /duo/ because / is the live Arcade hub. Source/tests/docs updated locally; no commit or deployment.
 - Castle Siege Android login LIVE: authorized scoped8-file commit814f86c2e76463741f47c50bdd65122aca00dedc pushed main; private migration20261028034815 applied. Native account19 installed; system-browser PKCE/consent, encrypted game credential and server revocation implemented. Actual user account consent pending; user needs phone, do not automate device. Cloud saves/friends/multiplayer remain disabled.
@@ -44,7 +46,7 @@ resources: -
 - NFT PFP work remains in scope of prior shared feature: cached searchable/scrollable spam-filtered picker, NFT-detail action, shared avatar_nft_key, animated NFT hexagons and circular uploads. Shared Supabase migration20261013012323 applied; existing pictures need NFT reselection once. App/Worker deployment and native runtime sync QA remain separate. Companion wallet final local gate exits0:2520unit/91browser+1history retry+1skip; no agent release/install.
 
 ## Next
-- Publish verified ChainLens home link via user release workflow after mancave DNS is active
+- With user approval: commit, push, PR, then deploy to Render BEFORE the Nexus release; users reconnect Xbox/Epic once.
 
 ## Traps
 - Fresh Windows worktrees may convert generated public/swap-core.js to CRLF and fail its manifest hash test. Exact tracked Git blob matches manifest; restore exact blob bytes for validation, never replace expected hash or hand-edit generated logic.
@@ -59,6 +61,7 @@ resources: -
 - Full older theme/media/provider guardrails are retained in HANDOFF_ARCHIVE.md (snapshot2026-10-12); read them before touching those systems.
 
 ## Skills
+- Nexus social login -> Debugging, agent-handoff, architecture-review, Fullstack Iteration, Visual Iteration, Playwright Testing, supabase:supabase | used: scoped PKCE bridge, existing social authorization, private migration ACLs, native fixture tests and layout review | Codex: resolve current catalog; Claude: resolve local catalog.
 - Castle Siege account service -> agent-handoff,Fullstack Iteration,architecture-review,Playwright Testing,supabase:supabase | used: fixed native client/PKCE, persistent private session ACLs, fixture tests and live deployment verification | Codex:resolve current catalog;Claude:unknown.
 - Cross-app game chat -> agent-handoff, Fullstack Iteration, architecture-review, Visual Iteration, Playwright Testing, supabase:supabase | used: existing SSO scope, room isolation, responsive and real-socket local fixture checks | Codex: resolve current catalog; Claude: resolve catalog.
 - Search architecture/privacy -> architecture-review / supabase:supabase | used: deterministic/read-only modules, provider caps, DB allowlists, SDK stub verification and primary docs | Codex: C:/Users/balla/.codex/skills/architecture-review/SKILL.md; C:/Users/balla/.codex/plugins/cache/openai-curated-remote/supabase/1.0.0/skills/supabase/SKILL.md | Claude: resolve catalog.
